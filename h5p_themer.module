@@ -1,0 +1,239 @@
+<?php
+/**
+ * @file
+ * H5P Themer foundation. SPDX-License-Identifier: GPL-2.0-or-later.
+ */
+
+require_once __DIR__ . '/h5p_themer.config.inc';
+require_once __DIR__ . '/h5p_themer.runtime.inc';
+
+/**
+ * Implements hook_permission().
+ */
+function h5p_themer_permission() {
+  return array('administer h5p themes' => array(
+    'title' => t('Administer H5P themes'),
+    'description' => t('Manage reusable theme definitions and the stored global default.'),
+    'restrict access' => TRUE,
+  ));
+}
+
+/**
+ * Access callback: authenticated administrators receive session-bound tokens.
+ */
+function h5p_themer_admin_access() {
+  global $user;
+  return !empty($user->uid) && user_access('administer h5p themes');
+}
+
+/**
+ * Implements hook_menu(). All mutations are submitted through Form API.
+ */
+function h5p_themer_menu() {
+  $base = 'admin/config/content/h5p-themer';
+  $common = array(
+    'access callback' => 'h5p_themer_admin_access',
+    'access arguments' => array(),
+    'file' => 'h5p_themer.admin.inc',
+  );
+  $items[$base] = array(
+    'title' => 'H5P themes',
+    'description' => 'Manage reusable H5P themes and the global default.',
+    'page callback' => 'h5p_themer_overview',
+  ) + $common;
+  $items[$base . '/list'] = array(
+    'title' => 'Themes',
+    'page callback' => 'h5p_themer_overview',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+  ) + $common;
+  $items[$base . '/add'] = array(
+    'title' => 'Add theme',
+    'page callback' => 'backdrop_get_form',
+    'page arguments' => array('h5p_themer_theme_form', 'add'),
+    'type' => MENU_LOCAL_ACTION,
+  ) + $common;
+  $items[$base . '/default'] = array(
+    'title' => 'Global default',
+    'page callback' => 'backdrop_get_form',
+    'page arguments' => array('h5p_themer_default_form'),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 1,
+  ) + $common;
+  foreach (array('edit' => 'Edit theme', 'duplicate' => 'Duplicate theme', 'delete' => 'Delete theme') as $operation => $title) {
+    $items[$base . '/%/' . $operation] = array(
+      'title' => $title,
+      'page callback' => 'backdrop_get_form',
+      'page arguments' => $operation === 'delete' ? array('h5p_themer_delete_form', 4) : array('h5p_themer_theme_form', $operation, 4),
+      'type' => MENU_CALLBACK,
+    ) + $common;
+  }
+  $items[$base . '/presets/%/%'] = array(
+    'title' => 'View built-in theme',
+    'page callback' => 'h5p_themer_preset_view',
+    'page arguments' => array(5, 6),
+    'type' => MENU_CALLBACK,
+  ) + $common;
+  $items[$base . '/presets/%/%/duplicate'] = array(
+    'title' => 'Duplicate built-in theme',
+    'page callback' => 'backdrop_get_form',
+    'page arguments' => array('h5p_themer_theme_form', 'preset_duplicate', 5, 6),
+    'type' => MENU_CALLBACK,
+  ) + $common;
+  return $items;
+}
+
+/**
+ * Implements hook_config_info().
+ */
+function h5p_themer_config_info() {
+  return array(
+    'h5p_themer.settings' => array(
+      'label' => t('H5P Themer settings'),
+      'group' => t('H5P Themer'),
+    ),
+    'h5p_themer.theme' => array(
+      'name_key' => 'id',
+      'label_key' => 'label',
+      'group' => t('H5P themes'),
+    ),
+  );
+}
+
+/**
+ * Checks the enabled integration without constructing H5P services or writing.
+ *
+ * @return array
+ *   compatible (bool), code (string), version (string|null), message (string).
+ */
+function h5p_themer_compatibility() {
+  $result = array('compatible' => FALSE, 'code' => 'h5p_unavailable', 'version' => NULL);
+  if (!module_exists('h5p') || !function_exists('h5p_autoload_info')) {
+    $result['message'] = t('The Backdrop H5P module must be present and enabled. Enable H5P before enabling H5P Themer.');
+    return $result;
+  }
+
+  // class_exists() uses Backdrop's autoloader and h5p_autoload_info() mapping.
+  // Do not call _h5p_get_instance(): reading the static API needs no service.
+  try {
+    if (!class_exists('H5PCore')) {
+      $result['code'] = 'core_unavailable';
+      $result['message'] = t('H5P Core could not be loaded through the enabled H5P integration.');
+      return $result;
+    }
+    $api = property_exists('H5PCore', 'coreApi') ? H5PCore::$coreApi : NULL;
+  }
+  catch (Throwable $e) {
+    $result['code'] = 'core_unavailable';
+    $result['message'] = t('H5P Core API information could not be read.');
+    return $result;
+  }
+
+  if (!is_array($api) || !isset($api['majorVersion'], $api['minorVersion']) ||
+      !is_int($api['majorVersion']) || !is_int($api['minorVersion']) ||
+      $api['majorVersion'] < 0 || $api['minorVersion'] < 0) {
+    $result['code'] = 'api_malformed';
+    $result['message'] = t('H5P Core API information is missing or malformed.');
+    return $result;
+  }
+
+  $result['version'] = $api['majorVersion'] . '.' . $api['minorVersion'];
+  $result['compatible'] = $api['majorVersion'] === 1 && $api['minorVersion'] === 28;
+  $result['code'] = $result['compatible'] ? 'compatible' : 'api_incompatible';
+  $result['message'] = $result['compatible']
+    ? t('H5P Core API 1.28 is available. Global color overrides are supported for compatible playback; density is not applied.')
+    : t('H5P Themer requires exactly H5P Core API 1.28; detected @version.', array('@version' => $result['version']));
+  return $result;
+}
+
+/**
+ * Implements hook_config_data_validate().
+ *
+ * Only validates this object. Cross-object references belong to the import
+ * lifecycle hooks, where the complete proposed change set is available.
+ */
+function h5p_themer_config_data_validate(Config $config, ?array $config_info) {
+  $name = $config->getName();
+  if (strpos($name, 'h5p_themer.') === 0) {
+    $errors = h5p_themer_config_errors($name, $config->getOriginal());
+    if ($errors) {
+      throw new ConfigValidateException(implode(' ', $errors));
+    }
+  }
+}
+
+/**
+ * Implements hook_config_create_validate().
+ */
+function h5p_themer_config_create_validate(Config $staging_config, ?array $all_changes) {
+  _h5p_themer_validate_default_reference($staging_config, $all_changes);
+}
+
+/**
+ * Implements hook_config_update_validate().
+ */
+function h5p_themer_config_update_validate(Config $staging_config, Config $active_config, ?array $all_changes) {
+  _h5p_themer_validate_default_reference($staging_config, $all_changes);
+}
+
+/**
+ * Implements hook_config_delete_validate().
+ */
+function h5p_themer_config_delete_validate(Config $active_config, ?array $all_changes) {
+  $name = $active_config->getName();
+  if (strpos($name, 'h5p_themer.theme.') !== 0) {
+    return;
+  }
+  // Settings deletion explicitly leaves no selected theme.
+  if (isset($all_changes['h5p_themer.settings']) && $all_changes['h5p_themer.settings'] === 'delete') {
+    return;
+  }
+  $type = isset($all_changes['h5p_themer.settings']) &&
+    in_array($all_changes['h5p_themer.settings'], array('create', 'update'), TRUE) ? 'staging' : 'active';
+  $settings = h5p_themer_config_load('h5p_themer.settings', $type, TRUE);
+  if ($settings['errors']) {
+    throw new ConfigValidateException(t('Repair or explicitly replace the H5P Themer settings before deleting a theme.'));
+  }
+  $reference = h5p_themer_selection_reference($settings['data']['default_theme'], $settings['data']['schema_version']);
+  if ($reference['data']['kind'] === 'custom' && $reference['data']['id'] === substr($name, strlen('h5p_themer.theme.'))) {
+    throw new ConfigValidateException(t('The default H5P theme cannot be deleted. Select another theme or clear the default in the same import.'));
+  }
+}
+
+/**
+ * Validates a settings import against its final referenced theme.
+ */
+function _h5p_themer_validate_default_reference(Config $candidate, $all_changes) {
+  if ($candidate->getName() !== 'h5p_themer.settings') {
+    return;
+  }
+  h5p_themer_config_data_validate($candidate, NULL);
+  $reference = h5p_themer_selection_reference($candidate->getOriginal('default_theme'), $candidate->getOriginal('schema_version'));
+  if ($reference['data']['kind'] !== 'custom') {
+    return;
+  }
+  $id = $reference['data']['id'];
+  $name = 'h5p_themer.theme.' . $id;
+  $change = isset($all_changes[$name]) ? $all_changes[$name] : NULL;
+  if ($change === 'delete') {
+    throw new ConfigValidateException(t('The selected default H5P theme is being deleted in this import.'));
+  }
+  $theme = h5p_themer_config_load($name, in_array($change, array('create', 'update'), TRUE) ? 'staging' : 'active', TRUE);
+  if ($theme['errors']) {
+    throw new ConfigValidateException(t('The default H5P theme must reference an existing, valid theme definition.'));
+  }
+}
+
+/**
+ * Implements hook_h5p_styles_alter(). No runtime JavaScript or editor theming.
+ */
+function h5p_themer_h5p_styles_alter(&$styles, $libraries, $mode) {
+  if (!is_array($styles) || !in_array($mode, array('div', 'iframe', 'external'), TRUE)) { return; }
+  $css = h5p_themer_runtime_css();
+  if ($css['errors'] || $css['data'] === '') { return; }
+  $asset = h5p_themer_runtime_asset($css['data']);
+  if ($asset['errors'] || $asset['data'] === NULL) { return; }
+  foreach ($styles as $style) {
+    if (is_object($style) && isset($style->path) && $style->path === $asset['data']->path) { return; }
+  }
+  $styles[] = $asset['data'];
+}

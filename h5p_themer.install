@@ -1,0 +1,34 @@
+<?php
+/**
+ * @file
+ * Installation/status checks. SPDX-License-Identifier: GPL-2.0-or-later.
+ */
+
+// Requirements may run before this module has been enabled.
+require_once __DIR__ . '/h5p_themer.module';
+
+/**
+ * Implements hook_requirements(). No service initialization or storage writes.
+ */
+function h5p_themer_requirements($phase) {
+  if (!in_array($phase, array('install', 'runtime'), TRUE)) {
+    return array();
+  }
+  $compatibility = h5p_themer_compatibility();
+  $requirements['h5p_themer_core_api'] = array(
+    'title' => t('H5P Themer Core API compatibility'),
+    'value' => $compatibility['version'] === NULL ? t('Unavailable') : $compatibility['version'],
+    'severity' => $compatibility['compatible'] ? REQUIREMENT_OK : REQUIREMENT_ERROR,
+    'description' => $compatibility['message'],
+  );
+  if ($phase === 'runtime') {
+    $default = h5p_themer_default_theme_load();
+    $requirements['h5p_themer_configuration'] = array(
+      'title' => t('H5P Themer configuration'),
+      'value' => $default['errors'] ? t('Invalid configuration') : ($default['data'] === NULL ? t('No default selected') : check_plain($default['data']['label'])),
+      'severity' => $default['errors'] ? REQUIREMENT_ERROR : REQUIREMENT_OK,
+      'description' => $default['errors'] ? implode(' ', $default['errors']) : t('Global color overrides apply to compatible H5P playback. Core defaults add no overrides; density is not applied.'),
+    );
+  }
+  return $requirements;
+}

@@ -1,0 +1,7 @@
+type = module
+name = H5P Themer
+description = "Manage reusable H5P themes. Core API 1.28 only. Global color overrides for compatible playback; density is not applied."
+package = H5P
+backdrop = 1.x
+dependencies[] = h5p
+configure = admin/config/content/h5p-themer
