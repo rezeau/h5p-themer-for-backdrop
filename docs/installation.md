@@ -109,3 +109,81 @@ comprehensive browser or accessibility certification.
 
 See [administration](administration.md), [configuration](configuration.md) and the
 [planned roadmap](roadmap.md) for details.
+
+## 7. Optional learner theme selection
+
+Global Default offers **Allow learners to select their H5P theme**, false by
+default. To enable it, open `admin/config/content/h5p-themer/default`, check the
+setting, save, and reload an existing H5P playback page. One native selector is
+shown above the first eligible activity and controls all eligible activities on
+that page without H5P reinitialization, iframe navigation or answer/scoring changes.
+
+Choose Site default to follow the administrator's configured global theme, or
+explicit H5P Core defaults to use Core independently of that setting. Daylight is
+a distinct built-in palette; Lavender, Mint, Sunset, Dark and all valid saved
+custom themes are also available. Existing custom inheritance remains intact.
+
+The selector restores a valid browser tab-session preference, otherwise Site
+default. With usable sessionStorage, choices survive same-tab navigation/reload;
+Site default clears the stored choice. This is not permanent learner-account or
+cross-device persistence and does not save answers. Opener-created tabs may copy
+a preference, and browser session restoration can retain it. Storage failures
+leave page-only switching available; disabled or incompatible-only pages ignore
+the preference without reading or clearing it.
+
+Eligibility requires the native player's own direct `.h5p-container.h5p-theme`
+and matching stylesheet readiness. Unsupported legacy/unmarked activities do not
+trigger a selector. In mixed pages, ineligible activities retain normal global
+styling. This marker convention does not establish universal H5P compatibility.
+Editors, administrator previews and external/cross-origin embeds are excluded.
+
+To stop future Themer overrides, choose Core as the administrator-global default
+and disable learner selection, then save/reload playback pages. Global Core alone
+may still attach learner assets while selection is enabled. Explicit Core in a
+learner selector affects only that learner's choice, not administrator settings.
+
+Phase 2C functionality passed user-confirmed Firefox Step 5E 10/10 and Step 6E
+9/9 acceptance checks. Source/tests check the native select and associated label.
+Keyboard-only acceptance, screen-reader announcements, focus on removal,
+narrow/mobile layout, RTL/long translated labels, Chromium, Safari, restricted
+storage and broader library support are not fully qualified. No WCAG certification
+or stable-production guarantee is made. See [the current roadmap](roadmap.md).
+
+## Deployment cache refresh
+
+The Step 6C/6D deployment showed that Backdrop can reuse a JavaScript aggregate
+when source bytes change at the same filename. New content-addressed learner CSS
+can then be combined with the old controller, which never sets the eligibility
+attribute required by the new CSS. A selector may appear and accept choices
+without visibly changing an activity. A browser hard reload alone does not
+invalidate that server-side mapping.
+
+After a deployment that changes learner JavaScript, use a supported local CLI
+bootstrap that reaches `BACKDROP_BOOTSTRAP_FULL` for the intended site, then invoke
+these verified native operations exactly once in this order:
+
+```php
+// Inside an already fully bootstrapped Backdrop environment for the target site.
+backdrop_clear_js_cache();
+cache_clear_all();
+```
+
+These are not standalone PHP commands: do not run this snippet with a bare PHP
+interpreter or expose it as a web script. The no-argument `cache_clear_all()`
+flushes page/layout-path output in the inspected Backdrop 1.35.2 installation;
+the JavaScript call invalidates the aggregate mapping through supported APIs.
+Verify API behavior and use the site's established bootstrap procedure on other
+versions. This is a targeted deployment operation, not a full cache rebuild.
+
+A subsequent fresh playback request can build the JavaScript aggregate from the
+current source. It can reuse the verified learner CSS; changed CSS bytes already
+select a different content-addressed filename and aggregation key. No separate
+CSS clearing or forced stylesheet regeneration is needed for this correction.
+Preserve generated CSS, H5P dependencies, hook discovery and authored content.
+Do not manually edit cache database entries or delete generated stylesheets.
+
+Verify actual browser delivery after invalidation: inspect the loaded controller
+and matching CSS/settings, confirm eligibility on supported content roots, and
+test theme switching while answers remain intact. Do not infer delivery merely
+from a successful CLI call. No cache operation or browser request is performed
+as part of the publication text corrections.

@@ -20,7 +20,12 @@ previews of unsaved color edits.
   relevant theme CSS custom properties.
 
 No H5P Core, Editor or integration source changes are needed. The module adds no
-external picker dependency or learner-facing runtime JavaScript.
+external picker dependency. Administrator-enabled learner selection changes
+eligible activities' styling without restarting them. A validated preference can
+follow the current browser tab session using sessionStorage; it is not an account
+preference and does not save H5P answers. Phase 2C functionality is implemented
+and has passed the recorded Firefox acceptance checks. This remains development
+software, with limited browser and accessibility qualification.
 
 ## Install and use
 
@@ -70,22 +75,27 @@ is enabled. See [administration](docs/administration.md) for the exact behavior.
 ## Global color runtime and limitations
 
 The existing H5P styles hook delivers global colors to div, iframe and external
-playback modes. Core/null attaches no Themer CSS and does not inspect public
-storage. Themes resolve through validated effective configuration, and a fixed
+playback modes. With learner selection disabled, Core/null attaches no Themer
+CSS and does not inspect public storage. Enabled DIV/internal-iframe playback
+uses a separate immutable learner bundle, including when the global choice is Core. Themes resolve through validated effective configuration, and a fixed
 `.h5p-content` selector emits the 33 supported color properties. Exact trusted
 preset expressions are allowed; custom overrides remain strict hex. The catalog's
 additional `--h5p-theme-contrast-cta-dark` property is retained as data but is not
 emitted because Core 1.28 runtime support has not been established.
 
-Immutable `colors-v1-<sha256>.css` assets live under `public://h5p_themer/`.
+Immutable `colors-v1-<sha256>.css` global assets and enabled
+`learner-v1-<sha256>.css` bundles live under `public://h5p_themer/`.
 Verified bytes, a filesystem lock and rename coordinate publication; existing
 unexpected files are preserved and not attached. Resolution, compatibility or
-storage failures leave normal H5P playback without Themer overrides.
+storage failures preserve playback. A failed learner bundle falls back to the
+legacy global path when available; unresolved global colors add no overrides.
 
 Successful global-reference changes or selected-custom color changes invalidate
-native page/layout caches. No-op, unselected, label-only, density-only and rejected
-saves do not. Raw programmatic configuration changes need caller-managed cache
-invalidation; generated CSS is derived cache data.
+native page/layout caches. The optional learner UI also invalidates these caches
+when its enable flag, displayed options or any selectable palette changes. One combined invalidation
+avoids duplicate flushes. Disabled UI retains the earlier unselected/metadata-only
+behavior; density-only, no-op and rejected saves do not invalidate. Raw
+programmatic configuration changes need caller-managed cache invalidation.
 
 Current limits:
 
@@ -99,21 +109,22 @@ Current limits:
   cannot recolor an unrelated provider's activity. Nested/cross-origin contexts,
   multiple players, fullscreen and caches need context-specific qualification.
 - Already open players require reloading after a global administrative change.
-  No learner-controlled hot switching or per-content assignment is implemented.
+  Learner switching uses the current page catalog; it does not subscribe to
+  administrative changes. Per-content assignment is not implemented.
 - There is no comprehensive cross-browser or accessibility certification.
   Upstream WCAG subtitles are metadata, not certification of this module or content.
-- A 375px viewport was manually usable in Firefox but cramped; further layout
-  work remains appropriate.
+- The administration/preview interface was manually usable at 375px in Firefox
+  but cramped. The learner selector still needs narrow/mobile viewport testing.
 
 ## Verification and developer tests
 
-The complete suites passed on 2026-10-16:
+The complete Phase 2C regression baseline is:
 
 | Runtime | Passed | Failed |
 | --- | ---: | ---: |
-| PHP 7.4.33 | 1,554 | 0 |
-| PHP 8.4.22 | 1,554 | 0 |
-| Node.js 22.23.1 | 80 | 0 |
+| PHP 7.4.33 | 1,854 | 0 |
+| PHP 8.4.22 | 1,854 | 0 |
+| Node.js 22.23.1 | 291 | 0 |
 
 Use an existing Backdrop source tree with API-1.28 H5P. Replace the placeholders
 below with your own absolute source paths and select the required PHP executable:
@@ -124,17 +135,19 @@ php -n tests/run.php --backdrop-root="<absolute-Backdrop-source-root>" --h5p-roo
 
 The Node tests require **BACKDROP_SOURCE_ROOT**. It points to the Backdrop source
 tree containing `core/misc/jquery.once.js` and `core/misc/collapse.js`; there is
-no machine-specific fallback. In PowerShell:
+no machine-specific fallback. Learner contract tests also require
+**PHP_EXECUTABLE** and run an isolated CLI worker with in-memory configuration. In PowerShell:
 
 ```powershell
 $env:BACKDROP_SOURCE_ROOT = '<absolute-Backdrop-source-root>'
-node --test --test-reporter=spec tests/js/admin-colors.test.cjs tests/js/preview-live.test.cjs
+$env:PHP_EXECUTABLE = '<absolute-PHP-CLI-executable>'
+node --test --test-reporter=spec tests/js/admin-colors.test.cjs tests/js/preview-live.test.cjs tests/js/learner.test.cjs tests/js/learner-switching.test.cjs tests/js/learner-session.test.cjs tests/js/learner-compatibility.test.cjs
 ```
 
 Or in a POSIX shell:
 
 ```sh
-BACKDROP_SOURCE_ROOT="<absolute-Backdrop-source-root>" node --test --test-reporter=spec tests/js/admin-colors.test.cjs tests/js/preview-live.test.cjs
+BACKDROP_SOURCE_ROOT="<absolute-Backdrop-source-root>" PHP_EXECUTABLE="<absolute-PHP-CLI-executable>" node --test --test-reporter=spec tests/js/admin-colors.test.cjs tests/js/preview-live.test.cjs tests/js/learner.test.cjs tests/js/learner-switching.test.cjs tests/js/learner-session.test.cjs tests/js/learner-compatibility.test.cjs
 ```
 
 No npm packages or live site bootstrap are used. PHP tests load native definitions
@@ -145,8 +158,8 @@ access is required, including subprocesses, locks and rename. Node uses producti
 behaviors with DOM/event doubles and installed Backdrop once/collapse scripts;
 these automated checks are not browser or assistive-technology certification.
 
-The user separately confirmed the following manual Firefox results after
-deployment; this publication cleanup did not rerun browser tests:
+The user separately confirmed the following administration/preview results in
+Firefox after deployment; publication corrections do not rerun browser tests:
 
 | Manual check | User-confirmed result |
 | --- | --- |
@@ -159,19 +172,69 @@ deployment; this publication cleanup did not rerun browser tests:
 | JavaScript-disabled fallback | PASS |
 | 375px viewport | Usable, but cramped |
 
+Phase 2C learner acceptance was separately confirmed by the user: **Step 5E:
+10/10 PASS; Step 6E: 9/9 PASS**. Step 6E covered the True/False selector and theme
+switching, hiding the selector for legacy Image Choice Rounds, session persistence,
+multiple activities, answer continuity, Core versus Site default, Copy of Mint,
+and no new Firefox Console errors. These functional results do not establish
+keyboard-only or screen-reader acceptance, focus behavior on control removal,
+narrow/mobile layout, RTL/long translated labels, Chromium, Safari,
+restricted-storage behavior, or broad H5P library compatibility. Source/tests
+check the native select and its associated label; no WCAG certification is claimed.
+
 Historical phase records in `docs/` describe the evidence available at each
 earlier checkpoint, not the current deployment state or installation procedure.
 
-## Roadmap and recovery
+## Learner selection, release status and recovery
 
-[Phase 2C and Phase 2D are PLANNED](docs/roadmap.md): optional learner-controlled
-site-wide selection, then accessibility-oriented themes. Neither is implemented.
+In **Global Default**, enable **Allow learners to select their H5P theme** to
+offer one native **H5P theme** selector above the first eligible activity. The
+setting is false by default. Choices are:
 
-Select Core through normal administration and reload activity pages to stop
-future Themer attachments. Code recovery should use a verified project backup
-and the site's normal cache procedures; preserve configuration and authored
-content. Old immutable CSS can remain unreferenced until planned cleanup.
-See [runtime history and recovery details](docs/phase-2a-runtime.md).
+- **Site default:** follow the administrator's configured global theme.
+- **H5P Core defaults:** explicitly use the native Core palette, independently
+  of the administrator's global selection. This is distinct from Daylight.
+- **Daylight, Lavender, Mint, Sunset and Dark:** the five built-in palettes.
+- **Saved custom themes:** every valid available custom theme, using sparse
+  Core inheritance for schema 1 or its pinned base for schema 2.
+
+Compatibility requires the library-owned `.h5p-theme` marker on the player's own
+direct `.h5p-container` and matching stylesheet readiness. Unsupported or unmarked
+activities do not trigger a selector. One control changes eligible DIVs and
+validated same-origin internal iframes on a multi-activity page; ineligible players
+retain administrator-global styling. Nested markers alone do not qualify a
+player. This conservative convention can miss compatible third-party libraries.
+Editors, administrator previews and external/cross-origin embeds are excluded.
+
+The selector restores an available session preference, otherwise Site default.
+When sessionStorage is usable, a stable catalog token follows same-tab navigation
+and reloads. Site default removes it; explicit Core remains a saved session choice.
+Incompatible-only pages do not access or clear the preference. Disabled selection
+ignores an existing preference. Storage failures leave page-only switching usable.
+Opener-created tabs can inherit a copy, and browser session restoration can retain
+it; this is not permanent, account-based or cross-device persistence. Switching
+does not navigate/reinitialize H5P or change answers/scoring. Themer does not
+preserve answers across navigation or reload. Without learner JavaScript, global
+styling remains active; H5P still requires its own scripts.
+
+[Phase 2C functionality is implemented](docs/roadmap.md), including live switching,
+session persistence and compatibility-based visibility. Broader qualification is
+unfinished. `v0.1.0` remains the existing prerelease; **`v0.2.0-alpha.1` is proposed,
+not published by this preparation step**, and is not a stable production release.
+Visual selector refinements and Phase 2D accessibility-oriented themes are deferred.
+
+To disable Themer color overrides through normal administration, select **H5P
+Core defaults as the global default and disable learner theme selection**, then
+save and reload activity pages. Global Core alone can still load learner assets
+when selection is enabled. Choosing Core in the learner selector affects only
+that learner's styling/session preference; it does not disable the feature.
+
+For code deployment, follow the [targeted cache and delivery procedure](docs/installation.md#deployment-cache-refresh).
+Backdrop can otherwise combine new learner CSS with an old JavaScript aggregate.
+Code recovery should use a verified project backup and normal native cache
+procedures, preserving configuration and authored content. Existing immutable CSS
+can remain unreferenced until planned cleanup; do not delete it to refresh JS.
+See [runtime history](docs/phase-2a-runtime.md) for earlier recovery context.
 
 ## Maintainer and support
 

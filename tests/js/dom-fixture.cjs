@@ -7,12 +7,18 @@ const vm = require('node:vm');
 class Element {
   constructor(tag, doc) {
     this.tagName = tag.toLowerCase(); this.ownerDocument = doc;
+    this.nodeType = tag === 'document' ? 9 : 1;
     this.attributes = {}; this.children = []; this.listeners = {};
     this.disabled = false; this.readOnly = false; this.defaultValue = '';
     this._value = ''; this.valueWrites = 0; this._text = '';
   }
   setAttribute(key, value) { this.attributes[key] = String(value); }
   getAttribute(key) { return Object.hasOwn(this.attributes, key) ? this.attributes[key] : null; }
+  get parentElement() { return this.parentNode?.nodeType === 1 ? this.parentNode : null; }
+  removeAttribute(key) { delete this.attributes[key]; }
+  removeEventListener(type, handler) { this.listeners[type] = (this.listeners[type] || []).filter(item => item !== handler); }
+  hasAttribute(key) { return Object.hasOwn(this.attributes, key); }
+  closest(selector) { let node = this; while (node?.nodeType === 1) { if (node.matches(selector)) return node; node = node.parentElement; } return null; }
   get id() { return this.getAttribute('id') || ''; }
   set id(value) { this.setAttribute('id', value); }
   get className() { return this.getAttribute('class') || ''; }
@@ -22,7 +28,7 @@ class Element {
   set value(value) { this._value = String(value); this.valueWrites++; }
   get textContent() { return this._text + this.children.map(child => child.textContent).join(''); }
   set textContent(value) { this._text = String(value); this.children = []; }
-  get nextSibling() { return this.parentNode.children[this.parentNode.children.indexOf(this) + 1] || null; }
+  get nextSibling() { return this.parentNode ? this.parentNode.children[this.parentNode.children.indexOf(this) + 1] || null : null; }
   get form() { let node = this.parentNode; while (node && node.tagName !== 'form') node = node.parentNode; return node || null; }
   appendChild(child) { return this.insertBefore(child, null); }
   insertBefore(child, reference) {
@@ -35,6 +41,7 @@ class Element {
   addEventListener(type, handler) { (this.listeners[type] ||= []).push(handler); }
   dispatchEvent(event) { event.target ||= this; for (const handler of this.listeners[event.type] || []) handler.call(this, event); return true; }
   matches(selector) {
+    if (selector.includes(',')) return selector.split(',').some(item => this.matches(item.trim()));
     if (selector === ':disabled') {
       let node = this;
       while (node) { if (node.disabled && (node === this || node.tagName === 'fieldset')) return true; node = node.parentNode; }
@@ -42,8 +49,15 @@ class Element {
     }
     const label = /^label\[for="([^"]+)"\]$/.exec(selector);
     if (label) return this.tagName === 'label' && this.getAttribute('for') === label[1];
-    const match = /^([a-z]+)?(?:\.([\w-]+))?$/.exec(selector);
-    return Boolean(match && (!match[1] || match[1] === this.tagName) && (!match[2] || this.className.split(/\s+/).includes(match[2])));
+    const attributes = [...selector.matchAll(/\[([\w-]+)(?:(\^?=)"([^"]*)")?\]/g)];
+    selector = selector.replace(/\[[^\]]*\]/g, '');
+    const tag = /^([a-z]+)/.exec(selector);
+    if (tag && tag[1] !== this.tagName) return false;
+    const id = /#([\w-]+)/.exec(selector);
+    if (id && this.id !== id[1]) return false;
+    for (const [, name] of selector.matchAll(/\.([\w-]+)/g)) if (!this.className.split(/\s+/).includes(name)) return false;
+    if (!tag && !id && !selector.includes('.') && !attributes.length) return false;
+    return attributes.every(([, key, operator, value]) => this.hasAttribute(key) && (!operator || (operator === '^=' ? this.getAttribute(key).startsWith(value) : this.getAttribute(key) === value)));
   }
   querySelectorAll(selector) {
     // Core collapse uses this direct-child legend selector. Layout is not emulated.
@@ -65,7 +79,8 @@ function createHarness() {
   doc.createElement = tag => new Element(tag, doc);
   doc.createTextNode = text => { const node = new Element('text', doc); node.textContent = text; return node; };
   doc.getElementById = id => { const walk = node => node.id === id ? node : node.children.map(walk).find(Boolean); return walk(doc); };
-  doc.body = doc.createElement('body'); doc.appendChild(doc.body);
+  doc.documentElement = doc.createElement('html'); doc.appendChild(doc.documentElement);
+  doc.body = doc.createElement('body'); doc.documentElement.appendChild(doc.body);
   class Collection {
     constructor(elements, previous) { this.elements = [...new Set(elements)]; this.previous = previous; this.length = this.elements.length; this.elements.forEach((el, i) => { this[i] = el; }); }
     find(selector) { return new Collection(this.elements.flatMap(el => el.querySelectorAll(selector)), this); }
@@ -104,6 +119,8 @@ function createHarness() {
   class Event { constructor(type, options) { this.type = type; Object.assign(this, options); } }
   const Backdrop = { behaviors: {}, t: value => value };
   const sandbox = vm.createContext({ jQuery: $, Backdrop, document: doc, Event, location: { hash: '' }, window: {}, setTimeout: callback => timers.push(callback) });
+  doc.defaultView = sandbox.window; sandbox.window.document = doc;
+  sandbox.window.self = sandbox.window; sandbox.window.top = sandbox.window;
   const core = process.env.BACKDROP_SOURCE_ROOT;
   if (!core) {
     throw new Error('Set BACKDROP_SOURCE_ROOT to an existing Backdrop source tree before running the JavaScript tests.');
@@ -122,7 +139,7 @@ function createHarness() {
     form.appendChild(label); form.appendChild(text); doc.body.appendChild(form);
     return { form, text, label, picker: () => form.querySelectorAll('input').find(el => el.type === 'color'), status: () => doc.getElementById(form.querySelectorAll('input').find(el => el.type === 'color').getAttribute('aria-describedby')) };
   }
-  return { doc, $, Backdrop, Event, field, attach: context => Backdrop.behaviors.h5pThemerColors.attach(context || doc), loadCore,
+  return { doc, $, Backdrop, Event, field, window: sandbox.window, attach: context => Backdrop.behaviors.h5pThemerColors.attach(context || doc), loadCore,
     loadModule: file => vm.runInContext(fs.readFileSync(path.join(__dirname, '../../js', file), 'utf8'), sandbox, { filename: file }),
     flushTimers: () => { while (timers.length) timers.shift()(); } };
 }

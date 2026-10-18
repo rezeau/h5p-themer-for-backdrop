@@ -94,7 +94,7 @@ function h5p_themer_config_field_errors($name, $data) {
   if ($theme && isset($data['schema_version']) && $data['schema_version'] === 2) {
     $required[] = 'base_preset';
   }
-  $allowed = array_merge($required, array('_config_name', '_config_static'), $theme ? array('description') : array());
+  $allowed = array_merge($required, array('_config_name', '_config_static'), $theme ? array('description') : array('learner_selection_enabled'));
   foreach ($required as $key) {
     if (!array_key_exists($key, $data)) {
       $add_error($key, t('Missing H5P Themer configuration field: @key.', array('@key' => $key)));
@@ -115,6 +115,9 @@ function h5p_themer_config_field_errors($name, $data) {
     $add_error('_form', t('The _config_static flag must be boolean.'));
   }
   if ($settings) {
+    if (array_key_exists('learner_selection_enabled', $data) && !is_bool($data['learner_selection_enabled'])) {
+      $add_error('learner_selection_enabled', t('Learner theme selection must be boolean.'));
+    }
     if (array_key_exists('default_theme', $data)) {
       $reference = h5p_themer_selection_reference($data['default_theme'], isset($data['schema_version']) ? $data['schema_version'] : NULL);
       foreach ($reference['errors'] as $error) {
@@ -194,7 +197,7 @@ function h5p_themer_config_load($name, $type = 'active', $original = FALSE) {
     $data = $config->getOriginal();
     if (!$original) {
       // Config::get() without a key does not merge field-level overrides.
-      $keys = $name === 'h5p_themer.settings' ? array('schema_version', 'default_theme') : array('schema_version', 'id', 'label', 'description', 'density', 'colors', 'base_preset');
+      $keys = $name === 'h5p_themer.settings' ? array('schema_version', 'default_theme', 'learner_selection_enabled') : array('schema_version', 'id', 'label', 'description', 'density', 'colors', 'base_preset');
       foreach ($keys as $key) {
         $value = $config->get($key);
         if (array_key_exists($key, $data) || $value !== NULL) {
@@ -357,4 +360,16 @@ function h5p_themer_default_selection_load() {
     return $settings;
   }
   return h5p_themer_selection_resolve($settings['data']['default_theme'], $settings['data']['schema_version']);
+}
+
+/**
+ * Reads the optional administrator toggle; absent or invalid settings fail closed.
+ *
+ * Available to later consumers only. Playback does not consult this setting.
+ * Missing keys remain missing in configuration; this read never saves/migrates.
+ */
+function h5p_themer_learner_selection_enabled() {
+  $settings = h5p_themer_config_load('h5p_themer.settings');
+  return !$settings['errors'] && isset($settings['data']['learner_selection_enabled']) &&
+    $settings['data']['learner_selection_enabled'] === TRUE;
 }

@@ -275,7 +275,7 @@ try {
   check((bool) $result['errors'] && $runtime_cache_invalidations === 4 && H5PThemerMemoryStorage::$raw === $bytes, 'Lock-rejected default save does not invalidate caches');
   $write_locked = FALSE;
   check(h5p_themer_presets($version)['data'] === $catalog_before, 'Every runtime attempt preserves all exact catalog data');
-  check(count(h5p_themer_menu()) === 9 && !function_exists('h5p_themer_h5p_scripts_alter'), 'No runtime routes or runtime JavaScript hook introduced');
+  check(count(h5p_themer_menu()) === 9 && function_exists('h5p_themer_h5p_scripts_alter'), 'No new routes; parent-only learner UI hook exists');
 }
 finally {
   H5PCore::$coreApi = $api_before; $h5p_enabled = TRUE; $GLOBALS['config'] = array();

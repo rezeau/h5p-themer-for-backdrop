@@ -131,7 +131,7 @@ integration or every H5P content type meets an accessibility standard.
 | 1C | Exact immutable presets, named customs, inheritance, pickers and field groups. | Implemented. |
 | 2A | Global color application through existing API-1.28 assets. | Implemented; density remains unapplied and library/embed coverage is bounded. |
 | 2B | Saved-theme and unsaved custom-color previews. | Implemented; user-confirmed local Firefox results are in the README. |
-| 2C | Learner-controlled site-wide selection. | PLANNED, not implemented. |
+| 2C | Learner-controlled site-wide selection. | Implemented: administrator toggle, shared catalog, live switching, session persistence and compatibility-based visibility; Firefox Step 5E 10/10 and Step 6E 9/9 PASS. Broader qualification remains limited; see the current roadmap. |
 | 2D | Accessibility-oriented themes. | PLANNED, not implemented. |
 
 See [the current roadmap](roadmap.md) for requirements and unresolved investigation.

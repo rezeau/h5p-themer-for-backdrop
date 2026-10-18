@@ -169,7 +169,7 @@ function _h5p_themer_admin_check_original($name, array $original, $overrides = T
     return array(t('This configuration changed or disappeared. Reload the form before saving.'));
   }
   if ($overrides) {
-    foreach (array_unique(array_merge(array_keys($original), array('description', 'default_theme', 'colors', 'base_preset'))) as $key) {
+    foreach (array_unique(array_merge(array_keys($original), array('description', 'default_theme', 'colors', 'base_preset', 'learner_selection_enabled'))) as $key) {
       if (config($name)->isOverridden($key)) {
         return array(t('This configuration has settings.php overrides. Remove those overrides before changing it here.'));
       }
@@ -185,7 +185,7 @@ function _h5p_themer_admin_actions(array $form, $submit_label, array $extra_erro
   $errors = array_merge(_h5p_themer_admin_guard(), $extra_errors);
   if ($errors) {
     $form['diagnostics'] = array('#markup' => '<p role="alert">' . implode(' ', $errors) . '</p>');
-    foreach (array('general', 'id', 'label', 'description', 'density', 'colors', 'default_theme') as $key) {
+    foreach (array('general', 'id', 'label', 'description', 'density', 'colors', 'default_theme', 'learner_selection_enabled') as $key) {
       if (isset($form[$key])) {
         $form[$key]['#disabled'] = TRUE;
       }
@@ -422,9 +422,9 @@ function h5p_themer_theme_form_submit($form, &$form_state) {
     $record = new Config('h5p_themer.theme.' . $candidate['id'], config_get_config_storage());
     $record->setData($candidate);
     $record->validateData();
-    $runtime_before = h5p_themer_runtime_cache_snapshot();
+    $runtime_before = _h5p_themer_admin_cache_snapshot();
     $record->save();
-    h5p_themer_runtime_invalidate($runtime_before);
+    _h5p_themer_admin_cache_invalidate($runtime_before);
     backdrop_set_message(t('Saved theme @label.', array('@label' => $candidate['label'])));
     $form_state['redirect'] = 'admin/config/content/h5p-themer';
   }
@@ -465,9 +465,13 @@ function h5p_themer_default_form($form, &$form_state) {
   }
   $form['default_theme'] = array('#type' => 'select', '#title' => t('Global default theme'), '#options' => $options, '#default_value' => $selected,
     '#description' => t('Core, built-in and custom choices are distinct. The selected global colors apply to compatible H5P playback after reload. Density is not applied.'));
+  $form['learner_selection_enabled'] = array('#type' => 'checkbox',
+    '#title' => t('Allow learners to select their H5P theme'),
+    '#default_value' => isset($settings['learner_selection_enabled']) && $settings['learner_selection_enabled'] === TRUE ? 1 : 0,
+    '#description' => t('Optional: when enabled, eligible H5P activities display one learner theme selector per page. Unsupported activities do not trigger a selector. Choices change styling without changing learner answers or scoring. Where browser session storage is available, the preference follows the current tab session and is not saved to a learner account.'));
   $form['#validate'] = array('h5p_themer_default_form_validate');
   $form['#submit'] = array('h5p_themer_default_form_submit');
-  return _h5p_themer_admin_actions($form, t('Save global default'), _h5p_themer_admin_check_original('h5p_themer.settings', $settings));
+  return _h5p_themer_admin_actions($form, t('Save global settings'), _h5p_themer_admin_check_original('h5p_themer.settings', $settings));
 }
 
 /**
@@ -487,6 +491,17 @@ function h5p_themer_default_form_validate($form, &$form_state) {
     return;
   }
   $candidate = $form_state['h5p_themer_settings'];
+  // Native checkbox processing returns integer 0/1. Persist only real booleans.
+  $enabled = isset($form_state['values']['learner_selection_enabled']) ? $form_state['values']['learner_selection_enabled'] : 0;
+  $input = isset($form_state['input']['learner_selection_enabled']) ? $form_state['input']['learner_selection_enabled'] : NULL;
+  if (!in_array($enabled, array(0, 1), TRUE) || ($input !== NULL && !in_array($input, array('1', 1), TRUE))) {
+    form_set_error('learner_selection_enabled', t('Invalid learner theme selection checkbox value.'));
+    return;
+  }
+  // Preserve legacy absence on an unchecked save; no migration is necessary.
+  if ($enabled === 1 || array_key_exists('learner_selection_enabled', $candidate)) {
+    $candidate['learner_selection_enabled'] = $enabled === 1;
+  }
   $value = isset($form_state['values']['default_theme']) ? $form_state['values']['default_theme'] : FALSE;
   $choices = _h5p_themer_admin_default_choices();
   if (!is_string($value) || !array_key_exists($value, $choices['references']) || $choices['errors']) {
@@ -523,7 +538,7 @@ function h5p_themer_default_form_validate($form, &$form_state) {
 }
 
 /**
- * Saves only the settings reference, after a fresh locked validation.
+ * Saves global settings after a fresh locked validation.
  */
 function h5p_themer_default_form_submit($form, &$form_state) {
   if (form_get_errors()) {
@@ -544,10 +559,10 @@ function h5p_themer_default_form_submit($form, &$form_state) {
     $record->setData($form_state['h5p_themer_candidate']);
     $record->validateData();
     _h5p_themer_validate_default_reference($record, NULL);
-    $runtime_before = h5p_themer_runtime_cache_snapshot();
+    $runtime_before = _h5p_themer_admin_cache_snapshot();
     $record->save();
-    h5p_themer_runtime_invalidate($runtime_before);
-    backdrop_set_message(t('The stored global default was saved. Reload H5P playback to see compatible global color changes. Density is not applied.'));
+    _h5p_themer_admin_cache_invalidate($runtime_before);
+    backdrop_set_message(t('The global settings were saved. Reload H5P playback to apply these settings. If learner selection is enabled, eligible activities offer session-scoped styling choices; learner answers and scoring are unchanged. Preferences are not saved to learner accounts. Density is not applied.'));
     $form_state['redirect'] = 'admin/config/content/h5p-themer';
   }
   catch (ConfigException $e) {
@@ -651,7 +666,9 @@ function h5p_themer_delete_form_submit($form, &$form_state) {
       $form_state['rebuild'] = TRUE;
       return;
     }
+    $runtime_before = _h5p_themer_admin_cache_snapshot();
     config('h5p_themer.theme.' . $form_state['h5p_themer']['id'])->delete();
+    _h5p_themer_admin_cache_invalidate($runtime_before);
     backdrop_set_message(t('The theme was deleted. Other themes and the default were not changed.'));
     $form_state['redirect'] = 'admin/config/content/h5p-themer';
   }
@@ -767,4 +784,14 @@ function h5p_themer_preset_view($id, $version) {
       '#href' => 'admin/config/content/h5p-themer/presets/' . $data['id'] . '/' . $data['version'] . '/duplicate');
   }
   return $build;
+}
+
+/** Combines existing global runtime and currently enabled selector dependencies. */
+function _h5p_themer_admin_cache_snapshot() {
+  return array(h5p_themer_runtime_cache_snapshot(), h5p_themer_learner_ui_cache_snapshot());
+}
+
+/** One native page/layout invalidation, only when delivered output changes. */
+function _h5p_themer_admin_cache_invalidate($before) {
+  if ($before !== _h5p_themer_admin_cache_snapshot()) { cache_clear_all(); }
 }

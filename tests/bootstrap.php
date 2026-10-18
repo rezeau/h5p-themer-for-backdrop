@@ -100,6 +100,7 @@ class H5PThemerMemoryStorage extends ConfigFileStorage {
   public static $writes = 0;
   public static $failWrite = FALSE;
   public static $failDelete = FALSE;
+  public static $failList = FALSE;
   public function exists($name) {
     return isset(self::$raw[$this->directory][$name]);
   }
@@ -126,6 +127,7 @@ class H5PThemerMemoryStorage extends ConfigFileStorage {
     return TRUE;
   }
   public function listAll($prefix = '') {
+    if (self::$failList) { throw new ConfigStorageException('Simulated unavailable listing.'); }
     return array_values(array_filter(array_keys(isset(self::$raw[$this->directory]) ? self::$raw[$this->directory] : array()), function ($name) use ($prefix) {
       return strpos($name, $prefix) === 0;
     }));
@@ -187,7 +189,13 @@ function reset_storage() {
   H5PThemerMemoryStorage::$writes = 0;
   H5PThemerMemoryStorage::$failWrite = FALSE;
   H5PThemerMemoryStorage::$failDelete = FALSE;
+  H5PThemerMemoryStorage::$failList = FALSE;
   $cache = &backdrop_static('config');
   $cache = array();
   $GLOBALS['config'] = array();
 }
+
+function current_path() { return isset($GLOBALS['learner_test_path']) ? $GLOBALS['learner_test_path'] : 'node/7'; }
+function path_is_admin($path) { return !empty($GLOBALS['learner_test_admin_path']); }
+function backdrop_add_js($data = NULL, $options = NULL) { $GLOBALS['learner_js'][] = array('data' => $data, 'options' => $options); }
+function backdrop_add_css($data = NULL, $options = NULL) { $GLOBALS['learner_css'][] = array('data' => $data, 'options' => $options); }

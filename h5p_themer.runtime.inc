@@ -93,7 +93,10 @@ function _h5p_themer_runtime_existing($path, $css) {
  * An advisory filesystem lock coordinates our writers without database locks.
  * Temporary bytes are verified before rename; existing bad files are not repaired.
  */
-function h5p_themer_runtime_asset($css) {
+function h5p_themer_runtime_asset($css, $format = 'colors-v1') {
+  if (!in_array($format, array('colors-v1', 'learner-v1'), TRUE)) {
+    return array('data' => NULL, 'errors' => array(t('Unsupported theme asset format.')));
+  }
   if ($css === '') { return array('data' => NULL, 'errors' => array()); }
   $failure = array('data' => NULL, 'errors' => array(t('Runtime stylesheet storage is unavailable or inconsistent.')));
   if (!is_string($css)) { return $failure; }
@@ -111,7 +114,7 @@ function h5p_themer_runtime_asset($css) {
     if (!is_string($public) || !is_dir($public) || is_link($public)) { return $failure; }
     $public = realpath($public);
     $directory = $public . DIRECTORY_SEPARATOR . 'h5p_themer';
-    $filename = 'colors-v1-' . hash('sha256', $css) . '.css';
+    $filename = $format . '-' . hash('sha256', $css) . '.css';
     $target = $directory . DIRECTORY_SEPARATOR . $filename;
     $asset = array('data' => (object) array('path' => $relative . '/h5p_themer/' . $filename, 'version' => ''), 'errors' => array());
     if (is_link($directory) || (file_exists($directory) && !is_dir($directory))) { return $failure; }

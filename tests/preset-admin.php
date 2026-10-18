@@ -299,4 +299,4 @@ seed('h5p_themer.theme.security_copy', fixture_theme('security_copy'));
 $bytes = H5PThemerMemoryStorage::$raw;
 $result = admin_post($bundle, $input);
 check(isset($result['errors']['id']) && H5PThemerMemoryStorage::$raw === $bytes, 'Preset target ID collision after build is rechecked before write');
-check(!function_exists('h5p_themer_h5p_scripts_alter') && function_exists('h5p_themer_h5p_styles_alter'), 'Only the global color styles hook is added');
+check(function_exists('h5p_themer_h5p_scripts_alter') && function_exists('h5p_themer_h5p_styles_alter'), 'Global colors and parent-only learner attachment hooks exist');

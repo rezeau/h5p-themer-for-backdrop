@@ -1,0 +1,26 @@
+/** Learner UI only; no activity colors or CSS variables. GPL-2.0-or-later. */
+.h5p-themer-learner-controls {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  margin-bottom: 1em;
+  overflow-wrap: anywhere;
+}
+.h5p-themer-learner-controls label {
+  display: block;
+  margin-bottom: 0.25em;
+  font-weight: bold;
+}
+.h5p-themer-learner-controls .h5p-themer-learner-select {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  font: inherit;
+}
+.h5p-themer-learner-controls .h5p-themer-learner-description {
+  margin: 0.35em 0 0;
+  overflow-wrap: anywhere;
+}

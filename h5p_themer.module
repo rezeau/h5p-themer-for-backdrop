@@ -5,7 +5,10 @@
  */
 
 require_once __DIR__ . '/h5p_themer.config.inc';
+require_once __DIR__ . '/h5p_themer.catalog.inc';
 require_once __DIR__ . '/h5p_themer.runtime.inc';
+require_once __DIR__ . '/h5p_themer.learner-runtime.inc';
+require_once __DIR__ . '/h5p_themer.learner.inc';
 
 /**
  * Implements hook_permission().
@@ -224,16 +227,33 @@ function _h5p_themer_validate_default_reference(Config $candidate, $all_changes)
 }
 
 /**
- * Implements hook_h5p_styles_alter(). No runtime JavaScript or editor theming.
+ * Implements hook_h5p_styles_alter(). Global colors only; no editor theming.
  */
 function h5p_themer_h5p_styles_alter(&$styles, $libraries, $mode) {
   if (!is_array($styles) || !in_array($mode, array('div', 'iframe', 'external'), TRUE)) { return; }
-  $css = h5p_themer_runtime_css();
-  if ($css['errors'] || $css['data'] === '') { return; }
-  $asset = h5p_themer_runtime_asset($css['data']);
+  $asset = array('data' => NULL, 'errors' => array());
+  if ($mode !== 'external') { $asset = h5p_themer_learner_asset(); }
+  // Catalog/storage failure keeps legacy global playback rather than partial UI.
+  if ($asset['errors'] || $asset['data'] === NULL) {
+    $css = h5p_themer_runtime_css();
+    if ($css['errors'] || $css['data'] === '') { return; }
+    $asset = h5p_themer_runtime_asset($css['data']);
+  }
   if ($asset['errors'] || $asset['data'] === NULL) { return; }
   foreach ($styles as $style) {
     if (is_object($style) && isset($style->path) && $style->path === $asset['data']->path) { return; }
   }
   $styles[] = $asset['data'];
+}
+
+/**
+ * Implements hook_h5p_scripts_alter(). Attach UI to the parent page only.
+ *
+ * Do not append to H5P's script list: iframe dependencies run inside the player.
+ * Standalone external embeds bypass Backdrop's page/behavior bootstrap and are
+ * deliberately unsupported here. The controller runs only in the parent page.
+ */
+function h5p_themer_h5p_scripts_alter(&$scripts, $libraries, $mode) {
+  if (!is_array($scripts) || !in_array($mode, array('div', 'iframe'), TRUE)) { return; }
+  h5p_themer_learner_attach();
 }

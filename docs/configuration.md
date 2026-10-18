@@ -1,4 +1,4 @@
-# Configuration contract — schema 1 and Step 2A extensions
+# Configuration contract — schemas 1 and 2 and learner selection
 
 SPDX-License-Identifier: GPL-2.0-or-later.
 
@@ -16,12 +16,23 @@ See [the schema-2/read-API record](phase-1c-step-2a.md),
 {
   "_config_name": "h5p_themer.settings",
   "schema_version": 1,
-  "default_theme": null
+  "default_theme": null,
+  "learner_selection_enabled": false
 }
 ```
 
 `null` means no selected theme. A missing field, empty string, invalid ID, or
 missing settings object is an error, not another spelling of that state.
+
+The optional `learner_selection_enabled` key must be a JSON Boolean when
+present. Missing means false in settings schemas 1 and 2. Integer/string/null
+values are invalid. It belongs only to settings; custom theme schemas do not
+change. Effective top-level settings.php overrides use the same strict validation.
+`h5p_themer_learner_selection_enabled()` returns false for missing/invalid settings
+and never saves or migrates. This administrator setting enables learner switching
+for eligible activities. Implemented browser tab-session persistence adds no
+configuration schema migration, learner-account preference or server-side storage.
+Enable it through Global Default; it is optional and false by default.
 
 An example definition for `h5p_themer.theme.ocean.json` is:
 
@@ -64,8 +75,7 @@ Backdrop configuration; no custom table or per-content/user assignment exists.
   declarations, or arbitrary expressions are accepted in schema 1.
 - The Core `contrast-cta-light` property is allowed, but an override must be a
   permitted hex color. Its upstream default expression is not copied into
-  configuration. Omitted properties would retain Core behavior in a future
-  renderer; no renderer exists yet.
+  configuration. Omitted properties retain Core behavior in the global renderer.
 - Unknown fields are rejected. Native `_config_name` (matching the object name)
   and boolean `_config_static` metadata are permitted. Core storage strips its
   own `_config_name` on read; the theme's `id` remains the identity authority.
@@ -99,6 +109,39 @@ Reads remain available during H5P compatibility failures so administration can
 inspect definitions. A future renderer must separately require
 `h5p_themer_compatibility()['compatible']` before applying anything. Neither the
 read API nor the compatibility function applies themes.
+
+## Shared theme catalog (Phase 2C Step 2A)
+
+`h5p_themer_theme_catalog()` returns `data/errors`. On success, data is keyed by
+`site_default`, `core`, `builtin:<id>`, then `custom:<id>`. Each entry has exactly
+`label` (raw text, escape for the output context) and `reference`:
+
+- Site default: `{kind: "site_default"}`, an in-memory catalog sentinel that
+  follows the current global selection. It is not accepted as stored global
+  configuration and does not snapshot Core or any theme's colors.
+- Core: null, resolved by the existing selection resolver to no overrides.
+- Built-in: the existing typed `{kind, id, version}` pinned reference.
+- Custom: the existing typed `{kind, id}` reference, independent of its schema.
+
+All five built-ins and every resolvable saved custom appear without per-theme
+approval. Customs use effective overrides and existing validation/resolution,
+including pinned inheritance; they are sorted naturally by label, then ID.
+Core, Daylight and a same-ID custom remain separate. No second palette resolver
+is introduced. Call the existing `h5p_themer_selection_resolve()` for entries
+other than Site default; handle the sentinel by reading the current global
+selection with `h5p_themer_default_selection_load()` when needed.
+
+The catalog includes no admin description, provenance, configuration metadata or
+private diagnostics. Invalid individual customs are excluded without repairs;
+enumeration failure returns null data and a generic error, not a partial list.
+The catalog function adds no assets, UI, persistence or HTTP endpoint. The learner
+runtime projects its labels/tokens and validated opaque palette keys into native page JS settings; its Daylight label omits
+the catalog-only "(default)" qualifier without changing immutable preset data.
+The read-only catalog has
+no static or persistent cache and is independent of the enable flag. It reflects
+normal Config saves without a catalog cache flush. Administration invalidates cached
+page/layout output when the enabled UI flag/options or any selectable palette change; external low-level changes retain
+the existing caller responsibility for native Config/cache freshness.
 
 ## Native configuration validation and import/export
 
@@ -144,8 +187,8 @@ selecting both previously disabled modules in one installation action may need
 two steps because the dependency must already be enabled at check time.
 Compatibility failures preserve stored data and do not disable modules or
 attempt upgrades. Phase 1B administration remains readable with mutations
-disabled, and submit handlers recheck compatibility before writes. There are no
-learner-specific controls; global playback colors use the separate runtime helper.
+disabled, and submit handlers recheck compatibility before writes. Optional learner controls share the validated resolvers and serializer; disabled
+playback retains the existing global runtime helper.
 
 ## Administration writes
 
@@ -198,3 +241,89 @@ H5P source was reverified on `feature/h5p-api-1.28`, commit
 `3491220c29716a08cc809b90951f86807450c151`, before implementation. The module's
 `h5p_autoload_info()` maps Core to `library/h5p.classes.php`; the actual class
 declares major 1/minor 28. The source branch is evidence, not a runtime check.
+
+Learner runtime CSS, readiness and fallback are documented in [Step 4A](phase-2c-step-4a.md).
+No server-side learner preference configuration or storage is introduced. Browser
+sessionStorage holds the optional preference described below.
+
+
+## Browser tab-session preference
+
+A single browser sessionStorage entry is scoped by the validated native Backdrop
+basePath: `h5p_themer:learner-theme:v1:<basePath>`. At a root installation the key
+is `h5p_themer:learner-theme:v1:/`. No user or content identifier is stored.
+The value is only a stable current catalog token, such as `core`, `builtin:mint`
+or `custom:checkpoint_test`; it is never a CSS hash, label, palette or URL.
+
+The enabled controller validates restoration against its current server-provided
+catalog. Site default removes the entry and follows the current administrator
+theme. Explicit Core remains independent of that default. A label change keeps
+a custom token valid; deletion/unresolvable choices are discarded on restoration.
+The current palette mapping is used after palette changes. Already open pages
+use their supplied catalog until normal page refresh/settings reattachment.
+
+Initial storage reads and persisted-pageshow restoration wait until eligible
+playback and matching styles are ready. Storage is not reread on ordinary
+behavior reattachment, frame/style load or DOM discovery after initialization. Only
+a selector change writes a valid token; invalid restoration can remove this
+entry. Storage failures preserve page-only switching. Disabled pages neither
+read nor write storage, and a prior preference may remain until re-enabled.
+A missing/invalid basePath also leaves switching page-only.
+
+The preference can survive same-tab navigation and reload. New tabs can inherit
+an opener copy, and browser restore may retain a tab session. No localStorage,
+cookies, account storage, network endpoint, cross-device preference or H5P answer
+persistence is added. Session behavior is implemented and covered by the
+user-confirmed Firefox acceptance results; see [the historical Step 5 record](phase-2c-step-5.md)
+for its original scope. Browser session restoration can retain a preference;
+there is no guarantee that every newly opened or restored tab starts empty.
+
+## Compatibility and styling scope
+
+Compatibility-based visibility changes no schema, palette or administrator setting.
+A positive library-owned top-level `.h5p-theme` marker and matching stylesheet
+readiness are required before learner UI or preference restoration. Missing
+containers/styles are pending; an inspected unmarked container is currently
+unsupported but remains observable, so this is not a permanent negative cache.
+
+The fixed `data-h5p-themer-eligible` attribute records the controller's current
+classification on an owned H5P content root; the attribute is never evidence of
+capability. Learner palette declarations and reset rules both require it. While
+an explicit choice is active in a document, unmarked roots keep the canonical
+administrator-global declarations. Genuine Core and Site default remain distinct.
+
+Initial restoration and persisted-pageshow restoration are deferred until a
+compatible ready player exists. Ordinary refresh/discovery does not access
+storage; removing the last eligible player does not delete a preference. Thus
+compatible -> incompatible -> compatible same-tab navigation retains the token.
+A class marker is a conservative supported-library convention, not universal
+H5P certification. No runtime CSS scanning, version list, preference endpoint or
+third-party library mutation is added. Exactly one selector controls all eligible
+native DIV/internal-iframe activities on a page. Unsupported legacy activities do
+not trigger it; unsupported siblings keep administrator-global styling. Editors,
+administrator previews, unrelated/external frames and unsupported nested/form
+contexts are excluded. See [the historical Step 6 record](phase-2c-step-6.md).
+
+The choices are Site default (the configured global theme), explicit H5P Core
+defaults, Daylight, Lavender, Mint, Sunset, Dark and every valid saved custom theme.
+Core is distinct from Site default and Daylight. Schema-1 customs retain sparse
+Core inheritance; schema-2 customs retain pinned inheritance. Switching changes
+styling only, without H5P restart, iframe navigation or answer/scoring changes.
+Themer adds no answer persistence across navigation or reload.
+
+Generated CSS is immutable and content-addressed. A fixed-path JavaScript change
+can still reuse a stale Backdrop aggregate; follow the [deployment procedure](installation.md#deployment-cache-refresh)
+in a properly bootstrapped environment rather than editing caches or deleting CSS.
+Global Core plus disabled learner selection stops future Themer override
+attachments; a learner's explicit Core choice does not disable the feature.
+
+## Qualification status
+
+Phase 2C functionality is implemented. The verified suite totals are PHP 7.4.33
+1,854/1,854 PASS, PHP 8.4.22 1,854/1,854 PASS and Node.js 22.23.1 291/291 PASS.
+The user confirmed Firefox Step 5E 10/10 PASS and Step 6E 9/9 PASS; no additional
+browser testing is claimed by publication corrections. Source/tests check native
+select/label association, but keyboard-only, screen-reader announcements, focus
+on control removal, narrow/mobile layout, RTL/long labels, Chromium, Safari,
+restricted storage and broader library compatibility are not fully qualified.
+This is development prerelease functionality, not a stable-production or WCAG claim.

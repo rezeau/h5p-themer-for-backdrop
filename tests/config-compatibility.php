@@ -262,7 +262,7 @@ H5PCore::$coreApi = $api_before;
 check($output === '', 'Read APIs emit no CSS, JavaScript or other output');
 check(H5PThemerMemoryStorage::$raw === $bytes && H5PThemerMemoryStorage::$writes === $writes, 'Catalog, resolution and compatibility failure make zero config writes');
 check(!function_exists('h5p_themer_install') && !function_exists('h5p_themer_update_1000'), 'No automatic catalog installation or migration hook');
-check(!function_exists('h5p_themer_h5p_scripts_alter') && function_exists('h5p_themer_h5p_styles_alter'), 'Only the global color styles hook is introduced');
+check(function_exists('h5p_themer_h5p_scripts_alter') && function_exists('h5p_themer_h5p_styles_alter'), 'Global colors and parent-only learner attachment hooks exist');
 check(count(h5p_themer_menu()) === 9, 'Only built-in view and duplicate routes added; no runtime routes');
 $shipped = json_decode(file_get_contents(dirname(__DIR__) . '/config/h5p_themer.settings.json'), TRUE);
 check($shipped['schema_version'] === 1 && $shipped['default_theme'] === NULL, 'Shipped schema/default remain unchanged');

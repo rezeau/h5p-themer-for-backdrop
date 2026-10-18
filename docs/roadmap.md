@@ -14,23 +14,79 @@ The five existing built-ins remain Daylight, Lavender, Mint, Sunset and Dark.
 Core defaults remain a separate option. No roadmap item changes existing schemas,
 preset catalog values, custom definitions or the current global selection.
 
-## Phase 2C — PLANNED: learner-controlled site-wide theme selection
+## Phase 2C — IMPLEMENTED: learner-controlled site-wide theme selection
 
-This feature is not implemented. Its requirements are:
+The completed functionality includes:
 
-- Optional administrator enable/disable, **disabled by default**.
-- Administrators approve which themes learners may select.
-- One selector controls all H5P activities on the page.
-- A preference is remembered across pages.
-- Theme changes must not reload an H5P activity or lose learner progress.
-- Multi-activity and iframe support require architecture and browser investigation.
+- One administrator Boolean, **Allow learners to select their H5P theme**, false
+  by default and optional in schemas 1 and 2. No migration or per-theme approval
+  checkboxes are required.
+- A shared validated catalog: Site default follows the configured global theme;
+  explicit H5P Core defaults is independent of it; Daylight, Lavender, Mint,
+  Sunset, Dark and valid saved custom themes retain their distinct identities.
+- One native selector for eligible DIV and validated same-origin internal-iframe
+  activities, including multiple independent activities on one page. Switching
+  changes styling without H5P restart, iframe navigation or answer/scoring changes.
+- Session-only preference persistence using stable catalog tokens in
+  sessionStorage. Site default removes the preference; Core remains explicit.
+  Disabled or incompatible-only pages do not access or clear it. Storage failures
+  leave current-page switching usable. No learner-account, cross-device or H5P
+  answer persistence is added. Opener copies and browser session restoration can
+  retain a choice, so a new/restored tab is not guaranteed to start empty.
+- Compatibility-based visibility using the native player's own direct
+  `.h5p-container.h5p-theme` and matching stylesheet readiness. Unmarked legacy
+  activities do not trigger a selector; ineligible siblings retain global styling.
+  Delayed players remain discoverable. Editors, administrator previews and
+  external/cross-origin embeds are excluded. This conservative marker convention
+  is not universal library certification.
 
-Preference storage, scope, access policy, defaults and precedence still require
-design. So do delivery to nested or cross-origin frames, dynamically created
-activities and independent embedded players. Site-wide consistency and preserving
-in-progress activity state are acceptance requirements, not established capability.
-No persistence mechanism, messaging bridge or hot-switching script is introduced
-by this roadmap.
+Controlled transfer and user Firefox functional acceptance are complete:
+
+| Verification | Result |
+| --- | --- |
+| PHP 7.4.33 | 1,854/1,854 PASS |
+| PHP 8.4.22 | 1,854/1,854 PASS |
+| Node.js 22.23.1 | 291/291 PASS |
+| User-confirmed Firefox Step 5E | 10/10 PASS |
+| User-confirmed Firefox Step 6E | 9/9 PASS |
+
+Step 6E covered True/False selection/switching, legacy Image Choice Rounds selector
+hiding, session persistence, multiple activities, answer continuity, Core versus
+Site default, Copy of Mint and no new Console errors. No additional browser tests
+were performed by publication corrections. Historical [switching](phase-2c-step-4a.md),
+[session](phase-2c-step-5.md) and [compatibility](phase-2c-step-6.md) records retain
+their original checkpoint observations and pending-test statements.
+
+The existing release remains the **v0.1.0 prerelease**. **v0.2.0-alpha.1 is the
+proposed next prerelease**, not a release created by these corrections. Phase 2C
+implementation completion does not make it stable production software.
+Source/tests check native select/label association. Keyboard-only acceptance,
+screen-reader announcements, focus on control removal, narrow/mobile layout,
+RTL/long translated labels, Chromium, Safari, restricted-storage environments,
+broader libraries and external/nested contexts remain incompletely qualified.
+These limits do not invalidate the completed Firefox checks, and no WCAG or
+universal browser guarantee is claimed.
+
+Deployment must keep the controller and content-addressed CSS synchronized; use
+the [verified targeted cache procedure](installation.md#deployment-cache-refresh)
+and check actual browser delivery. Open pages retain their supplied catalog until
+normal refresh/settings reattachment; there is no polling for administrator changes.
+
+## Deferred: visual learner-selector refinement
+
+This is future investigation only and is **not included in v0.2.0-alpha.1**.
+Compare (A) a compact horizontal array of theme color swatches with (B) theme
+names and colored icons in a dropdown. **B is currently preferred, subject to
+technical feasibility.** Native select options do not reliably support arbitrary
+colored icons across browsers. A custom accessible dropdown would add keyboard,
+focus and screen-reader responsibilities; a native select with a separate
+selected-theme color preview is another option to evaluate before choosing.
+
+Preserve theme names, Site default, Core, all five built-ins and saved customs;
+reuse existing validated palette metadata. Evaluate keyboard navigation, narrow
+screens and translated labels while preserving native accessibility where
+practical, session persistence, iframe security and activity state. No selector
+markup, JavaScript or CSS change implements this proposal now.
 
 ## Phase 2D — PLANNED: accessibility-oriented themes
 
@@ -52,5 +108,5 @@ H5P content. No approximate palette or accessibility guarantee is introduced her
 Density application, per-content assignments, comprehensive external/nested embed
 qualification and broad library/browser coverage are not part of the implemented
 color runtime. Current previews are representative samples rather than running
-activities. A 375px Firefox viewport was usable but cramped; responsive-layout
-improvements remain a future task.
+activities. The administration/preview interface was usable but cramped at 375px
+in Firefox; the learner selector's narrow/mobile layout is not yet qualified.
