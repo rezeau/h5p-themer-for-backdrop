@@ -193,7 +193,7 @@ false in settings schemas 1 and 2; toggling preserves the schema/global referenc
 Effective settings overrides, permissions, native CSRF, stale checks and locking
 remain unchanged. There are no per-theme approval checkboxes.
 
-When enabled, one native H5P theme dropdown appears above the first eligible
+When enabled, one H5P theme dropdown appears above the first eligible
 activity and controls eligible DIV and same-origin internal-iframe activities on
 the page. Unsupported activities do not trigger a selector. It restores a valid
 session choice, otherwise Site default. The options remain distinct:
@@ -375,7 +375,7 @@ Unsaved live updates require JavaScript. Native color inputs are enhancements,
 not required submission values.
 
 See the [installation guide](installation.md), [preview development record](phase-2b-preview.md)
-and [implemented Phase 2C / planned Phase 2D](roadmap.md).
+and the [development roadmap](roadmap.md).
 
 ## Compatibility-based selector visibility
 
@@ -395,3 +395,27 @@ restored when eligible playback returns. Editors and admin previews remain
 excluded. This visibility behavior is implemented and included in the recorded
 Firefox acceptance results. See [the historical Step 6 record](phase-2c-step-6.md)
 for its original isolated scope and conservative detection limitations.
+
+## Two-color learner dropdown — independent integration
+
+The optional select-only combobox adds two decorative colors before each name,
+including inside the expanded list. The native select remains canonical and is
+the fallback when metadata, styles or required browser capabilities are missing.
+Only one presentation is focusable and exposed to assistive technology.
+
+Arrows, Home/End and type-ahead explore without applying a theme. Enter/Space or
+clicking a row commits through the existing native change handler exactly once.
+Escape, outside click and focus loss cancel exploration. Tab/Shift+Tab commit an
+open candidate and allow normal focus movement. A check identifies the committed
+row; an outline identifies the active candidate. Session restoration never
+simulates a user selection. Forced-colors mode suppresses decorative swatches.
+
+This refinement is integrated and regression-tested in an independent Git clone.
+It passed **12/12 user-confirmed initial Firefox functional checks** in the
+disposable test environment; the compact layout was subsequently accepted in
+Firefox, with all nine themes visible without scrolling at normal zoom. Desktop
+option rows have a 32px minimum; coarse-pointer option rows retain a 44px minimum.
+It has not been deployed to the original Backdrop site. NVDA, touch, forced-colors,
+RTL, high zoom and other-browser verification remain limited; these results do
+not establish full WCAG compliance. See the [implementation record and manual
+checklist](phase-2d-learner-icons.md) for acceptance evidence and remaining limits.

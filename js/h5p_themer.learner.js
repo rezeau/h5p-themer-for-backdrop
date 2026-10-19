@@ -61,6 +61,7 @@
   function forget(doc) { clear(doc); owned = owned.filter(function (entry) { return entry !== doc; }); }
   function resetDocuments() { owned.forEach(clear); owned = []; }
   function removePanel() {
+    if (panel && Backdrop.h5pThemerLearnerPicker) { Backdrop.h5pThemerLearnerPicker.destroy(panel.querySelector('select')); }
     if (panel && panel.parentNode) { panel.parentNode.removeChild(panel); }
     panel = null;
   }
@@ -248,10 +249,11 @@
     if (!panel) { panel = buildPanel(); }
     var root = supported[0].root;
     if ((panel.nextSibling !== root || panel.parentNode !== root.parentNode) &&
-        !(panel.parentNode && document.activeElement === panel.querySelector('select'))) { root.parentNode.insertBefore(panel, root); }
+        !(panel.parentNode && document.activeElement && document.activeElement.closest('.h5p-themer-learner-controls') === panel)) { root.parentNode.insertBefore(panel, root); }
     var select = panel.querySelector('select');
     select.disabled = false;
     if (select.value !== selected) { select.value = selected; }
+    if (Backdrop.h5pThemerLearnerPicker) { Backdrop.h5pThemerLearnerPicker.sync(select, options); }
     apply(document);
     frames.forEach(function (frame) {
       if (!frame.framed || !frame.doc) { return; }

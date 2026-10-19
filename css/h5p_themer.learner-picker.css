@@ -1,0 +1,35 @@
+/* Parent learner UI only. No H5P theme variables or player rules. GPL-3.0-or-later. */
+.h5p-themer-learner-controls .h5p-themer-picker { --h5p-themer-picker-ready: 1; max-width: 100%; }
+.h5p-themer-learner-controls select[hidden] { display: none !important; }
+.h5p-themer-learner-controls .h5p-themer-picker-trigger,
+.h5p-themer-learner-controls .h5p-themer-picker-option {
+  display: flex; align-items: center; gap: .5em; box-sizing: border-box;
+  min-height: 44px; padding: .5em; font: inherit; overflow-wrap: anywhere;
+  color: CanvasText; background: Canvas; cursor: pointer; text-align: start;
+}
+/* Compact desktop options grow naturally for larger or wrapped labels. */
+.h5p-themer-learner-controls .h5p-themer-picker-option { min-height: 32px; padding-block: 2px; }
+.h5p-themer-learner-controls .h5p-themer-picker-trigger { border: 1px solid ButtonText; border-radius: 2px; width: 100%; }
+.h5p-themer-learner-controls .h5p-themer-picker-trigger:focus { outline: 2px solid Highlight; outline-offset: 2px; }
+.h5p-themer-learner-controls .h5p-themer-picker-list {
+  position: fixed; inset: auto; box-sizing: border-box; padding: 3px; margin: 0;
+  border: 1px solid ButtonText; background: Canvas; color: CanvasText;
+  overflow: auto; overscroll-behavior: contain; font: inherit;
+}
+.h5p-themer-learner-controls .h5p-themer-picker-option[data-active="true"] { outline: 2px solid Highlight; outline-offset: -2px; }
+.h5p-themer-learner-controls .h5p-themer-picker-check { width: 1em; flex: 0 0 1em; visibility: hidden; font-weight: bold; }
+.h5p-themer-learner-controls .h5p-themer-picker-option[aria-selected="true"] .h5p-themer-picker-check { visibility: visible; }
+.h5p-themer-learner-controls .h5p-themer-picker-text { min-width: 0; flex: 1; }
+.h5p-themer-learner-controls .h5p-themer-picker-arrow { flex: 0 0 auto; }
+.h5p-themer-learner-controls .h5p-themer-picker-icon {
+  display: inline-flex; flex: 0 0 24px; width: 24px; height: 14px;
+  box-sizing: border-box; border: 1px solid #767676; border-radius: 2px; overflow: hidden;
+}
+.h5p-themer-learner-controls .h5p-themer-picker-half { width: 50%; height: 100%; box-sizing: border-box; }
+.h5p-themer-learner-controls .h5p-themer-picker-half + .h5p-themer-picker-half { border-inline-start: 1px solid #767676; }
+@media (pointer: coarse) {
+  .h5p-themer-learner-controls .h5p-themer-picker-option { min-height: 44px; padding-block: .5em; }
+}
+@media (forced-colors: active) {
+  .h5p-themer-learner-controls .h5p-themer-picker-icon { display: none; }
+}

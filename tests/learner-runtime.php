@@ -28,7 +28,7 @@ check(strpos($data['css'], $legacy_selector . " {\n  --h5p-theme-main-cta-base: 
 check(strpos($data['css'], '--h5p-theme-contrast-cta-dark') === FALSE && strpos($data['css'], 'url(') === FALSE, 'Unsupported property/URLs excluded from all palettes');
 check(H5PThemerMemoryStorage::$raw === $bytes && H5PThemerMemoryStorage::$writes === $writes && $runtime_cache_invalidations === $n, 'Pure bundle makes no storage/cache writes or migrations');
 $settings = h5p_themer_learner_ui_settings();
-check(!isset($settings['css']) && !isset($settings['reference']) && strpos(json_encode($settings), '#3366CC') === FALSE, 'Transport contains opaque keys, no CSS or private theme metadata');
+check(!isset($settings['css']) && !isset($settings['reference']) && !isset($settings['colors']) && !isset($settings['base_preset']) && $settings['icons']['custom:checkpoint_test'] === array('#3366CC', '#EEDAAA'), 'Transport contains opaque keys and two decorative colors, no CSS, full palettes or private theme metadata');
 config('h5p_themer.theme.legacy')->set('label', '<script>unsafe label</script>')->save();
 $renamed = h5p_themer_learner_bundle()['data'];
 check($renamed['id'] === $data['id'] && $renamed['css'] === $data['css'], 'Labels never enter CSS or safe selectors');

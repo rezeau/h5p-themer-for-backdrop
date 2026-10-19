@@ -249,5 +249,7 @@ require __DIR__ . '/preview-live.php';
 require __DIR__ . '/learner-catalog.php';
 require __DIR__ . '/learner.php';
 require __DIR__ . '/learner-runtime.php';
+require __DIR__ . '/learner-icons.php';
+
 printf("PHP %s: %d passed, %d failed\n", PHP_VERSION, $passed, $failed);
 exit($failed ? 1 : 0);

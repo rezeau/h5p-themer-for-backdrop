@@ -57,9 +57,9 @@ were performed by publication corrections. Historical [switching](phase-2c-step-
 [session](phase-2c-step-5.md) and [compatibility](phase-2c-step-6.md) records retain
 their original checkpoint observations and pending-test statements.
 
-The existing release remains the **v0.1.0 prerelease**. **v0.2.0-alpha.1 is the
-proposed next prerelease**, not a release created by these corrections. Phase 2C
-implementation completion does not make it stable production software.
+**v0.2.0-alpha.1 is already published**. **v0.2.0-alpha.2 is the proposed next
+prerelease**, not a release created by these corrections. Phase 2C implementation
+completion does not make it stable production software.
 Source/tests check native select/label association. Keyboard-only acceptance,
 screen-reader announcements, focus on control removal, narrow/mobile layout,
 RTL/long translated labels, Chromium, Safari, restricted-storage environments,
@@ -72,25 +72,30 @@ the [verified targeted cache procedure](installation.md#deployment-cache-refresh
 and check actual browser delivery. Open pages retain their supplied catalog until
 normal refresh/settings reattachment; there is no polling for administrator changes.
 
-## Deferred: visual learner-selector refinement
+## Two-color learner-selector refinement — independent integration
 
-This is future investigation only and is **not included in v0.2.0-alpha.1**.
-Compare (A) a compact horizontal array of theme color swatches with (B) theme
-names and colored icons in a dropdown. **B is currently preferred, subject to
-technical feasibility.** Native select options do not reliably support arbitrary
-colored icons across browsers. A custom accessible dropdown would add keyboard,
-focus and screen-reader responsibilities; a native select with a separate
-selected-theme color preview is another option to evaluate before choosing.
+The approved name-and-icon dropdown is integrated and regression-tested in an
+independent Git clone. It has not been deployed to the original Backdrop site or
+published. A select-only combobox/listbox uses two solid decorative blocks:
+resolved main-cta-base and alternative-darker. The native select remains canonical
+and is the fallback.
+No theme-specific custom list, palette changes or second persistence path exists.
 
-Preserve theme names, Site default, Core, all five built-ins and saved customs;
-reuse existing validated palette metadata. Evaluate keyboard navigation, narrow
-screens and translated labels while preserving native accessibility where
-practical, session persistence, iframe security and activity state. No selector
-markup, JavaScript or CSS change implements this proposal now.
+Automated contracts cover keyboard exploration/commit, restoration, lifecycle,
+metadata validation and player isolation. Phase 2D passed **12/12 user-confirmed
+initial Firefox functional checks** in the disposable test environment. Compact
+spacing was subsequently accepted in Firefox, with all nine themes visible
+without scrolling at normal zoom. Desktop option rows have a 32px minimum;
+coarse-pointer option rows retain a 44px minimum. NVDA, touch, forced-colors, RTL,
+high zoom and other-browser verification remain limited. See the [implementation
+record](phase-2d-learner-icons.md). Earlier Phase 2C Firefox results describe the
+previous native control; they are separate from the Phase 2D acceptance.
 
 ## Phase 2D — PLANNED: accessibility-oriented themes
 
-These proposed themes are not implemented:
+These proposed built-in presets are not shipped. The site-tested Colorblind
+Friendly and High Contrast Light definitions remain ordinary editable custom
+themes; this refinement does not add them to the built-in catalog:
 
 - High Contrast Light.
 - High Contrast Dark.

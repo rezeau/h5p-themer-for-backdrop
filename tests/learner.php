@@ -21,16 +21,16 @@ foreach (array(FALSE, TRUE) as $enabled) {
   $original = array((object) array('path' => 'existing-player.js', 'version' => '?v=1'));
   $scripts = $original; h5p_themer_h5p_scripts_alter($scripts, array(), 'div');
   check($scripts === $original, 'Learner hook never modifies player script list');
-  check(count($learner_js) === ($enabled ? 2 : 0) && count($learner_css) === ($enabled ? 2 : 0), 'Parent-only assets attached only when enabled');
+  check(count($learner_js) === ($enabled ? 3 : 0) && count($learner_css) === ($enabled ? 3 : 0), 'Parent-only assets attached only when enabled');
   check(H5PThemerMemoryStorage::$raw === $bytes && H5PThemerMemoryStorage::$writes === $writes && $runtime_cache_invalidations === $invalidations, 'Attachment makes no storage/cache writes');
   $styles = array(); h5p_themer_h5p_styles_alter($styles, array(), 'div');
   check(count($styles) === ($enabled ? 1 : 0), 'Enabled Core uses conditional bundle; disabled Core adds no CSS');
 }
 learner_reset(TRUE);
 foreach (array('div', 'iframe', 'div') as $mode) { $scripts = array(); h5p_themer_h5p_scripts_alter($scripts, array(), $mode); }
-check(count($learner_js) === 2 && count($learner_css) === 2, 'Multiple players/repeated modes attach settings and parent assets once');
-check($learner_js[0]['options'] === 'setting' && $learner_js[1]['data'] === 'modules/h5p_themer/js/h5p_themer.learner.js', 'Native Backdrop settings and fixed JS path');
-check($learner_css[0]['data'] === 'modules/h5p_themer/css/h5p_themer.learner.css', 'Fixed learner stylesheet path');
+check(count($learner_js) === 3 && count($learner_css) === 3, 'Multiple players/repeated modes attach settings and parent assets once');
+check($learner_js[0]['options'] === 'setting' && $learner_js[1]['data'] === 'modules/h5p_themer/js/h5p_themer.learner-picker.js' && $learner_js[2]['data'] === 'modules/h5p_themer/js/h5p_themer.learner.js', 'Native Backdrop settings and fixed JS path');
+check($learner_css[0]['data'] === 'modules/h5p_themer/css/h5p_themer.learner.css' && $learner_css[1]['data'] === 'modules/h5p_themer/css/h5p_themer.learner-picker.css', 'Fixed learner stylesheet path');
 $data = json_decode($learner_js[0]['data']['h5pThemerLearner']['payload'], TRUE);
 check($data['label'] === 'H5P theme' && $data['enabled'] === TRUE && strpos($data['message'], 'browser tab') !== FALSE && strpos($data['message'], 'does not save H5P answers') !== FALSE, 'Label and conditional tab-session scope supplied');
 check(array_column($data['options'], 'value') === array('site_default', 'core', 'builtin:daylight', 'builtin:lavender', 'builtin:mint', 'builtin:sunset', 'builtin:dark'), 'Complete ordered base catalog');
@@ -55,7 +55,7 @@ check(!$learner_js, 'Unsupported API excluded');
 learner_reset(TRUE); $GLOBALS['config']['h5p_themer.settings'] = array('learner_selection_enabled' => FALSE); h5p_themer_learner_attach();
 check(!$learner_js, 'Effective false override prevents attachment');
 learner_reset(FALSE); $GLOBALS['config']['h5p_themer.settings'] = array('learner_selection_enabled' => TRUE); h5p_themer_learner_attach();
-check(count($learner_js) === 2, 'Effective true override permits UI');
+check(count($learner_js) === 3, 'Effective true override permits UI');
 learner_reset(FALSE); H5PThemerMemoryStorage::$failList = TRUE; h5p_themer_learner_attach();
 check(!$learner_js && h5p_themer_learner_ui_settings() === NULL, 'Disabled feature does not even enumerate themes');
 learner_reset(TRUE); H5PThemerMemoryStorage::$failList = TRUE; h5p_themer_learner_attach();

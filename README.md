@@ -118,13 +118,14 @@ Current limits:
 
 ## Verification and developer tests
 
-The complete Phase 2C regression baseline is:
+The two-color learner-picker regression results, verified in the independent
+integration clone, are:
 
 | Runtime | Passed | Failed |
 | --- | ---: | ---: |
-| PHP 7.4.33 | 1,854 | 0 |
-| PHP 8.4.22 | 1,854 | 0 |
-| Node.js 22.23.1 | 291 | 0 |
+| PHP 7.4.33 | 1,898 | 0 |
+| PHP 8.4.22 | 1,898 | 0 |
+| Node.js 22.23.1 | 351 | 0 |
 
 Use an existing Backdrop source tree with API-1.28 H5P. Replace the placeholders
 below with your own absolute source paths and select the required PHP executable:
@@ -141,13 +142,13 @@ no machine-specific fallback. Learner contract tests also require
 ```powershell
 $env:BACKDROP_SOURCE_ROOT = '<absolute-Backdrop-source-root>'
 $env:PHP_EXECUTABLE = '<absolute-PHP-CLI-executable>'
-node --test --test-reporter=spec tests/js/admin-colors.test.cjs tests/js/preview-live.test.cjs tests/js/learner.test.cjs tests/js/learner-switching.test.cjs tests/js/learner-session.test.cjs tests/js/learner-compatibility.test.cjs
+node --test --test-reporter=spec tests/js/admin-colors.test.cjs tests/js/preview-live.test.cjs tests/js/learner.test.cjs tests/js/learner-switching.test.cjs tests/js/learner-session.test.cjs tests/js/learner-compatibility.test.cjs tests/js/learner-picker.test.cjs
 ```
 
 Or in a POSIX shell:
 
 ```sh
-BACKDROP_SOURCE_ROOT="<absolute-Backdrop-source-root>" PHP_EXECUTABLE="<absolute-PHP-CLI-executable>" node --test --test-reporter=spec tests/js/admin-colors.test.cjs tests/js/preview-live.test.cjs tests/js/learner.test.cjs tests/js/learner-switching.test.cjs tests/js/learner-session.test.cjs tests/js/learner-compatibility.test.cjs
+BACKDROP_SOURCE_ROOT="<absolute-Backdrop-source-root>" PHP_EXECUTABLE="<absolute-PHP-CLI-executable>" node --test --test-reporter=spec tests/js/admin-colors.test.cjs tests/js/preview-live.test.cjs tests/js/learner.test.cjs tests/js/learner-switching.test.cjs tests/js/learner-session.test.cjs tests/js/learner-compatibility.test.cjs tests/js/learner-picker.test.cjs
 ```
 
 No npm packages or live site bootstrap are used. PHP tests load native definitions
@@ -182,13 +183,21 @@ narrow/mobile layout, RTL/long translated labels, Chromium, Safari,
 restricted-storage behavior, or broad H5P library compatibility. Source/tests
 check the native select and its associated label; no WCAG certification is claimed.
 
+Phase 2D passed **12/12 user-confirmed initial Firefox functional checks** in the
+disposable test environment. The compact layout was subsequently accepted in
+Firefox: all nine themes were visible without scrolling at normal zoom, with
+correct two-color icons and spacing. Desktop option rows have a 32px minimum;
+coarse-pointer option rows retain a 44px minimum. NVDA, touch, forced-colors, RTL,
+high zoom and other-browser verification remain limited. No WCAG compliance or
+universal browser support is claimed.
+
 Historical phase records in `docs/` describe the evidence available at each
 earlier checkpoint, not the current deployment state or installation procedure.
 
 ## Learner selection, release status and recovery
 
 In **Global Default**, enable **Allow learners to select their H5P theme** to
-offer one native **H5P theme** selector above the first eligible activity. The
+offer one **H5P theme** selector above the first eligible activity. The
 setting is false by default. Choices are:
 
 - **Site default:** follow the administrator's configured global theme.
@@ -219,9 +228,14 @@ styling remains active; H5P still requires its own scripts.
 
 [Phase 2C functionality is implemented](docs/roadmap.md), including live switching,
 session persistence and compatibility-based visibility. Broader qualification is
-unfinished. `v0.1.0` remains the existing prerelease; **`v0.2.0-alpha.1` is proposed,
-not published by this preparation step**, and is not a stable production release.
-Visual selector refinements and Phase 2D accessibility-oriented themes are deferred.
+unfinished. **`v0.2.0-alpha.1` is already published**; **`v0.2.0-alpha.2` is the
+proposed next prerelease**, not a release created by these corrections. This
+remains development software, not a stable production release. The two-color
+selector refinement is integrated and tested in an independent Git clone; see its
+[implementation and acceptance checklist](docs/phase-2d-learner-icons.md). It passed
+user-confirmed Firefox acceptance in the disposable test environment but has not
+been deployed to the original Backdrop site or published. Additional
+accessibility-oriented built-in theme work remains deferred.
 
 To disable Themer color overrides through normal administration, select **H5P
 Core defaults as the global default and disable learner theme selection**, then
