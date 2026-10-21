@@ -20,6 +20,7 @@ foreach ($form['colors'] as $key => $group) {
   foreach ($group as $property => $element) {
     if ($property[0] === '#') { continue; }
     check($element['#type'] === 'textfield' && $element['#parents'] === array('colors', $property) && $element['#attributes']['data-h5p-themer-inherited'] === '', 'Schema 1 metadata keeps Core unrepresented: ' . $property);
+    check($element['#default_value'] === '' && $element['#attributes']['data-h5p-themer-picker-initial'] === '#000000', 'Scratch creation supplies a UI-only seed without an override: ' . $property);
   }
 }
 check($groups === 5, 'Exactly five collapsed color groups');
@@ -36,6 +37,7 @@ foreach (h5p_themer_presets($version)['data'] as $id => $preset) {
     foreach ($group as $property => $element) {
       if ($property[0] === '#') { continue; }
       check($element['#default_value'] === '' && $element['#attributes']['data-h5p-themer-inherited'] === $preset['colors'][$property], 'Exact inheritance metadata without a saved override: ' . $id . ' ' . $property);
+      check(!isset($element['#attributes']['data-h5p-themer-picker-initial']), 'Existing preset edit has no scratch seed: ' . $property);
     }
   }
   $copy = admin_form('theme', 'preset_duplicate', $id, $version)[1];

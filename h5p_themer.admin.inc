@@ -287,6 +287,10 @@ function h5p_themer_theme_form($form, &$form_state, $operation = 'add', $id = NU
           '#default_value' => isset($source['colors'][$property]) ? $source['colors'][$property] : '', '#description' => $description,
           '#attributes' => array('class' => array('h5p-themer-color-input'),
             'data-h5p-themer-inherited' => $inherited !== NULL ? $inherited['colors'][$property] : ''));
+        if ($context['operation'] === 'add') {
+          // Display-only seed for the unnamed companion, never a saved override.
+          $form['colors'][$group][$property]['#attributes']['data-h5p-themer-picker-initial'] = '#000000';
+        }
       }
     }
     $form['#attached']['js'][] = backdrop_get_path('module', 'h5p_themer') . '/js/h5p_themer.admin.js';

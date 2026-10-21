@@ -121,8 +121,12 @@ available while text is invalid, the picker shows that inherited hex and
 explains that choosing a color will replace the invalid text.
 
 Schema-1 blank retains Core/no-override semantics. No preset is assigned or
-substituted. Since the administration form has no resolved Core-color map,
-its picker stays disabled until an explicit valid hex is entered.
+substituted. On scratch creation only, an editable blank field has an enabled
+picker starting at black for choosing a color. This is a UI-only starting value,
+not a Core preview or saved override; the text remains blank until a color is
+chosen. Clearing or resetting a scratch field restores that blank state. Existing
+schema-1 edit/duplicate forms still require explicit valid hex to enable a picker
+when no inherited hex is available.
 
 Disabled/read-only fields remain guarded. Without JavaScript, or without native
 color-input support, ordinary hex textfields and existing server validation

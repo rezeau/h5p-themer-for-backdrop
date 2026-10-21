@@ -2,7 +2,9 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createHarness } = require('./dom-fixture.cjs');
+const { createHarness: createDOMHarness } = require('./dom-fixture.cjs');
+const localOnly = process.env.H5P_THEMER_LOCAL_COLOR_TESTS === '1';
+const createHarness = () => createDOMHarness({ localOnly });
 
 for (const [value, display] of [['#aBc', '#aabbcc'], ['#Ab12Ef', '#ab12ef'], ['#000', '#000000'], ['#fffFFF', '#ffffff']]) {
   test('initial explicit ' + value + ' is display-only', () => {
@@ -112,7 +114,7 @@ test('native reset resynchronizes after default action without writing text', ()
   f.form.dispatchEvent(new h.Event('reset')); f.text.value = f.text.defaultValue; const writes = f.text.valueWrites; h.flushTimers();
   assert.equal(f.text.value, '#AbC'); assert.equal(f.text.valueWrites, writes); assert.equal(f.picker().value, '#aabbcc');
 });
-test('installed Backdrop collapse opens every error group and leaves other groups collapsed', () => {
+test('installed Backdrop collapse opens every error group and leaves other groups collapsed', { skip: localOnly ? 'Requires external Backdrop source; local-only color tests use a once double.' : false }, () => {
   const h = createHarness(); const groups = [];
   for (let i = 0; i < 5; i++) {
     const fieldset = h.doc.createElement('fieldset'); fieldset.className = 'collapsible collapsed';
@@ -123,4 +125,69 @@ test('installed Backdrop collapse opens every error group and leaves other group
   assert.deepEqual(groups.map(group => group.matches('.collapsed')), [false, true, false, true, true]);
   h.Backdrop.behaviors.collapse.attach(h.doc, {});
   assert.deepEqual(groups.map(group => group.matches('.collapsed')), [false, true, false, true, true]);
+});
+
+test('scratch picker starts enabled without populating submitted fields or firing changes', () => {
+  const h = createHarness(), f = h.field({ initial: '#000000' }); let changes = 0;
+  f.text.addEventListener('change', () => changes++);
+  h.attach(); h.attach(f.form); h.attach(f.text);
+  assert.equal(f.picker().disabled, false); assert.equal(f.picker().value, '#000000');
+  assert.equal(f.picker().getAttribute('name'), null);
+  assert.equal(f.text.value, ''); assert.equal(f.text.defaultValue, '');
+  assert.equal(f.text.valueWrites, 0); assert.equal(changes, 0);
+  assert.equal(f.form.querySelectorAll('input').length, 2);
+  assert.match(f.status().textContent, /does not show the Core default/);
+});
+
+test('explicit scratch color choice changes only its matching textfield once', () => {
+  const h = createHarness(), a = h.field({ id: 'scratch-a', initial: '#000000' }), b = h.field({ id: 'scratch-b', initial: '#000000' }); let changes = 0;
+  a.text.addEventListener('change', () => changes++); h.attach();
+  a.picker().value = '#123456'; a.picker().dispatchEvent(new h.Event('input')); a.picker().dispatchEvent(new h.Event('change'));
+  assert.equal(a.text.value, '#123456'); assert.equal(a.text.valueWrites, 1); assert.equal(changes, 1);
+  assert.equal(b.text.value, ''); assert.equal(b.text.valueWrites, 0);
+});
+
+test('scratch picker seed never repairs invalid or incomplete user text', () => {
+  const h = createHarness(), f = h.field({ initial: '#000000', value: '#12' }); h.attach();
+  assert.equal(f.picker().disabled, true); assert.equal(f.text.value, '#12'); assert.equal(f.text.valueWrites, 0);
+  f.picker().value = '#abcdef'; f.picker().dispatchEvent(new h.Event('change'));
+  assert.equal(f.text.value, '#12');
+});
+
+test('clearing and resetting a scratch color restore an enabled seed without saving it', () => {
+  const h = createHarness(), f = h.field({ initial: '#000000' }); h.attach();
+  f.picker().value = '#123456'; f.picker().dispatchEvent(new h.Event('change'));
+  f.text.value = ''; f.text.dispatchEvent(new h.Event('input'));
+  assert.equal(f.text.value, ''); assert.equal(f.picker().value, '#000000'); assert.equal(f.picker().disabled, false);
+  f.picker().value = '#abcdef'; f.picker().dispatchEvent(new h.Event('change'));
+  f.form.dispatchEvent(new h.Event('reset')); f.text.value = f.text.defaultValue;
+  const writes = f.text.valueWrites; h.flushTimers();
+  assert.equal(f.text.value, ''); assert.equal(f.text.valueWrites, writes); assert.equal(f.picker().value, '#000000');
+  assert.equal(f.picker().disabled, false);
+});
+
+for (const state of [{ disabled: true }, { readOnly: true }]) {
+  test('scratch seed respects field protection: ' + JSON.stringify(state), () => {
+    const h = createHarness(), f = h.field({ initial: '#000000', ...state }); h.attach();
+    assert.equal(f.picker().disabled, true);
+    f.picker().value = '#123456'; f.picker().dispatchEvent(new h.Event('input'));
+    assert.equal(f.text.value, ''); assert.equal(f.text.valueWrites, 0);
+  });
+}
+
+test('scratch seed cannot override inherited hex or non-hex expression behavior', () => {
+  const h = createHarness(), hex = h.field({ id: 'hex', initial: '#000000', inherited: '#aBc' }), expression = h.field({ id: 'expression', initial: '#000000', inherited: 'var(--color)' }); h.attach();
+  assert.equal(hex.picker().value, '#aabbcc'); assert.equal(hex.picker().disabled, false);
+  assert.equal(expression.picker().disabled, true);
+  assert.equal(hex.text.valueWrites, 0); assert.equal(expression.text.valueWrites, 0);
+});
+
+test('scratch seed never replaces a submitted explicit hex value after rebuilding', () => {
+  const h = createHarness(), f = h.field({ initial: '#000000', value: '#AbC' }); h.attach();
+  assert.equal(f.picker().value, '#aabbcc'); assert.equal(f.text.value, '#AbC'); assert.equal(f.text.valueWrites, 0);
+});
+
+test('invalid scratch seed leaves the original safe disabled state', () => {
+  const h = createHarness(), f = h.field({ initial: 'not-a-color' }); h.attach();
+  assert.equal(f.picker().disabled, true); assert.equal(f.text.valueWrites, 0);
 });

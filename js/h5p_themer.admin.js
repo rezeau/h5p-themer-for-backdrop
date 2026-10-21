@@ -55,6 +55,7 @@
         companion.appendChild(status);
         text.parentNode.insertBefore(companion, text.nextSibling);
         var inherited = text.getAttribute('data-h5p-themer-inherited') || '';
+        var initial = pickerHex(text.getAttribute('data-h5p-themer-picker-initial') || '');
 
         function locked() {
           return text.disabled || text.readOnly || text.matches(':disabled');
@@ -62,7 +63,9 @@
         function synchronize() {
           var explicit = pickerHex(text.value);
           var inheritedHex = pickerHex(inherited);
-          var display = explicit || inheritedHex;
+          // Only scratch creation supplies a seed. Blank still means no override.
+          var initialHex = text.value === '' && inherited === '' ? initial : null;
+          var display = explicit || inheritedHex || initialHex;
           picker.disabled = locked() || !display;
           if (display) {
             picker.value = display;
@@ -80,6 +83,9 @@
           }
           else if (inheritedHex) {
             status.textContent = Backdrop.t('Inherited color; no override.');
+          }
+          else if (initialHex) {
+            status.textContent = Backdrop.t('No override. The picker starts at black for choosing a color; it does not show the Core default. Only a color choice sets an override.');
           }
           else {
             status.textContent = inherited

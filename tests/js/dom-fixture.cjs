@@ -72,7 +72,7 @@ class Element {
   querySelector(selector) { return this.querySelectorAll(selector)[0] || null; }
 }
 
-function createHarness() {
+function createHarness({ localOnly = false } = {}) {
   const timers = [];
   const doc = new Element('document', null);
   doc.ownerDocument = doc; doc.supportsColor = true;
@@ -122,18 +122,32 @@ function createHarness() {
   doc.defaultView = sandbox.window; sandbox.window.document = doc;
   sandbox.window.self = sandbox.window; sandbox.window.top = sandbox.window;
   const core = process.env.BACKDROP_SOURCE_ROOT;
-  if (!core) {
+  if (!core && !localOnly) {
     throw new Error('Set BACKDROP_SOURCE_ROOT to an existing Backdrop source tree before running the JavaScript tests.');
   }
-  const loadCore = file => vm.runInContext(fs.readFileSync(path.join(core, 'core/misc', file), 'utf8'), sandbox, { filename: file });
+  const loadCore = file => {
+    if (localOnly) throw new Error('External source access is disabled in local-only tests.');
+    vm.runInContext(fs.readFileSync(path.join(core, 'core/misc', file), 'utf8'), sandbox, { filename: file });
+  };
   // Exercise the installed once implementation rather than recreating its guard.
-  loadCore('jquery.once.js');
+  if (localOnly) {
+    // Unit-test collaborator only; the default integration mode uses Core as-is.
+    const processed = new WeakMap();
+    Collection.prototype.once = function (key, callback) {
+      return this.each(function () {
+        const keys = processed.get(this) || new Set();
+        if (!keys.has(key)) { keys.add(key); processed.set(this, keys); callback.call(this); }
+      });
+    };
+  }
+  else { loadCore('jquery.once.js'); }
   vm.runInContext(fs.readFileSync(path.join(__dirname, '../../js/h5p_themer.admin.js'), 'utf8'), sandbox, { filename: 'h5p_themer.admin.js' });
-  function field({ value = '', inherited = '', id = 'edit-background', disabled = false, readOnly = false } = {}) {
+  function field({ value = '', inherited = '', initial = null, id = 'edit-background', disabled = false, readOnly = false } = {}) {
     const form = doc.createElement('form'); const label = doc.createElement('label'); const text = doc.createElement('input');
     label.setAttribute('for', id); label.textContent = 'Background'; text.id = id;
     text.setAttribute('type', 'text'); text.setAttribute('name', 'colors[--h5p-theme-background]');
     text.className = 'h5p-themer-color-input'; text.setAttribute('data-h5p-themer-inherited', inherited);
+    if (initial !== null) text.setAttribute('data-h5p-themer-picker-initial', initial);
     text.setAttribute('aria-describedby', id + '-description');
     text.value = value; text.defaultValue = value; text.valueWrites = 0; text.disabled = disabled; text.readOnly = readOnly;
     form.appendChild(label); form.appendChild(text); doc.body.appendChild(form);
