@@ -28,7 +28,7 @@ function preview_services_snapshot() {
     $GLOBALS['runtime_cache_invalidations'], $GLOBALS['runtime_wrapper_calls']);
 }
 
-admin_reset();
+admin_reset(); admin_publication_fixture();
 $version = h5p_themer_preset_versions()[0];
 $catalog_before = h5p_themer_presets($version)['data'];
 $routes_before = h5p_themer_menu();

@@ -143,4 +143,4 @@ function createHarness() {
     loadModule: file => vm.runInContext(fs.readFileSync(path.join(__dirname, '../../js', file), 'utf8'), sandbox, { filename: file }),
     flushTimers: () => { while (timers.length) timers.shift()(); } };
 }
-module.exports = { createHarness };
+module.exports = { createHarness, Element };

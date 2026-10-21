@@ -32,3 +32,42 @@ function h5p_themer_requirements($phase) {
   }
   return $requirements;
 }
+
+/** Prepare only; Core records barrier 1000 after this hook succeeds. */
+function h5p_themer_update_1000() {
+  if (!_h5p_themer_visibility_prepare('upgrade')) { throw new ConfigException(t('Visibility barrier preparation failed. No new policy was initialized.')); }
+  return t('Prepared the frozen H5P theme visibility activation snapshot.');
+}
+
+/** Use the frozen snapshot only after Core has persisted the barrier. */
+function h5p_themer_update_1001() {
+  $result = h5p_themer_visibility_initialize();
+  if (!$result['ok']) { throw new ConfigException(implode(' ', $result['errors'])); }
+  return t('H5P theme visibility activation completed.');
+}
+
+/** Core records the latest schema version before the genuine install hook. */
+function h5p_themer_install() {
+  $witness = h5p_themer_visibility_witness();
+  if ($witness['errors'] || $witness['version'] < 1003 || !_h5p_themer_visibility_prepare('fresh')) {
+    throw new ConfigException(t('Fresh H5P visibility activation could not be prepared.'));
+  }
+  $result = h5p_themer_visibility_initialize();
+  if (!$result['ok']) { throw new ConfigException(implode(' ', $result['errors'])); }
+}
+
+/**
+ * Retired import barrier. Retain this no-op number for upgrade compatibility.
+ * Existing import journal data is deliberately neither read nor changed.
+ */
+function h5p_themer_update_1002() {
+  return t('Custom theme import support has been removed; no configuration changes were needed.');
+}
+
+/**
+ * Retired import initializer. Retain this no-op number; never replay 1000/1001.
+ * Installations already at 1003 need no new update or import-journal cleanup.
+ */
+function h5p_themer_update_1003() {
+  return t('Custom theme import support has been removed; existing journal data was retained.');
+}

@@ -13,7 +13,8 @@ test('native labeled active select is immediately above DIV player', () => {
  assert.equal(panel.nextSibling,p.root); assert.equal(panel.parentNode,p.root.parentNode); assert.equal(panel.closest('.h5p-content'),null);
  assert.equal(s.tagName,'select'); assert.equal(s.disabled,false); assert.equal(s.value,'site_default');
  assert.equal(panel.querySelector('label').getAttribute('for'),s.id); assert.equal(panel.querySelector('label').textContent,'H5P theme');
- assert.match(f.doc.getElementById(s.getAttribute('aria-describedby')).textContent,/browser tab/);
+ const help=panel.querySelector('.h5p-themer-learner-help'),description=f.doc.getElementById(help.getAttribute('aria-controls'));
+ assert.equal(s.hasAttribute('aria-describedby'),false);assert.equal(description.hasAttribute('hidden'),true);assert.match(description.textContent,/browser tab/);
  assert.equal(s.hasAttribute('name'),false); assert.equal(s.hasAttribute('tabindex'),false); assert.equal(s.hasAttribute('role'),false); f.unchanged();
 });
 test('complete ordered catalog keeps Core distinct from Daylight and custom', () => { const f=fixture(); f.player(); f.attach(); const items=f.select().children; assert.deepEqual(items.map(o=>o.value),choices); assert.deepEqual(items.map(o=>o.textContent),labels); assert.notEqual(items[1].value,items[2].value); });

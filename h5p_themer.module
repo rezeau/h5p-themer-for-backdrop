@@ -6,6 +6,7 @@
 
 require_once __DIR__ . '/h5p_themer.config.inc';
 require_once __DIR__ . '/h5p_themer.catalog.inc';
+require_once __DIR__ . '/h5p_themer.visibility.inc';
 require_once __DIR__ . '/h5p_themer.runtime.inc';
 require_once __DIR__ . '/h5p_themer.learner-runtime.inc';
 require_once __DIR__ . '/h5p_themer.learner.inc';
@@ -42,11 +43,13 @@ function h5p_themer_menu() {
   $items[$base] = array(
     'title' => 'H5P themes',
     'description' => 'Manage reusable H5P themes and the global default.',
-    'page callback' => 'h5p_themer_overview',
+    'page callback' => 'backdrop_get_form',
+    'page arguments' => array('h5p_themer_overview'),
   ) + $common;
   $items[$base . '/list'] = array(
     'title' => 'Themes',
-    'page callback' => 'h5p_themer_overview',
+    'page callback' => 'backdrop_get_form',
+    'page arguments' => array('h5p_themer_overview'),
     'type' => MENU_DEFAULT_LOCAL_TASK,
   ) + $common;
   $items[$base . '/add'] = array(
@@ -94,6 +97,7 @@ function h5p_themer_config_info() {
       'label' => t('H5P Themer settings'),
       'group' => t('H5P Themer'),
     ),
+    'h5p_themer.learner_visibility' => array('label' => t('Learner theme visibility'), 'group' => t('H5P Themer')),
     'h5p_themer.theme' => array(
       'name_key' => 'id',
       'label_key' => 'label',
@@ -157,7 +161,7 @@ function h5p_themer_compatibility() {
 function h5p_themer_config_data_validate(Config $config, ?array $config_info) {
   $name = $config->getName();
   if (strpos($name, 'h5p_themer.') === 0) {
-    $errors = h5p_themer_config_errors($name, $config->getOriginal());
+    $errors = $name === 'h5p_themer.learner_visibility' ? h5p_themer_visibility_errors($config->getOriginal()) : h5p_themer_config_errors($name, $config->getOriginal());
     if ($errors) {
       throw new ConfigValidateException(implode(' ', $errors));
     }
@@ -168,6 +172,7 @@ function h5p_themer_config_data_validate(Config $config, ?array $config_info) {
  * Implements hook_config_create_validate().
  */
 function h5p_themer_config_create_validate(Config $staging_config, ?array $all_changes) {
+  _h5p_themer_native_import_guard($staging_config->getName(), $all_changes);
   _h5p_themer_validate_default_reference($staging_config, $all_changes);
 }
 
@@ -175,6 +180,7 @@ function h5p_themer_config_create_validate(Config $staging_config, ?array $all_c
  * Implements hook_config_update_validate().
  */
 function h5p_themer_config_update_validate(Config $staging_config, Config $active_config, ?array $all_changes) {
+  _h5p_themer_native_import_guard($staging_config->getName(), $all_changes);
   _h5p_themer_validate_default_reference($staging_config, $all_changes);
 }
 
@@ -182,6 +188,12 @@ function h5p_themer_config_update_validate(Config $staging_config, Config $activ
  * Implements hook_config_delete_validate().
  */
 function h5p_themer_config_delete_validate(Config $active_config, ?array $all_changes) {
+  _h5p_themer_native_import_guard($active_config->getName(), $all_changes);
+  _h5p_themer_validate_theme_deletion($active_config, $all_changes);
+}
+
+/** Existing reference checks, also used by supported administration handlers. */
+function _h5p_themer_validate_theme_deletion(Config $active_config, ?array $all_changes) {
   $name = $active_config->getName();
   if (strpos($name, 'h5p_themer.theme.') !== 0) {
     return;
@@ -256,4 +268,37 @@ function h5p_themer_h5p_styles_alter(&$styles, $libraries, $mode) {
 function h5p_themer_h5p_scripts_alter(&$scripts, $libraries, $mode) {
   if (!is_array($scripts) || !in_array($mode, array('div', 'iframe'), TRUE)) { return; }
   h5p_themer_learner_attach();
+}
+
+/**
+ * Reject native theme/policy mutations without state or a privileged bypass.
+ *
+ * Whole-plan checks reject mixed imports even when an unrelated object is
+ * validated first. Native settings and unrelated configuration remain supported.
+ */
+function _h5p_themer_native_import_guard($name, $all_changes = NULL) {
+  $protected = function ($value) {
+    return $value === 'h5p_themer.learner_visibility' || strpos($value, 'h5p_themer.theme.') === 0;
+  };
+  if ($protected($name)) {
+    throw new ConfigValidateException(t('Native H5P theme and visibility-policy imports are not supported. Manage themes and learner visibility through H5P theme administration.'));
+  }
+  if (is_array($all_changes)) {
+    foreach ($all_changes as $file => $change) {
+      if ($change !== NULL && $protected($file)) {
+        throw new ConfigValidateException(t('This configuration plan contains an unsupported H5P theme or visibility-policy mutation.'));
+      }
+    }
+  }
+}
+
+/** Pre-application guards: validation is not automatically repeated by Core. */
+function h5p_themer_config_create(Config $candidate) {
+  _h5p_themer_native_import_guard($candidate->getName());
+}
+function h5p_themer_config_update(Config $candidate, Config $active) {
+  _h5p_themer_native_import_guard($candidate->getName());
+}
+function h5p_themer_config_delete(Config $active) {
+  _h5p_themer_native_import_guard($active->getName());
 }

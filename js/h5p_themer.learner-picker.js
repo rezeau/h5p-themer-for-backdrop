@@ -166,7 +166,8 @@
       trigger.setAttribute('role', 'combobox'); trigger.setAttribute('tabindex', '0');
       trigger.setAttribute('aria-haspopup', 'listbox'); trigger.setAttribute('aria-expanded', 'false');
       trigger.setAttribute('aria-controls', list.id); trigger.setAttribute('aria-labelledby', oldLabelId || select.id + '-label');
-      trigger.setAttribute('aria-describedby', select.getAttribute('aria-describedby') || '');
+      var descriptionId = select.getAttribute('aria-describedby');
+      if (descriptionId) { trigger.setAttribute('aria-describedby', descriptionId); }
       list.setAttribute('role', 'listbox'); list.setAttribute('aria-labelledby', oldLabelId || select.id + '-label'); list.setAttribute('popover', 'manual');
       wrap.appendChild(trigger); wrap.appendChild(list); box.insertBefore(wrap, select.nextSibling);
       if (window.getComputedStyle(wrap).getPropertyValue('--h5p-themer-picker-ready').trim() !== '1') { wrap.parentNode.removeChild(wrap); return null; }

@@ -239,7 +239,7 @@ try {
   }
 
   // Only successful relevant UI saves invalidate page/layout caches.
-  admin_reset(); $runtime_cache_invalidations = 0;
+  admin_reset(); admin_publication_fixture(); $runtime_cache_invalidations = 0;
   $result = admin_post(admin_form('default'), array('default_theme' => 'builtin:mint'));
   check(!$result['errors'] && $runtime_cache_invalidations === 1, 'Selecting Mint invalidates stale Core page references');
   $result = admin_post(admin_form('default'), array('default_theme' => 'builtin:mint'));
@@ -275,7 +275,7 @@ try {
   check((bool) $result['errors'] && $runtime_cache_invalidations === 4 && H5PThemerMemoryStorage::$raw === $bytes, 'Lock-rejected default save does not invalidate caches');
   $write_locked = FALSE;
   check(h5p_themer_presets($version)['data'] === $catalog_before, 'Every runtime attempt preserves all exact catalog data');
-  check(count(h5p_themer_menu()) === 9 && function_exists('h5p_themer_h5p_scripts_alter'), 'No new routes; parent-only learner UI hook exists');
+  check(count(h5p_themer_menu()) === 12 && function_exists('h5p_themer_h5p_scripts_alter'), 'Single-theme administration routes preserve parent-only learner hook');
 }
 finally {
   H5PCore::$coreApi = $api_before; $h5p_enabled = TRUE; $GLOBALS['config'] = array();

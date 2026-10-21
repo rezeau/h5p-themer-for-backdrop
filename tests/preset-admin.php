@@ -5,7 +5,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-admin_reset();
+admin_reset(); admin_publication_fixture();
 $version = 'moodle-478fed30d2a4';
 $ids = array('daylight', 'lavender', 'mint', 'sunset', 'dark');
 $base = 'admin/config/content/h5p-themer';

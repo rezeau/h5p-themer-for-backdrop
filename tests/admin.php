@@ -6,9 +6,12 @@
 
 require __DIR__ . '/admin-bootstrap.php';
 $base = 'admin/config/content/h5p-themer';
-admin_reset();
+admin_reset(); admin_publication_fixture();
 $routes = h5p_themer_menu();
-check(count($routes) === 9, 'Nine explicit administration routes including read-only presets and duplication');
+check(count($routes) === 9, 'Nine protected theme administration routes');
+foreach (array('import-definition', 'import-definition/delete', 'import-definition/resume') as $removed) {
+  check(!isset($routes[$base . '/' . $removed]), 'Removed import route is absent: ' . $removed);
+}
 foreach ($routes as $path => $route) {
   check($route['access callback'] === 'h5p_themer_admin_access' && $route['file'] === 'h5p_themer.admin.inc', 'Protected administration route ' . $path);
 }

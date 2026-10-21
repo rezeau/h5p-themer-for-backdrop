@@ -174,7 +174,7 @@ $settings = fixture_typed_settings($builtin); $settings['learner_selection_enabl
 check(h5p_themer_theme_catalog() === $catalog, 'Catalog is reusable and independent of enabled state');
 $routes = h5p_themer_menu();
 $base = 'admin/config/content/h5p-themer';
-check(function_exists('h5p_themer_h5p_scripts_alter') && array_keys($routes) === array($base, $base . '/list', $base . '/add', $base . '/default', $base . '/%/edit', $base . '/%/duplicate', $base . '/%/delete', $base . '/presets/%/%', $base . '/presets/%/%/duplicate'), 'Parent-only learner hook exists without new routes');
+check(function_exists('h5p_themer_h5p_scripts_alter') && array_keys($routes) === array($base, $base . '/list', $base . '/add', $base . '/default', $base . '/%/edit', $base . '/%/duplicate', $base . '/%/delete', $base . '/presets/%/%', $base . '/presets/%/%/duplicate'), 'Parent-only learner hook and exact protected administration routes');
 foreach (array(FALSE, TRUE) as $enabled) {
   admin_reset();
   $settings = fixture_settings(); $settings['learner_selection_enabled'] = $enabled; seed('h5p_themer.settings', $settings);

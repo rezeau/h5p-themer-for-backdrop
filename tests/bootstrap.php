@@ -55,7 +55,9 @@ function backdrop_valid_test_ua() {
   return FALSE;
 }
 function settings_get($name, $default = NULL) {
-  return in_array($name, array('config_active_class', 'config_staging_class'), TRUE) ? 'H5PThemerMemoryStorage' : $default;
+  // Test-only backend injection for native file-storage safety regressions.
+  $class = isset($GLOBALS['visibility_test_storage_class']) ? $GLOBALS['visibility_test_storage_class'] : 'H5PThemerMemoryStorage';
+  return in_array($name, array('config_active_class', 'config_staging_class'), TRUE) ? $class : $default;
 }
 function module_exists($name) {
   return $name === 'h5p' && $GLOBALS['h5p_enabled'];
@@ -82,11 +84,13 @@ function backdrop_json_encode($data, $pretty = FALSE) {
 $runtime_cache_invalidations = 0;
 function cache_clear_all($cid = NULL, $bin = NULL, $wildcard = FALSE) {
   if ($cid !== NULL || $bin !== NULL || $wildcard !== FALSE) { throw new LogicException('Unexpected cache invalidation scope.'); }
+  if (H5PVisibilityNativeFixture::$fault === 'output_cache') { throw new RuntimeException('Fixture output cache failure.'); }
   $GLOBALS['runtime_cache_invalidations']++;
 }
-function db_query() {
-  throw new LogicException('Database access is forbidden in this harness.');
+function db_query(...$args) {
+  return visibility_fixture_query(...$args);
 }
+require_once __DIR__ . '/visibility-native-fixture.php';
 
 require_once $backdrop_root . '/core/includes/config.inc';
 require_once $backdrop_root . '/core/modules/config/config.module';
@@ -115,15 +119,26 @@ class H5PThemerMemoryStorage extends ConfigFileStorage {
     return $data;
   }
   public function write($name, array $data) {
-    if (self::$failWrite) { throw new ConfigStorageException('Simulated unavailable storage.'); }
+    if (self::$failWrite || ($name === 'h5p_themer.learner_visibility' && H5PVisibilityNativeFixture::$fault === 'policy_save')) { throw new ConfigStorageException('Simulated unavailable storage.'); }
+    if (strpos($name, 'h5p_themer.theme.') === 0 && in_array(H5PVisibilityNativeFixture::$fault, array('theme_save', 'theme_save_false'), TRUE)) {
+      if (H5PVisibilityNativeFixture::$fault === 'theme_save_false') { return FALSE; }
+      throw new ConfigStorageException('Fixture definition failure.');
+    }
+    if ($name === 'h5p_themer.learner_visibility' && H5PVisibilityNativeFixture::$fault === 'policy_save_false') { return FALSE; }
     self::$writes++;
     self::$raw[$this->directory][$name] = $this->encode(array_merge(array('_config_name' => $name), $data));
+    if ($name === 'h5p_themer.learner_visibility' && H5PVisibilityNativeFixture::$fault === 'policy_verify') { self::$raw[$this->directory][$name] = '{}'; }
+    if ($name === 'h5p_themer.learner_visibility' && H5PVisibilityNativeFixture::$fault === 'policy_save_after') { throw new ConfigStorageException('Fixture post-persistence failure.'); }
+    if (strpos($name, 'h5p_themer.theme.') === 0 && H5PVisibilityNativeFixture::$fault === 'theme_save_after') { throw new ConfigStorageException('Fixture post-definition persistence failure.'); }
+    if (strpos($name, 'h5p_themer.theme.') === 0 && H5PVisibilityNativeFixture::$fault === 'theme_verify') { self::$raw[$this->directory][$name] = '{}'; }
     return TRUE;
   }
   public function delete($name) {
     if (self::$failDelete) { throw new ConfigStorageException('Simulated unavailable storage.'); }
+    if (H5PVisibilityNativeFixture::$fault === 'theme_delete_false') { return FALSE; }
     self::$writes++;
     unset(self::$raw[$this->directory][$name]);
+    if (H5PVisibilityNativeFixture::$fault === 'theme_delete_after') { throw new ConfigStorageException('Fixture post-deletion failure.'); }
     return TRUE;
   }
   public function listAll($prefix = '') {
@@ -185,6 +200,7 @@ function seed($name, array $data, $type = 'active') {
   config($name, $type)->setData($data)->save();
 }
 function reset_storage() {
+  visibility_native_reset();
   H5PThemerMemoryStorage::$raw = array();
   H5PThemerMemoryStorage::$writes = 0;
   H5PThemerMemoryStorage::$failWrite = FALSE;
@@ -199,3 +215,23 @@ function current_path() { return isset($GLOBALS['learner_test_path']) ? $GLOBALS
 function path_is_admin($path) { return !empty($GLOBALS['learner_test_admin_path']); }
 function backdrop_add_js($data = NULL, $options = NULL) { $GLOBALS['learner_js'][] = array('data' => $data, 'options' => $options); }
 function backdrop_add_css($data = NULL, $options = NULL) { $GLOBALS['learner_css'][] = array('data' => $data, 'options' => $options); }
+
+
+/**
+ * Reference/resolver unit fixtures, not supported imports. Direct Config writes
+ * deliberately model external storage to retain schema/reference coverage.
+ * Native import rejection is exercised separately without a bypass flag.
+ */
+function reference_fixture_validate($name, $action, $changes = NULL, $data = NULL) {
+  $staged = config($name, 'staging');
+  if ($data === NULL) { $staged->load(); } else { $staged->setData($data); }
+  if ($action === 'delete') { _h5p_themer_validate_theme_deletion(config($name)->load(), $changes); }
+  else { $staged->validateData(); _h5p_themer_validate_default_reference($staged, $changes); }
+}
+function reference_fixture_apply($name, $action, $data = NULL) {
+  if ($action === 'delete') { config($name)->delete(); }
+  else {
+    if ($data === NULL) { $data = config($name, 'staging')->load()->getOriginal(); }
+    config($name)->setData($data)->save();
+  }
+}

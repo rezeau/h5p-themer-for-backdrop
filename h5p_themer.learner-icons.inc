@@ -32,7 +32,7 @@ function h5p_themer_learner_icons() {
     $path = BACKDROP_ROOT . '/' . backdrop_get_path('module', 'h5p') . '/library/styles/h5p-theme-variables.css';
     if (!is_file($path) || !is_readable($path) || filesize($path) > 262144) { return NULL; }
     $core = _h5p_themer_learner_icon_core_parse(file_get_contents($path));
-    $catalog = h5p_themer_theme_catalog();
+    $catalog = h5p_themer_learner_catalog();
     if ($core === NULL || $catalog['errors']) { return NULL; }
     $icons = array();
     foreach ($catalog['data'] as $token => $entry) {

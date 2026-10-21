@@ -65,11 +65,24 @@ function backdrop_set_title($title, $output = NULL) { $GLOBALS['test_title'] = $
 function backdrop_set_message($message, $type = 'status', $repeat = TRUE) { $GLOBALS['messages'][] = array($type, $message); }
 function watchdog($type, $message, $variables, $severity) { /* No logger or database. */ }
 function lock_acquire($name, $timeout = 30) {
-  if ($GLOBALS['write_locked']) { return FALSE; }
+  if ($name === 'state_init') { return TRUE; }
+  if ($name !== 'h5p_themer_admin_write') { throw new LogicException('Unexpected lock.'); }
+  if (isset($GLOBALS['visibility_test_on_lock'])) {
+    $callback = $GLOBALS['visibility_test_on_lock']; unset($GLOBALS['visibility_test_on_lock']); $callback();
+  }
+  $GLOBALS['visibility_test_lock_calls']++;
+  if (!empty($GLOBALS['visibility_test_lease_loss']) && $GLOBALS['visibility_test_lock_calls'] >= $GLOBALS['visibility_test_lease_loss']) {
+    $GLOBALS['visibility_test_lock_owned'] = FALSE; return FALSE;
+  }
+  if ($GLOBALS['write_locked'] && empty($GLOBALS['visibility_test_lock_owned'])) { return FALSE; }
   $GLOBALS['write_locked'] = TRUE;
+  $GLOBALS['visibility_test_lock_owned'] = !empty($GLOBALS['visibility_test_lease_mode']);
   return TRUE;
 }
-function lock_release($name) { $GLOBALS['write_locked'] = FALSE; }
+function lock_release($name) {
+  if ($name === 'state_init') { return; }
+  $GLOBALS['write_locked'] = FALSE; $GLOBALS['visibility_test_lock_owned'] = FALSE;
+}
 function element_info($type) {
   static $types;
   if (!isset($types)) { $types = system_element_info(); }
@@ -79,13 +92,24 @@ function element_info($type) {
 /**
  * Builds our real form callback; native prepare/builder/validation run below.
  */
+/** Explicit test setup; production form construction never activates policy. */
+function admin_publication_fixture() {
+  $invalidations = $GLOBALS['runtime_cache_invalidations'];
+  $GLOBALS['visibility_test_lease_mode'] = TRUE;
+  if (!_h5p_themer_visibility_prepare('upgrade')) { throw new RuntimeException('Cannot prepare administration fixture.'); }
+  H5PVisibilityNativeFixture::$schema = 1000;
+  if (!h5p_themer_visibility_initialize()['ok']) { throw new RuntimeException('Cannot activate administration fixture.'); }
+  $GLOBALS['runtime_cache_invalidations'] = $invalidations;
+}
+
 function admin_form($kind, $operation = 'add', $id = NULL, $version = NULL) {
   form_clear_error();
   backdrop_static_reset('form_set_error:limit_validation_errors');
   $state = form_state_defaults();
   $state['build_info'] = array('args' => array());
-  $form_id = 'h5p_themer_' . $kind . '_form';
-  if ($kind === 'theme') { $form = h5p_themer_theme_form(array(), $state, $operation, $id, $version); }
+  $form_id = $kind === 'visibility' ? 'h5p_themer_overview' : 'h5p_themer_' . $kind . '_form';
+  if ($kind === 'visibility') { $form = h5p_themer_overview(array(), $state); }
+  elseif ($kind === 'theme') { $form = h5p_themer_theme_form(array(), $state, $operation, $id, $version); }
   elseif ($kind === 'delete') { $form = h5p_themer_delete_form(array(), $state, $operation); }
   else { $form = h5p_themer_default_form(array(), $state); }
   return array($form_id, $form, $state);
@@ -115,5 +139,6 @@ function admin_reset() {
   $GLOBALS['user']->uid = 1;
   $GLOBALS['h5p_enabled'] = TRUE;
   $GLOBALS['write_locked'] = FALSE;
+  $GLOBALS['visibility_test_lease_mode'] = TRUE;
   seed('h5p_themer.settings', fixture_settings());
 }

@@ -1,5 +1,8 @@
 /** Learner UI only; no activity colors or CSS variables. GPL-2.0-or-later. */
 .h5p-themer-learner-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: .5em;
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
@@ -8,10 +11,41 @@
   overflow-wrap: anywhere;
 }
 .h5p-themer-learner-controls label {
+  grid-column: 1 / -1;
   display: block;
   margin-bottom: 0.25em;
   font-weight: bold;
 }
+.h5p-themer-learner-controls .h5p-themer-learner-select,
+.h5p-themer-learner-controls .h5p-themer-picker {
+  grid-column: 1;
+  grid-row: 2;
+  min-width: 0;
+}
+.h5p-themer-learner-controls .h5p-themer-learner-help {
+  grid-column: 2;
+  grid-row: 2;
+  align-self: center;
+  box-sizing: border-box;
+  width: 1.75em;
+  height: 1.75em;
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0;
+  border: 1px solid #767676;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+.h5p-themer-learner-controls .h5p-themer-learner-help:focus {
+  outline: 2px solid Highlight;
+  outline-offset: 2px;
+}
+.h5p-themer-learner-controls [hidden] { display: none !important; }
+.h5p-themer-learner-controls [role="status"] { grid-column: 1 / -1; }
 .h5p-themer-learner-controls .h5p-themer-learner-select {
   box-sizing: border-box;
   display: block;
@@ -21,6 +55,7 @@
   font: inherit;
 }
 .h5p-themer-learner-controls .h5p-themer-learner-description {
+  grid-column: 1 / -1;
   margin: 0.35em 0 0;
   overflow-wrap: anywhere;
 }

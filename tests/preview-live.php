@@ -4,7 +4,7 @@ function preview_live_metadata(array $build) {
   if (!preg_match('/data-h5p-themer-preview="([^"]*)"/', $build['#prefix'], $m)) { throw new RuntimeException('Missing live-preview metadata.'); }
   return json_decode(html_entity_decode($m[1], ENT_QUOTES, 'UTF-8'), TRUE);
 }
-admin_reset();
+admin_reset(); admin_publication_fixture();
 $version = h5p_themer_preset_versions()[0];
 $theme = fixture_pinned_theme('checkpoint_test', 'mint');
 $theme['label'] = 'Copy of Mint'; $theme['colors'] = array('--h5p-theme-main-cta-base' => '#3366CC');

@@ -3,7 +3,7 @@
  * @file
  * Step 2C isolated Form API regressions. GPL-2.0-or-later.
  */
-admin_reset();
+admin_reset(); admin_publication_fixture();
 $writes = H5PThemerMemoryStorage::$writes;
 $bytes = H5PThemerMemoryStorage::$raw;
 $form = admin_form('theme')[1];

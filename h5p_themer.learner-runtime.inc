@@ -19,7 +19,7 @@ function h5p_themer_learner_context_allowed() {
  */
 function h5p_themer_learner_bundle() {
   $failure = array('data' => NULL, 'errors' => array(t('Learner theme palettes could not be prepared.')));
-  $catalog = h5p_themer_theme_catalog();
+  $catalog = h5p_themer_learner_catalog();
   $global = h5p_themer_runtime_css();
   if ($catalog['errors'] || $global['errors']) { return $failure; }
   $wrap = function ($css, $selector) {
@@ -53,7 +53,7 @@ function h5p_themer_learner_bundle() {
     }
     $options[] = array('value' => $token, 'label' => $token === 'builtin:daylight' ? t('Daylight') : $entry['label']);
   }
-  if (!isset($keys['core']) || count($options) < 7) { return $failure; }
+  if (!isset($catalog['data']['site_default'], $keys['core'], $keys['builtin:daylight']) || count($options) < 3) { return $failure; }
   // Presentation sorting must not rotate CSS when only labels change.
   ksort($rules); ksort($keys);
   $body .= implode('', $rules);

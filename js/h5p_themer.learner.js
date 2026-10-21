@@ -201,11 +201,22 @@
   function buildPanel() {
     var box = document.createElement('div'), label = document.createElement('label');
     var select = document.createElement('select'), description = document.createElement('p'), status = document.createElement('p');
+    var help = document.createElement('button');
     box.className = 'h5p-themer-learner-controls';
     select.id = uniqueId('h5p-themer-learner-theme'); select.className = 'h5p-themer-learner-select';
     label.setAttribute('for', select.id); label.textContent = options.label;
-    description.id = select.id + '-description'; description.className = 'h5p-themer-learner-description'; description.textContent = options.message;
-    select.setAttribute('aria-describedby', description.id);
+    description.id = select.id + '-description'; description.className = 'h5p-themer-learner-description'; description.textContent = options.message + ' ' + options.applied;
+    description.setAttribute('hidden', '');
+    help.setAttribute('type', 'button'); help.className = 'h5p-themer-learner-help'; help.textContent = '?';
+    help.setAttribute('aria-label', Backdrop.t('About the H5P theme picker'));
+    help.setAttribute('aria-controls', description.id); help.setAttribute('aria-expanded', 'false');
+    // Native button activation covers pointer, Enter and Space without key handlers.
+    help.addEventListener('click', function () {
+      var expanded = help.getAttribute('aria-expanded') !== 'true';
+      help.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      if (expanded) { description.removeAttribute('hidden'); }
+      else { description.setAttribute('hidden', ''); }
+    });
     status.id = select.id + '-status'; status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite'); status.setAttribute('aria-atomic', 'true');
     fill(select);
     select.addEventListener('change', function () {
@@ -215,7 +226,7 @@
       refresh(valid ? '' : options.fallback);
       savePreference();
     });
-    box.appendChild(label); box.appendChild(select); box.appendChild(description); box.appendChild(status);
+    box.appendChild(label); box.appendChild(select); box.appendChild(help); box.appendChild(description); box.appendChild(status);
     return box;
   }
   function resourceLoaded(event) {
@@ -262,8 +273,10 @@
     });
     var partial = supported.length !== frames.length;
     var status = panel.querySelector('[role="status"]');
-    var text = note || restoredNote || (partial ? options.partial : options.applied);
+    var text = note || restoredNote || (partial ? options.partial : '');
     if (status.textContent !== text) { status.textContent = text; }
+    if (text) { status.removeAttribute('hidden'); }
+    else { status.setAttribute('hidden', ''); }
   }
   function relevant(node) {
     return node.nodeType === 1 && (node.matches(players + ', .h5p-iframe-wrapper, ' + editors) || node.querySelector(players + ', .h5p-iframe-wrapper, ' + editors));
@@ -274,14 +287,14 @@
       var data = JSON.parse(envelope.payload);
       if (data.version !== 2 || data.enabled !== true || !validKey(data.bundle) || !data.keys || typeof data.keys !== 'object' || Array.isArray(data.keys)) { return null; }
       if (!['label', 'message', 'applied', 'partial', 'unavailable', 'fallback'].every(function (key) { return typeof data[key] === 'string'; })) { return null; }
-      if (!Array.isArray(data.options) || data.options.length < 7 || data.options[0].value !== 'site_default') { return null; }
+      if (!Array.isArray(data.options) || data.options.length < 3 || data.options[0].value !== 'site_default') { return null; }
       var seen = Object.create(null);
       if (!data.options.every(function (entry) {
         if (!entry || typeof entry.value !== 'string' || typeof entry.label !== 'string' || seen[entry.value]) { return false; }
         if (entry.value !== 'site_default' && (!Object.prototype.hasOwnProperty.call(data.keys, entry.value) || !validKey(data.keys[entry.value]))) { return false; }
         seen[entry.value] = true; return true;
       })) { return null; }
-      if (Object.keys(data.keys).some(function (key) { return !seen[key]; }) || !seen.core) { return null; }
+      if (Object.keys(data.keys).some(function (key) { return !seen[key]; }) || !seen.core || !seen['builtin:daylight']) { return null; }
       return data;
     } catch (e) { return null; }
   }
@@ -299,7 +312,7 @@
         // Keep the focused native select; update only our own text/options.
         fill(panel.querySelector('select'));
         panel.querySelector('label').textContent = data.label;
-        panel.querySelector('.h5p-themer-learner-description').textContent = data.message;
+        panel.querySelector('.h5p-themer-learner-description').textContent = data.message + ' ' + data.applied;
       }
       refresh(stale ? data.fallback : '');
       if (!options) { return; }

@@ -5,6 +5,8 @@
  */
 
 require_once __DIR__ . '/h5p_themer.preview.inc';
+require_once __DIR__ . '/h5p_themer.visibility-publication.inc';
+require_once __DIR__ . '/h5p_themer.visibility-admin.inc';
 
 /**
  * Reads stored definitions in predictable label/ID order, including diagnostics.
@@ -36,7 +38,8 @@ function _h5p_themer_admin_collection() {
 /**
  * Administrative overview. Never repairs configuration as a side effect.
  */
-function h5p_themer_overview() {
+function h5p_themer_overview($form = array(), &$form_state = NULL) {
+  if ($form_state === NULL) { $form_state = array(); }
   if (!h5p_themer_admin_access()) {
     return array('#markup' => t('Access denied.'));
   }
@@ -46,7 +49,8 @@ function h5p_themer_overview() {
   $settings = h5p_themer_config_load('h5p_themer.settings', 'active', TRUE);
   $effective = h5p_themer_config_load('h5p_themer.settings');
   $default = h5p_themer_default_selection_load();
-  $warnings = array_merge($choices['errors'], $settings['errors'], $effective['errors'], $default['errors']);
+  $visibility = h5p_themer_visibility_policy_load();
+  $warnings = array_merge($choices['errors'], $settings['errors'], $effective['errors'], $default['errors'], $visibility['errors']);
   $stored_token = $settings['errors'] ? NULL : _h5p_themer_admin_selection_token($settings['data'], $choices['references']);
   $effective_token = $effective['errors'] || $default['errors'] ? NULL : _h5p_themer_admin_selection_token($effective['data'], $choices['references']);
   if (!$settings['errors'] && !$effective['errors'] && $stored_token !== $effective_token) {
@@ -101,7 +105,7 @@ function h5p_themer_overview() {
   $build['themes'] = array('#theme' => 'table',
     '#header' => array(t('Theme'), t('Machine ID'), t('Density'), t('Stored global default'), t('Effective global default'), t('Operations')),
     '#rows' => $rows, '#empty' => t('No custom themes have been saved. Use Add theme or duplicate a built-in.'));
-  return $build;
+  return _h5p_themer_visibility_admin_build($build, $form_state, $choices);
 }
 
 /**
@@ -157,7 +161,8 @@ function _h5p_themer_admin_guard() {
     return array(t('You do not have permission to administer H5P themes.'));
   }
   $compatibility = h5p_themer_compatibility();
-  return $compatibility['compatible'] ? array() : array($compatibility['message'] . ' ' . t('Theme management is read-only.'));
+  if (!$compatibility['compatible']) { return array($compatibility['message'] . ' ' . t('Theme management is read-only.')); }
+  return array();
 }
 
 /**
@@ -292,6 +297,7 @@ function h5p_themer_theme_form($form, &$form_state, $operation = 'add', $id = NU
   $form['#validate'] = array('h5p_themer_theme_form_validate');
   $form['#submit'] = array('h5p_themer_theme_form_submit');
   $errors = $editing ? _h5p_themer_admin_check_original('h5p_themer.theme.' . $context['id'], $context['original']) : array();
+  $errors = array_merge($errors, _h5p_themer_publication_form($form_state, TRUE));
   return _h5p_themer_admin_actions($form, in_array($context['operation'], array('duplicate', 'preset_duplicate'), TRUE) ? t('Create duplicate') : t('Save theme'), $errors);
 }
 
@@ -309,7 +315,7 @@ function _h5p_themer_admin_errors(array $fields) {
  */
 function h5p_themer_theme_form_validate($form, &$form_state) {
   unset($form_state['h5p_themer_candidate']);
-  $guard = _h5p_themer_admin_guard();
+  $guard = array_merge(_h5p_themer_admin_guard(), _h5p_themer_publication_form($form_state));
   if ($guard || empty($form_state['h5p_themer'])) {
     _h5p_themer_admin_errors(array('_form' => $guard ?: array(t('Invalid theme form context.'))));
     return;
@@ -423,16 +429,32 @@ function h5p_themer_theme_form_submit($form, &$form_state) {
     $record->setData($candidate);
     $record->validateData();
     $runtime_before = _h5p_themer_admin_cache_snapshot();
+    $publication = $form_state['h5p_themer_publication'];
+    if ($form_state['h5p_themer']['operation'] !== 'edit') {
+      $publication = _h5p_themer_publication_hide($candidate['id'], $publication);
+    }
+    _h5p_themer_visibility_lease();
+    _h5p_themer_publication_state($publication);
+    $context = $form_state['h5p_themer'];
+    if ($context['operation'] !== 'edit' && config_get_config_storage()->exists('h5p_themer.theme.' . $candidate['id']) !== FALSE) { throw new ConfigException('Destination is no longer absent.'); }
+    if (in_array($context['operation'], array('edit', 'duplicate'), TRUE) && _h5p_themer_admin_check_original('h5p_themer.theme.' . $context['id'], $context['original'], $context['operation'] === 'edit')) { throw new ConfigException('Source changed before persistence.'); }
     $record->save();
+    _h5p_themer_publication_verify_theme($candidate['id'], $candidate);
+    _h5p_themer_publication_state($publication);
     _h5p_themer_admin_cache_invalidate($runtime_before);
+    unset($runtime_before);
     backdrop_set_message(t('Saved theme @label.', array('@label' => $candidate['label'])));
     $form_state['redirect'] = 'admin/config/content/h5p-themer';
   }
-  catch (ConfigException $e) {
-    form_set_error('_form', t('The theme could not be saved. No other theme or default was changed.'));
+  catch (Throwable $e) {
+    form_set_error('_form', t('The theme save could not be verified. A restrictive visibility entry or theme definition may have been saved. Inspect stored state before retrying; visibility has not been automatically restored.'));
     $form_state['rebuild'] = TRUE;
   }
   finally {
+    if (isset($runtime_before)) {
+      try { _h5p_themer_admin_cache_invalidate($runtime_before); }
+      catch (Throwable $e) { form_set_error('_form', t('Output cache invalidation could not be verified. Restrict learner access until a targeted refresh is authorized.')); $form_state['rebuild'] = TRUE; }
+    }
     lock_release('h5p_themer_admin_write');
   }
 }
@@ -593,7 +615,7 @@ function _h5p_themer_admin_delete_errors(array $context) {
     return array(t('This theme may be the effective global default. Clear or change the default first, including any settings.php override.'));
   }
   try {
-    h5p_themer_config_delete_validate(config($name), NULL);
+    _h5p_themer_validate_theme_deletion(config($name), NULL);
   }
   catch (ConfigValidateException $e) {
     return array($e->getMessage());
@@ -624,7 +646,7 @@ function h5p_themer_delete_form($form, &$form_state, $id) {
   $form['#method'] = 'post';
   $form = confirm_form($form, t('Delete theme @label (@id)?', array('@label' => $context['original']['label'], '@id' => $context['id'])),
     'admin/config/content/h5p-themer', t('This deletes only this theme definition. It cannot be undone. A global default must be cleared or changed first.'), t('Delete theme'));
-  $errors = array_merge(_h5p_themer_admin_guard(), _h5p_themer_admin_delete_errors($context));
+  $errors = array_merge(_h5p_themer_admin_guard(), _h5p_themer_admin_delete_errors($context), _h5p_themer_publication_form($form_state, TRUE));
   if ($errors) {
     $form['diagnostics'] = array('#markup' => '<p role="alert">' . implode(' ', $errors) . '</p>');
     $form['actions']['submit']['#disabled'] = TRUE;
@@ -636,7 +658,7 @@ function h5p_themer_delete_form($form, &$form_state, $id) {
  * Deletion validation; the confirmation is supplied by native confirm_form().
  */
 function h5p_themer_delete_form_validate($form, &$form_state) {
-  $errors = _h5p_themer_admin_guard();
+  $errors = array_merge(_h5p_themer_admin_guard(), _h5p_themer_publication_form($form_state));
   if (empty($form_state['h5p_themer']) || empty($form_state['values']['confirm'])) {
     $errors[] = t('Explicit confirmation is required.');
   }
@@ -667,16 +689,29 @@ function h5p_themer_delete_form_submit($form, &$form_state) {
       return;
     }
     $runtime_before = _h5p_themer_admin_cache_snapshot();
-    config('h5p_themer.theme.' . $form_state['h5p_themer']['id'])->delete();
+    $id = $form_state['h5p_themer']['id'];
+    $publication = _h5p_themer_publication_hide($id, $form_state['h5p_themer_publication']);
+    _h5p_themer_visibility_lease();
+    _h5p_themer_publication_state($publication);
+    if (_h5p_themer_admin_delete_errors($form_state['h5p_themer'])) { throw new ConfigException('Deletion protection changed before persistence.'); }
+    $storage = config_get_config_storage();
+    (new Config('h5p_themer.theme.' . $id, $storage))->delete();
+    if ($storage->exists('h5p_themer.theme.' . $id) !== FALSE) { throw new ConfigException('Deletion verification failed.'); }
+    _h5p_themer_publication_state($publication);
     _h5p_themer_admin_cache_invalidate($runtime_before);
-    backdrop_set_message(t('The theme was deleted. Other themes and the default were not changed.'));
+    unset($runtime_before);
+    backdrop_set_message(t('The theme was deleted and its hidden visibility tombstone was retained.'));
     $form_state['redirect'] = 'admin/config/content/h5p-themer';
   }
-  catch (ConfigException $e) {
-    form_set_error('_form', t('The theme could not be deleted. No other configuration was changed.'));
+  catch (Throwable $e) {
+    form_set_error('_form', t('The deletion could not be verified. A restrictive visibility entry may have been saved and the definition may still exist. Inspect stored state before retrying; visibility has not been automatically restored.'));
     $form_state['rebuild'] = TRUE;
   }
   finally {
+    if (isset($runtime_before)) {
+      try { _h5p_themer_admin_cache_invalidate($runtime_before); }
+      catch (Throwable $e) { form_set_error('_form', t('Output cache invalidation could not be verified. Restrict learner access until a targeted refresh is authorized.')); $form_state['rebuild'] = TRUE; }
+    }
     lock_release('h5p_themer_admin_write');
   }
 }

@@ -142,13 +142,13 @@ no machine-specific fallback. Learner contract tests also require
 ```powershell
 $env:BACKDROP_SOURCE_ROOT = '<absolute-Backdrop-source-root>'
 $env:PHP_EXECUTABLE = '<absolute-PHP-CLI-executable>'
-node --test --test-reporter=spec tests/js/admin-colors.test.cjs tests/js/preview-live.test.cjs tests/js/learner.test.cjs tests/js/learner-switching.test.cjs tests/js/learner-session.test.cjs tests/js/learner-compatibility.test.cjs tests/js/learner-picker.test.cjs
+node --test --test-reporter=spec tests/js/admin-colors.test.cjs tests/js/preview-live.test.cjs tests/js/learner.test.cjs tests/js/learner-switching.test.cjs tests/js/learner-session.test.cjs tests/js/learner-compatibility.test.cjs tests/js/learner-picker.test.cjs tests/js/learner-visibility.test.cjs
 ```
 
 Or in a POSIX shell:
 
 ```sh
-BACKDROP_SOURCE_ROOT="<absolute-Backdrop-source-root>" PHP_EXECUTABLE="<absolute-PHP-CLI-executable>" node --test --test-reporter=spec tests/js/admin-colors.test.cjs tests/js/preview-live.test.cjs tests/js/learner.test.cjs tests/js/learner-switching.test.cjs tests/js/learner-session.test.cjs tests/js/learner-compatibility.test.cjs tests/js/learner-picker.test.cjs
+BACKDROP_SOURCE_ROOT="<absolute-Backdrop-source-root>" PHP_EXECUTABLE="<absolute-PHP-CLI-executable>" node --test --test-reporter=spec tests/js/admin-colors.test.cjs tests/js/preview-live.test.cjs tests/js/learner.test.cjs tests/js/learner-switching.test.cjs tests/js/learner-session.test.cjs tests/js/learner-compatibility.test.cjs tests/js/learner-picker.test.cjs tests/js/learner-visibility.test.cjs
 ```
 
 No npm packages or live site bootstrap are used. PHP tests load native definitions
@@ -249,6 +249,44 @@ Code recovery should use a verified project backup and normal native cache
 procedures, preserving configuration and authored content. Existing immutable CSS
 can remain unreferenced until planned cleanup; do not delete it to refresh JS.
 See [runtime history](docs/phase-2a-runtime.md) for earlier recovery context.
+
+## Isolated R2/R3 development
+
+The [visibility foundation](docs/r2-r3-phase-1.md) adds a separate read-only policy
+and a shared filtered learner catalog. Missing policy preserves legacy visibility
+only before the recorded activation barrier. Fixed choices are always Site default,
+Core and Daylight when the validated catalog is usable. The
+[persistent activation journal](docs/r2-r3-activation.md) and two-step initialization
+are implemented in this workspace. [Custom publication safeguards](docs/r2-r3-publication.md)
+now make new/copied themes hidden, preserve editing visibility and retain deletion
+tombstones. [Native visibility controls](docs/r2-r3-visibility-admin.md) now provide
+an explicit Save visibility action on the Themes overview. Custom import forms,
+coordination and recovery have been removed. Native theme/policy imports remain
+rejected by stateless validation and application guards; native configuration
+exports, settings imports and unrelated configuration retain their existing
+behavior. No custom exporter is provided. New/recreated IDs remain hidden.
+
+Update hooks 1000/1001 retain visibility activation. Hooks 1002/1003 are retained
+as documented no-ops; installations already at 1003 need no replay or new hook.
+Existing import journal data is left untouched and no longer gates runtime or
+administration. Before any separately authorized deployment over the old import
+implementation, review and resolve unfinished/damaged operations and pending
+output-cache refreshes. Removing the gate cannot repair partially applied data.
+Refresh menu registrations and targeted output caches during that deployment.
+The compact learner '?' help button is implemented: it reveals or hides the
+explanation without changing theme selection. Further administrator UI and
+preview improvements remain separate, deferred work.
+This development workspace has not been deployed.
+
+Repository-local boundary checks (no Backdrop/H5P sources or site bootstrap):
+
+```text
+php -n tests/config-protection.php
+```
+
+The visibility activation/publication/policy/admin, administration and
+configuration compatibility tests still require explicit Backdrop/H5P source
+paths. The local boundary check does not replace those native API tests.
 
 ## Maintainer and support
 

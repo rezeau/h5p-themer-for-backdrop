@@ -151,19 +151,20 @@ and identity. Create/update import hooks check the settings reference against
 the final proposed theme: active storage for unchanged themes, staging storage
 for created/updated themes, and rejection for deleted themes.
 
-Single-object settings imports require their target theme to exist already.
-Bulk imports can introduce a theme and select it together, regardless of file
-order. A referenced definition must itself validate. Deleting the selected
-theme is rejected unless the same bulk import clears/replaces/deletes settings.
-A malformed settings object blocks theme deletion until repaired or explicitly
-deleted/replaced. Deleting settings is permitted and leaves reads/status checks
+Settings-only imports require any selected custom theme to exist and validate.
+Native create/update/delete imports of theme definitions and learner visibility
+policies are rejected at both validation and application. Mixed plans containing
+such mutations are rejected even when an unrelated object validates first;
+unchanged entries do not block a plan. There is no custom import interface or
+privileged coordinator bypass. Administration retains default-theme deletion
+protection. Deleting settings remains permitted and leaves reads/status checks
 reporting missing configuration; it does not recreate defaults.
 
-Export uses Backdrop's ordinary configuration facilities. Export and import the
-referenced definitions together. The tests exercise native single-file
-validation and sync functions with memory storage; live sync batching remains
-unqualified. Backdrop sync is not a multi-file database transaction: a failed
-application can temporarily leave missing references, which reads handle safely.
+Export uses Backdrop's ordinary configuration facilities and existing object
+schemas. Settings-only and unrelated native imports retain their supported
+behavior. Native theme/policy imports are deliberately unsupported; exports
+must not be treated as an authorized theme/policy restore workflow. Backdrop
+sync is not a multi-file database transaction.
 
 **Native `Config::save()` does not automatically call `validateData()` or import
 hooks.** Low-level callers can bypass validation, as with other Backdrop config.
@@ -210,9 +211,11 @@ responsible for filesystem write behavior. No cross-object atomic transaction
 or coordination with concurrent imports is claimed.
 
 Malformed definitions remain visible but cannot be edited/duplicated/deleted
-through these forms; repair them through validated configuration import. Missing
-or malformed settings also require configuration repair. A valid settings object
-with a missing referenced theme can be explicitly cleared/repointed in the UI.
+through these forms. They require a separately planned configuration recovery;
+neither the administration forms nor native theme/policy imports provide a repair
+workflow. Missing or malformed settings require valid settings-only configuration
+repair through Backdrop's native facilities. A valid settings object with a
+missing referenced theme can be explicitly cleared/repointed in the UI.
 
 An explicit future Backdrop uninstall is separate: normal Backdrop module
 uninstallation may remove module-owned configuration. No custom uninstall or
@@ -304,8 +307,13 @@ not trigger it; unsupported siblings keep administrator-global styling. Editors,
 administrator previews, unrelated/external frames and unsupported nested/form
 contexts are excluded. See [the historical Step 6 record](phase-2c-step-6.md).
 
-The choices are Site default (the configured global theme), explicit H5P Core
-defaults, Daylight, Lavender, Mint, Sunset, Dark and every valid saved custom theme.
+Site default (the configured global theme), explicit H5P Core defaults and
+Daylight remain available whenever the validated learner catalog is usable.
+After visibility activation, other built-in and valid custom themes appear only
+when their saved visibility entry is explicitly true. New/duplicated custom themes
+start hidden; deletion retains a hidden tombstone. Hidden themes remain defined,
+and a hidden global theme still applies through Site default. Before the recorded
+activation barrier, an absent policy preserves legacy visibility.
 Core is distinct from Site default and Daylight. Schema-1 customs retain sparse
 Core inheritance; schema-2 customs retain pinned inheritance. Switching changes
 styling only, without H5P restart, iframe navigation or answer/scoring changes.
