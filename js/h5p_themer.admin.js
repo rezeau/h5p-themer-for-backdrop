@@ -55,6 +55,7 @@
         companion.appendChild(status);
         text.parentNode.insertBefore(companion, text.nextSibling);
         var inherited = text.getAttribute('data-h5p-themer-inherited') || '';
+        var starting = text.getAttribute('data-h5p-themer-starting') === 'true';
         var initial = pickerHex(text.getAttribute('data-h5p-themer-picker-initial') || '');
 
         function locked() {
@@ -78,18 +79,18 @@
           }
           else if (text.value !== '') {
             status.textContent = display
-              ? Backdrop.t('Invalid or incomplete hex. The picker shows the inherited color; choosing a color replaces the text.')
+              ? (starting ? Backdrop.t('Invalid or incomplete hex. The picker shows the starting color; choosing a color replaces the text.') : Backdrop.t('Invalid or incomplete hex. The picker shows the inherited color; choosing a color replaces the text.'))
               : Backdrop.t('Invalid or incomplete hex. Enter #RGB or #RRGGBB to enable the picker. The disabled swatch is not a preview.');
           }
           else if (inheritedHex) {
-            status.textContent = Backdrop.t('Inherited color; no override.');
+            status.textContent = starting ? Backdrop.t('Starting color; no new override.') : Backdrop.t('Inherited color; no override.');
           }
           else if (initialHex) {
             status.textContent = Backdrop.t('No override. The picker starts at black for choosing a color; it does not show the Core default. Only a color choice sets an override.');
           }
           else {
             status.textContent = inherited
-              ? Backdrop.t('Inherited expression cannot be represented by this picker. Enter a hex override to enable it. The disabled swatch is not a preview.')
+              ? (starting ? Backdrop.t('Starting expression cannot be represented by this picker. Enter a hex override to enable it. The disabled swatch is not a preview.') : Backdrop.t('Inherited expression cannot be represented by this picker. Enter a hex override to enable it. The disabled swatch is not a preview.'))
               : Backdrop.t('No override. Core default is not represented by this picker. Enter a hex override to enable it. The disabled swatch is not a preview.');
           }
         }

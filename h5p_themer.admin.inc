@@ -204,11 +204,164 @@ function _h5p_themer_admin_actions(array $form, $submit_label, array $extra_erro
 }
 
 /**
+ * Fresh effective input plus a dependency fingerprint, including invalid data.
+ *
+ * Invalid defaults may seed Daylight, but must not silently become a different
+ * default during a cached form's lifetime. Never persist environment metadata.
+ */
+function _h5p_themer_admin_add_read($name) {
+  try {
+    $record = config($name);
+    $record->load();
+    $effective = array();
+    $keys = $name === 'h5p_themer.settings'
+      ? array('schema_version', 'default_theme')
+      : array('schema_version', 'id', 'label', 'density', 'colors', 'base_preset');
+    foreach ($keys as $key) {
+      $effective[$key] = $record->get($key);
+    }
+    $loaded = h5p_themer_config_load($name);
+    return array('loaded' => $loaded,
+      'fingerprint' => hash('sha256', serialize(array($record->isNew(), $effective, (bool) $loaded['errors']))));
+  }
+  catch (ConfigException $e) {
+    return array('loaded' => array('data' => NULL, 'errors' => array(t('The starting configuration could not be read.'))), 'fingerprint' => 'unreadable');
+  }
+  catch (TypeError $e) {
+    return array('loaded' => array('data' => NULL, 'errors' => array(t('The starting configuration is malformed.'))), 'fingerprint' => 'malformed');
+  }
+}
+
+/**
+ * Captures an Add-only independent seed using the existing definition schemas.
+ *
+ * Resolved colors are display data only. The seed copies validated hex overrides
+ * and retains the exact preset pin, never flattening trusted CSS expressions.
+ */
+function _h5p_themer_admin_add_snapshot() {
+  $settings = _h5p_themer_admin_add_read('h5p_themer.settings');
+  $dependencies = array($settings['fingerprint']);
+  $selection = $settings['loaded'];
+  $definition = NULL;
+  $resolved = array('data' => NULL, 'errors' => array());
+  if (!$selection['errors']) {
+    $reference = h5p_themer_selection_reference($selection['data']['default_theme'], $selection['data']['schema_version']);
+    if (!$reference['errors'] && $reference['data']['kind'] === 'custom') {
+      $theme = _h5p_themer_admin_add_read('h5p_themer.theme.' . $reference['data']['id']);
+      $dependencies[] = $theme['fingerprint'];
+      $definition = $theme['loaded']['data'];
+      $resolved = $theme['loaded']['errors'] ? $theme['loaded'] : h5p_themer_selection_resolve($selection['data']['default_theme'], $selection['data']['schema_version']);
+    }
+    else {
+      $resolved = h5p_themer_selection_resolve($selection['data']['default_theme'], $selection['data']['schema_version']);
+    }
+  }
+  $fallback = $resolved['errors'] || $resolved['data'] === NULL || $resolved['data']['kind'] === 'core';
+  if ($fallback) {
+    $resolved = h5p_themer_selection_resolve(array('kind' => 'builtin', 'id' => 'daylight', 'version' => 'moodle-478fed30d2a4'));
+  }
+  if ($resolved['errors']) {
+    throw new ConfigException('The pinned starting preset is unavailable.');
+  }
+  $palette = $resolved['data'];
+  $seed = array('schema_version' => 2, 'label' => $palette['label'], 'description' => '', 'density' => 'large', 'colors' => array());
+  if ($palette['kind'] === 'custom') {
+    foreach (array('schema_version', 'density', 'colors', 'base_preset') as $key) {
+      if (array_key_exists($key, $definition)) { $seed[$key] = $definition[$key]; }
+    }
+  }
+  else {
+    $seed['base_preset'] = array('id' => $palette['id'], 'version' => $palette['version']);
+  }
+  $preset = isset($seed['base_preset']) ? h5p_themer_preset_load($seed['base_preset']['id'], $seed['base_preset']['version'])['data'] : NULL;
+  return array('seed' => $seed, 'palette' => $palette, 'preset' => $preset, 'fallback' => $fallback,
+    'fingerprint' => hash('sha256', serialize(array($dependencies, $seed, $palette, $preset, $fallback))));
+}
+
+/** Validates cached Add context without replacing it or reading a new source. */
+function _h5p_themer_admin_add_context_valid($context) {
+  if (!is_array($context) || !isset($context['operation'], $context['original'], $context['add_snapshot']) || $context['operation'] !== 'add') { return FALSE; }
+  $snapshot = $context['add_snapshot'];
+  if (!is_array($snapshot) || !isset($snapshot['seed'], $snapshot['palette'], $snapshot['fingerprint']) ||
+      !is_array($snapshot['seed']) || $context['original'] !== $snapshot['seed'] ||
+      !is_string($snapshot['fingerprint']) || preg_match('/\A[a-f0-9]{64}\z/', $snapshot['fingerprint']) !== 1 ||
+      !isset($snapshot['palette']['label'], $snapshot['palette']['colors']) ||
+      !is_string($snapshot['palette']['label']) || !is_array($snapshot['palette']['colors']) ||
+      !array_key_exists('preset', $snapshot) || !array_key_exists('fallback', $snapshot) || !is_bool($snapshot['fallback'])) { return FALSE; }
+  $definition = $snapshot['seed'];
+  $definition['id'] = 'add_snapshot';
+  if (h5p_themer_config_errors('h5p_themer.theme.add_snapshot', $definition)) { return FALSE; }
+  $preset = NULL; $colors = $definition['colors'];
+  if ($definition['schema_version'] === 2) {
+    $preset = h5p_themer_preset_load($definition['base_preset']['id'], $definition['base_preset']['version'])['data'];
+    $colors = array_replace($preset['colors'], $colors);
+  }
+  return $snapshot['preset'] === $preset && $snapshot['palette']['colors'] === $colors && $snapshot['palette']['label'] === $definition['label'];
+}
+
+/** A cache miss on POST must never initialize a replacement source snapshot. */
+function _h5p_themer_admin_add_expired_validate($form, &$form_state) {
+  form_set_error('_form', t('The original Add theme form is missing, expired or invalid. Reload Add theme before saving.'));
+}
+
+/** Recheck before validation and immediately before persistence under the lock. */
+function _h5p_themer_admin_add_check(array $context) {
+  try {
+    if (_h5p_themer_admin_add_context_valid($context) && $context['add_snapshot'] === _h5p_themer_admin_add_snapshot()) {
+      return array();
+    }
+  }
+  catch (Throwable $e) { /* An unavailable dependency cannot validate a copy. */ }
+  return array(t('The global default or starting theme changed or could not be verified. Reload Add theme before saving.'));
+}
+
+/** Protect unresolved stored and effective defaults on every creation path. */
+function _h5p_themer_admin_creation_default_errors($id) {
+  try {
+    $record = config('h5p_themer.settings');
+    $record->load();
+    if ($record->isNew()) { return array(); }
+    $stored = $record->getOriginal();
+    $effective = array('schema_version' => $record->get('schema_version'), 'default_theme' => $record->get('default_theme'));
+    foreach (array($stored, $effective) as $settings) {
+      if (!is_array($settings) || !isset($settings['schema_version']) || !array_key_exists('default_theme', $settings)) { continue; }
+      $reference = h5p_themer_selection_reference($settings['default_theme'], $settings['schema_version']);
+      if (!$reference['errors'] && $reference['data']['kind'] === 'custom' && $reference['data']['id'] === $id) {
+        return array(t('This machine ID is already referenced by the stored or effective global default. Choose another ID; repair the global default separately to avoid activating this new theme automatically.'));
+      }
+    }
+    return array();
+  }
+  catch (TypeError $e) {
+    // A non-object settings record cannot contain a resolvable reference.
+    return array();
+  }
+  catch (Throwable $e) {
+    return array(t('Global default references could not be verified. Reload before creating a theme.'));
+  }
+}
+
+/**
  * Shared create/edit/duplicate form. Rename means editing only the label.
  */
 function h5p_themer_theme_form($form, &$form_state, $operation = 'add', $id = NULL, $version = NULL) {
   if (!h5p_themer_admin_access()) {
     return array('#markup' => t('Access denied.'));
+  }
+  $add_request = isset($form_state['h5p_themer']['operation']) ? $form_state['h5p_themer']['operation'] === 'add' : $operation === 'add';
+  if ($add_request) {
+    // Native Form API caches the unprocessed form and trusted state in tempstore,
+    // with session-token access checks and the configured form-cache expiration.
+    $form_state['cache'] = TRUE;
+    $has_context = array_key_exists('h5p_themer', $form_state);
+    $submission = !empty($form_state['input']) || !empty($form_state['programmed']) || !empty($form_state['rebuild']) ||
+      (isset($_SERVER['REQUEST_METHOD']) && !in_array($_SERVER['REQUEST_METHOD'], array('GET', 'HEAD'), TRUE));
+    if (($has_context && !_h5p_themer_admin_add_context_valid($form_state['h5p_themer'])) || (!$has_context && $submission)) {
+      $form_state['cache'] = FALSE;
+      $form_state['no_cache'] = TRUE;
+      return array('#markup' => '<p role="alert">' . t('The original Add theme form is missing, expired or invalid. Reload Add theme before saving.') . '</p>',
+        '#validate' => array('_h5p_themer_admin_add_expired_validate'), '#submit' => array());
+    }
   }
   if (!isset($form_state['h5p_themer'])) {
     if (!in_array($operation, array('add', 'edit', 'duplicate', 'preset_duplicate'), TRUE) ||
@@ -223,13 +376,25 @@ function h5p_themer_theme_form($form, &$form_state, $operation = 'add', $id = NU
       $source = array('data' => array('schema_version' => 2, 'label' => $preset['data']['label'],
         'description' => '', 'density' => 'large', 'base_preset' => array('id' => $id, 'version' => $version), 'colors' => array()), 'errors' => array());
     }
+    elseif ($operation === 'add') {
+      try {
+        $snapshot = _h5p_themer_admin_add_snapshot();
+        $source = array('data' => $snapshot['seed'], 'errors' => array());
+      }
+      catch (Throwable $e) {
+        return array('#markup' => '<p role="alert">' . t('The starting theme could not be loaded. No changes were made.') . '</p>');
+      }
+    }
     else {
-      $source = $operation === 'add' ? array('data' => array(), 'errors' => array()) : _h5p_themer_admin_original('h5p_themer.theme.' . $id);
+      $source = _h5p_themer_admin_original('h5p_themer.theme.' . $id);
     }
     if ($source['errors']) {
       return array('#markup' => '<p>' . t('The theme is missing or invalid. No changes were made.') . ' ' . implode(' ', $source['errors']) . '</p>');
     }
     $form_state['h5p_themer'] = array('operation' => $operation, 'id' => $id, 'original' => $source['data']);
+    if ($operation === 'add') {
+      $form_state['h5p_themer']['add_snapshot'] = $snapshot;
+    }
     if ($operation === 'preset_duplicate') {
       $form_state['h5p_themer']['preset'] = $preset['data'];
     }
@@ -237,10 +402,19 @@ function h5p_themer_theme_form($form, &$form_state, $operation = 'add', $id = NU
   $context = $form_state['h5p_themer'];
   $source = $context['original'];
   $editing = $context['operation'] === 'edit';
+  $adding = $context['operation'] === 'add';
   $preset_copy = $context['operation'] === 'preset_duplicate';
-  $inherited = isset($source['schema_version']) && $source['schema_version'] === 2
-    ? h5p_themer_preset_load($source['base_preset']['id'], $source['base_preset']['version'])['data'] : NULL;
+  $inherited = $adding ? $context['add_snapshot']['preset'] : (isset($source['schema_version']) && $source['schema_version'] === 2
+    ? h5p_themer_preset_load($source['base_preset']['id'], $source['base_preset']['version'])['data'] : NULL);
   $form['help'] = array('#markup' => '<p>' . t('Blank color fields mean no override. Enter #RGB or #RRGGBB for an explicit color. Colors are independent: no derived palette or accessibility certification is generated. Global colors apply to compatible H5P playback. Density is stored but not applied.') . '</p>');
+  if ($adding) {
+    $form['help']['#markup'] = '<p><strong>' . t('Starting theme:') . '</strong> ' . check_plain($context['add_snapshot']['palette']['label']) . '. ' .
+      ($context['add_snapshot']['fallback'] ? t('Daylight fallback is used because the global default is Core, unset, missing, invalid or unresolvable.') . ' ' : '') .
+      t('The new theme starts from these captured colors. Blank fields retain the starting colors. Enter #RGB or #RRGGBB, or use an available color picker, to override a color. Save creates an independent custom theme and does not modify its source or the global default. Later changes to the source custom theme do not affect this copy. Density is stored but not applied.') . '</p>';
+  }
+  elseif ($editing) {
+    $form['help']['#markup'] .= '<p>' . t('Fields contain saved overrides. Clearing an override restores the pinned preset color, or the Core fallback for a theme without a pinned preset. A previous custom copy source is not recorded; no live inheritance from another custom theme is implied.') . '</p>';
+  }
   $form['id'] = array('#type' => 'textfield', '#title' => t('Machine ID'), '#required' => TRUE, '#maxlength' => 64,
     '#default_value' => $editing ? $context['id'] : '', '#disabled' => $editing,
     '#description' => t('Start with a lowercase letter; use lowercase letters, digits, and underscores. This ID cannot change after creation.'));
@@ -260,7 +434,7 @@ function h5p_themer_theme_form($form, &$form_state, $operation = 'add', $id = NU
   if ($inherited !== NULL) {
     $form['base_info'] = array('#markup' => '<p><strong>' . t('Pinned base (read-only):') . '</strong> ' .
       check_plain($inherited['label']) . ' — <code>' . check_plain($inherited['id']) . '</code>, <code>' . check_plain($inherited['version']) . '</code>. ' .
-      t('Blank overrides inherit this exact preset version. Inherited expressions are retained, not copied into the override fields.') . '</p>');
+      ($adding ? t('This exact preset version is retained in the new theme. Blank Add fields retain the captured starting colors, including copied custom overrides.') : t('Blank overrides inherit this exact preset version. Inherited expressions are retained, not copied into the override fields.')) . '</p>');
     $form['extra_property'] = array('#markup' => '<p><code>--h5p-theme-contrast-cta-dark</code>: <code>' .
       check_plain($inherited['colors']['--h5p-theme-contrast-cta-dark']) . '</code>. ' .
       t('Inherited, read-only catalog property. Runtime support in Core 1.28 is not established.') . '</p>');
@@ -282,12 +456,22 @@ function h5p_themer_theme_form($form, &$form_state, $operation = 'add', $id = NU
             t('Inherited preset value:') . ' <code>' . check_plain($inherited['colors'][$property]) . '</code>. ' .
             t('Blank: inherit the pinned preset. Explicit override: #RGB or #RRGGBB.');
         }
+        elseif (!$adding && isset($source['colors'][$property])) {
+          $description .= ' <strong>' . t('Saved administrator override. Clearing restores the Core fallback.') . '</strong>';
+        }
+        $starting = $adding && isset($context['add_snapshot']['palette']['colors'][$property]) ? $context['add_snapshot']['palette']['colors'][$property] : '';
+        if ($adding) {
+          $description = '<code>' . check_plain($property) . '</code>. ' .
+            ($starting !== '' ? t('Starting color:') . ' <code>' . check_plain($starting) . '</code>. ' : t('Starting color uses the Core fallback; no resolved swatch is available.') . ' ') .
+            t('Blank retains this starting color. Enter #RGB or #RRGGBB, or use an available picker, for an override.');
+        }
         $form['colors'][$group][$property] = array('#type' => 'textfield', '#title' => $label,
           '#parents' => array('colors', $property), '#size' => 12, '#maxlength' => 7,
-          '#default_value' => isset($source['colors'][$property]) ? $source['colors'][$property] : '', '#description' => $description,
+          '#default_value' => !$adding && isset($source['colors'][$property]) ? $source['colors'][$property] : '', '#description' => $description,
           '#attributes' => array('class' => array('h5p-themer-color-input'),
-            'data-h5p-themer-inherited' => $inherited !== NULL ? $inherited['colors'][$property] : ''));
-        if ($context['operation'] === 'add') {
+            'data-h5p-themer-inherited' => $adding ? $starting : ($inherited !== NULL ? $inherited['colors'][$property] : '')));
+        if ($adding) { $form['colors'][$group][$property]['#attributes']['data-h5p-themer-starting'] = 'true'; }
+        if ($adding && $starting === '') {
           // Display-only seed for the unnamed companion, never a saved override.
           $form['colors'][$group][$property]['#attributes']['data-h5p-themer-picker-initial'] = '#000000';
         }
@@ -300,6 +484,7 @@ function h5p_themer_theme_form($form, &$form_state, $operation = 'add', $id = NU
   }
   $form['#validate'] = array('h5p_themer_theme_form_validate');
   $form['#submit'] = array('h5p_themer_theme_form_submit');
+  if ($adding) { $form['#h5p_themer_operation'] = 'add'; }
   $errors = $editing ? _h5p_themer_admin_check_original('h5p_themer.theme.' . $context['id'], $context['original']) : array();
   $errors = array_merge($errors, _h5p_themer_publication_form($form_state, TRUE));
   return _h5p_themer_admin_actions($form, in_array($context['operation'], array('duplicate', 'preset_duplicate'), TRUE) ? t('Create duplicate') : t('Save theme'), $errors);
@@ -319,6 +504,11 @@ function _h5p_themer_admin_errors(array $fields) {
  */
 function h5p_themer_theme_form_validate($form, &$form_state) {
   unset($form_state['h5p_themer_candidate']);
+  if (isset($form['#h5p_themer_operation']) && $form['#h5p_themer_operation'] === 'add' &&
+      !_h5p_themer_admin_add_context_valid(isset($form_state['h5p_themer']) ? $form_state['h5p_themer'] : NULL)) {
+    _h5p_themer_admin_add_expired_validate($form, $form_state);
+    return;
+  }
   $guard = array_merge(_h5p_themer_admin_guard(), _h5p_themer_publication_form($form_state));
   if ($guard || empty($form_state['h5p_themer'])) {
     _h5p_themer_admin_errors(array('_form' => $guard ?: array(t('Invalid theme form context.'))));
@@ -345,7 +535,14 @@ function h5p_themer_theme_form_validate($form, &$form_state) {
       return;
     }
   }
-  elseif ($context['operation'] !== 'add') {
+  elseif ($context['operation'] === 'add') {
+    $errors = _h5p_themer_admin_add_check($context);
+    if ($errors) {
+      _h5p_themer_admin_errors(array('_form' => $errors));
+      return;
+    }
+  }
+  else {
     $errors = _h5p_themer_admin_check_original('h5p_themer.theme.' . $context['id'], $context['original'], $editing);
     if ($errors) {
       _h5p_themer_admin_errors(array('_form' => $errors));
@@ -369,6 +566,9 @@ function h5p_themer_theme_form_validate($form, &$form_state) {
   $candidate['colors'] = $preset_copy ? array() : (isset($values['colors']) ? $values['colors'] : array());
   if (is_array($candidate['colors'])) {
     $candidate['colors'] = array_filter($candidate['colors'], function ($value) { return $value !== ''; });
+    if ($context['operation'] === 'add') {
+      $candidate['colors'] = array_replace($context['original']['colors'], $candidate['colors']);
+    }
   }
   unset($candidate['_config_name']);
   $name = 'h5p_themer.theme.' . (is_string($candidate['id']) ? $candidate['id'] : '');
@@ -396,6 +596,8 @@ function h5p_themer_theme_form_validate($form, &$form_state) {
     }
   }
   if (!$editing && h5p_themer_valid_theme_id($candidate['id'])) {
+    $default_errors = _h5p_themer_admin_creation_default_errors($candidate['id']);
+    if ($default_errors) { _h5p_themer_admin_errors(array('id' => $default_errors)); }
     try {
       if (config_get_config_storage()->exists($name)) {
         form_set_error('id', t('This machine ID is already in use. Choose a new ID.'));
@@ -441,6 +643,8 @@ function h5p_themer_theme_form_submit($form, &$form_state) {
     _h5p_themer_publication_state($publication);
     $context = $form_state['h5p_themer'];
     if ($context['operation'] !== 'edit' && config_get_config_storage()->exists('h5p_themer.theme.' . $candidate['id']) !== FALSE) { throw new ConfigException('Destination is no longer absent.'); }
+    if ($context['operation'] !== 'edit' && _h5p_themer_admin_creation_default_errors($candidate['id'])) { throw new ConfigException('Destination became a global default reference.'); }
+    if ($context['operation'] === 'add' && _h5p_themer_admin_add_check($context)) { throw new ConfigException('Starting theme changed before persistence.'); }
     if (in_array($context['operation'], array('edit', 'duplicate'), TRUE) && _h5p_themer_admin_check_original('h5p_themer.theme.' . $context['id'], $context['original'], $context['operation'] === 'edit')) { throw new ConfigException('Source changed before persistence.'); }
     $record->save();
     _h5p_themer_publication_verify_theme($candidate['id'], $candidate);

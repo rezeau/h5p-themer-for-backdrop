@@ -48,11 +48,25 @@ New installation defaults to Core/null. Use Global Default to select Core, a
 built-in, or a custom theme. Reload activity pages after changing the global
 selection. Authored H5P content is not modified.
 
+**Add theme** starts from the effective global default. Core/null, invalid,
+missing or unresolvable defaults use a clearly identified Daylight fallback
+pinned to `moodle-478fed30d2a4`. Blank Add fields retain captured starting colors;
+enter hexadecimal overrides or use an available picker to replace them. Save
+creates an independent custom theme, hidden from learners, without changing
+the source or global selection. Changed sources/defaults require reloading Add.
+Missing or expired original form state also requires reloading Add. Creation
+cannot reuse a missing custom ID referenced by the stored or effective default;
+repair that reference separately or choose another ID.
+Custom defaults retain their schema, effective sparse overrides and density;
+schema-2 copies retain their exact preset pin without a custom-parent dependency.
+
 Schema-1 customs retain sparse hexadecimal overrides without migration.
 Schema-2 customs retain an immutable pinned base plus sparse overrides.
 Editable colors accept only `#RGB` or `#RRGGBB`; typed case and shorthand are
-preserved. Blank means inherit the pinned base, or use Core's cascade for
-schema 1. Native color pickers enhance the textfields without becoming separate
+preserved. On Edit/Duplicate, blank means inherit the pinned base, or use Core's
+cascade for schema 1. Edit identifies saved overrides and the pinned preset when
+present; earlier custom-copy provenance is not recorded or inferred.
+Native color pickers enhance the textfields without becoming separate
 submitted values. General settings start expanded, color groups collapsed, and
 groups containing validation errors open automatically.
 

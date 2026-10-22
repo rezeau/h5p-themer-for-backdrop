@@ -22,7 +22,7 @@ require dirname(__DIR__) . '/h5p_themer.config.inc';
 
 // Execute the two unmodified production function bodies with the collaborators
 // above. Other functions in the admin include require native framework services.
-$names = array('_h5p_themer_admin_color_groups', 'h5p_themer_theme_form');
+$names = array('_h5p_themer_admin_color_groups', '_h5p_themer_admin_add_context_valid', 'h5p_themer_theme_form');
 $tokens = token_get_all(file_get_contents(dirname(__DIR__) . '/h5p_themer.admin.inc'));
 $found = array();
 for ($i = 0; $i < count($tokens); $i++) {
@@ -45,11 +45,16 @@ function form_check($condition, $message) {
   if (!$condition) { throw new RuntimeException($message); }
   $GLOBALS['passed']++;
 }
-$pinned = array('schema_version' => 2, 'base_preset' => array('id' => 'mint', 'version' => 'moodle-478fed30d2a4'), 'colors' => array());
-$legacy = array('schema_version' => 1, 'colors' => array('--h5p-theme-background' => '#AbC'));
-foreach (array(array('add', array()), array('edit', $legacy), array('duplicate', $legacy), array('edit', $pinned), array('duplicate', $pinned), array('preset_duplicate', $pinned)) as $case) {
+$pinned = array('schema_version' => 2, 'label' => 'Pinned', 'density' => 'large', 'base_preset' => array('id' => 'mint', 'version' => 'moodle-478fed30d2a4'), 'colors' => array());
+$legacy = array('schema_version' => 1, 'label' => 'Legacy', 'density' => 'large', 'colors' => array('--h5p-theme-background' => '#AbC'));
+foreach (array(array('add', $legacy), array('add', $pinned), array('edit', $legacy), array('duplicate', $legacy), array('edit', $pinned), array('duplicate', $pinned), array('preset_duplicate', $pinned)) as $case) {
   list($operation, $source) = $case;
   $state = array('h5p_themer' => array('operation' => $operation, 'original' => $source, 'id' => 'example'));
+  if ($operation === 'add') {
+    $preset = isset($source['base_preset']) ? h5p_themer_preset_load('mint', 'moodle-478fed30d2a4')['data'] : NULL;
+    $palette = array('label' => $source['label'], 'colors' => array_replace($preset !== NULL ? $preset['colors'] : array(), $source['colors']));
+    $state['h5p_themer']['add_snapshot'] = array('seed' => $source, 'fingerprint' => str_repeat('a', 64), 'preset' => $preset, 'palette' => $palette, 'fallback' => FALSE);
+  }
   $form = h5p_themer_theme_form(array(), $state);
   if ($operation === 'preset_duplicate') {
     form_check(!isset($form['colors']), 'Initial preset duplication must remain read-only.'); continue;
@@ -61,12 +66,16 @@ foreach (array(array('add', array()), array('edit', $legacy), array('duplicate',
       if ($property[0] === '#') { continue; }
       $fields++;
       $attributes = $element['#attributes'];
-      form_check($operation === 'add' ? isset($attributes['data-h5p-themer-picker-initial']) && $attributes['data-h5p-themer-picker-initial'] === '#000000' : !isset($attributes['data-h5p-themer-picker-initial']), 'Only scratch creation may supply a picker seed.');
-      $expected = isset($source['colors'][$property]) ? $source['colors'][$property] : '';
+      $unresolved = $operation === 'add' && !isset($palette['colors'][$property]);
+      form_check($unresolved ? isset($attributes['data-h5p-themer-picker-initial']) && $attributes['data-h5p-themer-picker-initial'] === '#000000' : !isset($attributes['data-h5p-themer-picker-initial']), 'Only Add fields without a resolved starting color may supply a picker seed.');
+      $expected = $operation !== 'add' && isset($source['colors'][$property]) ? $source['colors'][$property] : '';
       form_check($element['#default_value'] === $expected, 'The picker seed must not populate a color textfield.');
       if (isset($source['base_preset'])) {
         $base = h5p_themer_preset_load('mint', 'moodle-478fed30d2a4');
         form_check($attributes['data-h5p-themer-inherited'] === $base['data']['colors'][$property], 'Existing inheritance must remain exact.');
+      }
+      if ($operation === 'add') {
+        form_check($attributes['data-h5p-themer-inherited'] === (isset($palette['colors'][$property]) ? $palette['colors'][$property] : ''), 'Add swatches show captured starting colors without filling overrides.');
       }
     }
   }

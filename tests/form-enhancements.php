@@ -19,8 +19,8 @@ foreach ($form['colors'] as $key => $group) {
   check($group['#type'] === 'fieldset' && $group['#collapsible'] === TRUE && $group['#collapsed'] === TRUE, 'Native initially collapsed color group: ' . $key);
   foreach ($group as $property => $element) {
     if ($property[0] === '#') { continue; }
-    check($element['#type'] === 'textfield' && $element['#parents'] === array('colors', $property) && $element['#attributes']['data-h5p-themer-inherited'] === '', 'Schema 1 metadata keeps Core unrepresented: ' . $property);
-    check($element['#default_value'] === '' && $element['#attributes']['data-h5p-themer-picker-initial'] === '#000000', 'Scratch creation supplies a UI-only seed without an override: ' . $property);
+    check($element['#type'] === 'textfield' && $element['#parents'] === array('colors', $property) && $element['#attributes']['data-h5p-themer-inherited'] === h5p_themer_preset_load('daylight', 'moodle-478fed30d2a4')['data']['colors'][$property], 'Add metadata uses the pinned Daylight fallback: ' . $property);
+    check($element['#default_value'] === '' && !isset($element['#attributes']['data-h5p-themer-picker-initial']), 'Resolved starting colors need no arbitrary picker seed: ' . $property);
   }
 }
 check($groups === 5, 'Exactly five collapsed color groups');

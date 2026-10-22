@@ -6,6 +6,25 @@ const { createHarness: createDOMHarness } = require('./dom-fixture.cjs');
 const localOnly = process.env.H5P_THEMER_LOCAL_COLOR_TESTS === '1';
 const createHarness = () => createDOMHarness({ localOnly });
 
+test('Add starting colors never claim live preset inheritance or create submitted overrides', () => {
+  const h = createHarness(); const f = h.field({ inherited: '#aBc', starting: true }); h.attach(); h.attach();
+  assert.equal(f.status().textContent, 'Starting color; no new override.');
+  assert.equal(f.text.valueWrites, 0); assert.equal(f.picker().value, '#aabbcc');
+  f.text.value = '#12'; f.text.dispatchEvent(new h.Event('input'));
+  assert.match(f.status().textContent, /starting color/); assert.equal(f.text.value, '#12');
+  f.picker().value = '#123456'; f.picker().dispatchEvent(new h.Event('change'));
+  assert.equal(f.text.value, '#123456'); assert.equal(f.status().textContent, 'Explicit hex override.');
+  f.text.value = ''; f.text.dispatchEvent(new h.Event('input'));
+  assert.equal(f.status().textContent, 'Starting color; no new override.');
+});
+
+test('Add starting expressions remain exact and disabled until hex is entered', () => {
+  const h = createHarness(); const expression = 'rgba(59, 130, 246, 0.15)';
+  const f = h.field({ inherited: expression, starting: true }); h.attach();
+  assert.equal(f.picker().disabled, true); assert.match(f.status().textContent, /Starting expression/);
+  assert.equal(f.text.valueWrites, 0); assert.equal(f.text.getAttribute('data-h5p-themer-inherited'), expression);
+});
+
 for (const [value, display] of [['#aBc', '#aabbcc'], ['#Ab12Ef', '#ab12ef'], ['#000', '#000000'], ['#fffFFF', '#ffffff']]) {
   test('initial explicit ' + value + ' is display-only', () => {
     const h = createHarness(); const f = h.field({ value }); h.attach();

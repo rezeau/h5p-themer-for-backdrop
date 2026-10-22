@@ -56,8 +56,8 @@ foreach (array(array('add', NULL), array('duplicate', 'legacy'), array('duplicat
   check(H5PThemerMemoryStorage::$writes === $writes + 2, 'Restrictive policy then definition are the only config writes');
   $theme = h5p_themer_theme_load('new_theme')['data'];
   check($theme['colors'] === $input['colors'], 'Creation does not invent or normalize palette values');
-  check($theme['schema_version'] === ($case[0] === 'preset_duplicate' || $case[1] === 'pinned' ? 2 : 1), 'Source schema/pinned inheritance preserved');
-  if ($theme['schema_version'] === 2) { check($theme['base_preset'] === array('id' => 'mint', 'version' => 'moodle-478fed30d2a4'), 'Exact pinned base preserved'); }
+  check($theme['schema_version'] === ($case[0] === 'add' || $case[0] === 'preset_duplicate' || $case[1] === 'pinned' ? 2 : 1), 'Source schema/pinned inheritance preserved');
+  if ($theme['schema_version'] === 2) { check($theme['base_preset'] === array('id' => $case[0] === 'add' ? 'daylight' : 'mint', 'version' => 'moodle-478fed30d2a4'), 'Exact pinned base preserved'); }
   check(publication_policy()['themes']['custom:legacy'] === $source_policy['themes']['custom:legacy'] &&
     H5PThemerMemoryStorage::$raw['./active']['h5p_themer.theme.legacy'] === $definition_bytes, 'Source publication and definition unchanged');
   check(H5PThemerMemoryStorage::$raw['./active']['h5p_themer.settings'] === $settings_bytes, 'Global selection/settings unchanged');

@@ -142,12 +142,13 @@ function createHarness({ localOnly = false } = {}) {
   }
   else { loadCore('jquery.once.js'); }
   vm.runInContext(fs.readFileSync(path.join(__dirname, '../../js/h5p_themer.admin.js'), 'utf8'), sandbox, { filename: 'h5p_themer.admin.js' });
-  function field({ value = '', inherited = '', initial = null, id = 'edit-background', disabled = false, readOnly = false } = {}) {
+  function field({ value = '', inherited = '', initial = null, starting = false, id = 'edit-background', disabled = false, readOnly = false } = {}) {
     const form = doc.createElement('form'); const label = doc.createElement('label'); const text = doc.createElement('input');
     label.setAttribute('for', id); label.textContent = 'Background'; text.id = id;
     text.setAttribute('type', 'text'); text.setAttribute('name', 'colors[--h5p-theme-background]');
     text.className = 'h5p-themer-color-input'; text.setAttribute('data-h5p-themer-inherited', inherited);
     if (initial !== null) text.setAttribute('data-h5p-themer-picker-initial', initial);
+    if (starting) text.setAttribute('data-h5p-themer-starting', 'true');
     text.setAttribute('aria-describedby', id + '-description');
     text.value = value; text.defaultValue = value; text.valueWrites = 0; text.disabled = disabled; text.readOnly = readOnly;
     form.appendChild(label); form.appendChild(text); doc.body.appendChild(form);

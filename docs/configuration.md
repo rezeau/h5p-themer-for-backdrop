@@ -99,6 +99,20 @@ malformed, or unreadable configuration returns NULL data with errors. An unset
 default returns NULL data without errors. A broken reference returns NULL data
 with errors. No arbitrary fallback theme is selected and no write is attempted.
 
+The Add administration form has a separate initialization policy: Core/null or
+an unresolved effective default starts a new independent definition from pinned
+Daylight (`moodle-478fed30d2a4`), with a visible fallback explanation. Existing
+resolvers and runtime behavior remain unchanged. Add's source snapshot and
+fingerprints live only in cached form state; no schema fields or migrations are
+introduced. Custom sources retain their schema, effective sparse hex overrides,
+density and preset pin where present, with no reference to the source custom ID.
+Blank Add inputs preserve copied starting values when the candidate is built.
+Existing Edit/Duplicate blank inputs still remove overrides as before.
+Add enables native Form API caching and rejects POSTs whose original trusted
+state is missing, expired or invalid. No snapshot data is accepted from client
+fields. New custom IDs must not match unresolved stored or effective custom
+default references; repairing a default remains an explicit separate action.
+
 Effective reads use native `Config::get()` per top-level schema field, honoring
 field-level settings.php overrides. Override `colors` as a complete map; dotted
 child overrides inside the map are not supported by this accessor. Overrides

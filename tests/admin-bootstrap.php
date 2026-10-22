@@ -59,7 +59,7 @@ function backdrop_strlen($value) { return strlen($value); }
 function request_uri() { return '/admin/config/content/h5p-themer'; }
 function backdrop_random_key() { return bin2hex(random_bytes(12)); }
 function backdrop_html_id($value) { return preg_replace('/[^a-z0-9_-]/i', '-', $value); }
-function backdrop_get_token($value = '') { return hash_hmac('sha256', $value, 'isolated-test-session'); }
+function backdrop_get_token($value = '') { return hash_hmac('sha256', $value, isset($GLOBALS['admin_test_session_key']) ? $GLOBALS['admin_test_session_key'] : 'isolated-test-session'); }
 function backdrop_valid_token($token, $value = '', $skip_anonymous = FALSE) { return is_string($token) && hash_equals(backdrop_get_token($value), $token); }
 function backdrop_set_title($title, $output = NULL) { $GLOBALS['test_title'] = $title; }
 function backdrop_set_message($message, $type = 'status', $repeat = TRUE) { $GLOBALS['messages'][] = array($type, $message); }

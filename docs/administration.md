@@ -13,7 +13,7 @@ All paths start with `admin/config/content/h5p-themer`:
 | Suffix | Purpose |
 | --- | --- |
 | (none), `/list` | Core, built-in and custom overview |
-| `/add` | Create a schema-1 custom definition |
+| `/add` | Create an independent custom theme from the effective global default |
 | `/<custom-id>/edit` | Edit custom text, density and sparse overrides |
 | `/<custom-id>/duplicate` | Copy a custom theme under a new custom ID |
 | `/<custom-id>/delete` | Native custom deletion confirmation |
@@ -50,7 +50,8 @@ The overview has three separate sections:
 Tables distinguish stored and effective global defaults. A settings.php
 override can make these differ; the overview warns and shows both indicators.
 Invalid custom objects appear as diagnostic rows with no unsafe operations.
-Missing/invalid defaults never silently select Core or Daylight.
+Missing/invalid defaults never silently change the global selection. Add theme
+uses an explicitly identified Daylight starting palette when necessary.
 
 A built-in View page shows its label, ID, version, density information,
 provenance, license and all 34 exact values. Expressions such as `color-mix()`
@@ -62,7 +63,48 @@ support. The palette itself defines no density override.
 
 ## Creating and editing custom themes
 
-Add theme retains the schema-1 behavior: a unique stable ID, editable label,
+Add theme starts from the **effective global default**, including validated
+top-level settings.php overrides. It displays the actual starting theme name.
+Core/null, missing, invalid or unresolvable defaults use the explicitly identified
+**Daylight fallback**, pinned to `moodle-478fed30d2a4`. This affects only the new
+theme's starting definition; it never repairs or changes global settings.
+
+A built-in default creates a schema-2 seed with that exact preset/version and
+no stored overrides. A schema-2 custom default retains its preset pin and copies
+its effective sparse hexadecimal overrides and density. A schema-1 custom
+default retains schema 1 and copies its effective sparse overrides and density.
+Built-in palettes have no density, so their initial density is `large`.
+
+On Add, color inputs start blank and show captured starting values in their
+descriptions and available pickers. **Blank retains the captured starting color**;
+enter `#RGB`/`#RRGGBB` or choose an available picker to replace it. Starting custom
+overrides are copied on Save even when the inputs remain blank. Expressions stay
+in the pinned preset and are never flattened into editable configuration.
+Save creates an independent custom theme, leaves the source unchanged, and keeps
+the new theme hidden from learners. Later edits/deletion of a source custom
+theme cannot affect the saved copy. Publication still requires the separate
+existing visibility controls.
+
+The starting source, colors and dependency fingerprints are captured in trusted
+cached form state, not configuration or hidden submitted fields. Add explicitly
+enables Backdrop's native Form API tempstore cache, including its session-token
+access check and configured form-cache expiry. A POST without its original valid
+cached snapshot is rejected with instructions to reload; it never initializes a
+replacement source. Rebuilds retain
+that snapshot and submitted input. Validation, locked submission and the final
+pre-save check reject changed/default/source dependencies instead of rebasing.
+Reload Add theme to start again after a dependency changes.
+Valid description-only edits and learner-selection-toggle changes do not stale
+the starting palette; appearance, source identity and validation status do.
+
+All creation paths reject an ID already referenced by a missing custom global
+default, considering both stored settings and effective settings.php overrides.
+Choose another ID, or repair the default explicitly through its separate controls.
+This prevents a new definition from automatically activating a previously broken
+global default. Built-in/custom namespaces remain distinct, and unrelated IDs
+remain available. The reference check runs again under the lock and before save.
+
+Each new theme requires a unique stable ID, editable label,
 description, density and optional sparse hex overrides. IDs match
 `[a-z][a-z0-9_]{0,63}`. Editing cannot change the machine ID. Label renaming
 preserves all references.
@@ -70,11 +112,15 @@ preserves all references.
 Schema-1 editing preserves schema 1, sparse maps and exact hex spelling/case.
 No migration or palette derivation occurs.
 
-Schema-2 forms display the pinned base ID/version as read-only information.
+Schema-2 Edit forms display the pinned base ID/version as read-only information.
 Each of the 33 existing override fields separately identifies the inherited
 value and whether a saved administrator override exists. Inputs contain only
 stored overrides, never the effective palette. Blank means inherit the pinned
 base; clearing a saved override restores inheritance after Save.
+Schema-1 Edit fields distinguish saved overrides from the Core fallback; clearing
+an override removes its declaration. Previous custom-copy provenance is not
+stored or inferred. Edit never claims live inheritance from another custom theme.
+Its blank-field behavior deliberately differs from Add's captured starting colors.
 
 The inherited extra property is displayed read-only, and inherited non-hex
 expressions remain exact. Only opaque `#RGB` or `#RRGGBB` can be entered as
@@ -85,7 +131,7 @@ unknown submitted color keys are rejected even when their values are blank.
 
 Saved colors are never silently normalized. Schema, pinned base and native
 metadata come from trusted stored form context rather than posted fields.
-Forms edit originals, not environment-specific effective values. Existing
+Edit and Duplicate use originals, not environment-specific effective values. Existing
 objects with settings.php overrides are read-only until the overrides are
 resolved. Duplicating an overridden custom source copies its stored original
 without modifying that source or persisting its effective overrides.
@@ -110,8 +156,11 @@ textfield. Clearing means deleting the text and saving; there is no separate
 Clear override button. Invalid or incomplete text remains untouched and is
 still subject to strict server validation.
 
-For schema 2, blank text inherits the exact pinned preset. Representable
+On Add, blank text displays the captured starting color; on schema-2 Edit and
+Duplicate, blank text inherits the exact pinned preset. Representable
 inherited hex appears in the picker without becoming a saved override.
+Add status says "Starting color; no new override"; Edit/Duplicate retain their
+inherited-color wording. The starting custom overrides are copied on Save.
 The exact inherited value remains visible in the existing description.
 Inherited rgba() and color-mix() expressions are neither approximated nor
 copied into editable fields. If no representable inherited hex exists, a blank
@@ -120,11 +169,12 @@ swatch is explicitly identified as not being a preview. If inherited hex is
 available while text is invalid, the picker shows that inherited hex and
 explains that choosing a color will replace the invalid text.
 
-Schema-1 blank retains Core/no-override semantics. No preset is assigned or
-substituted. On scratch creation only, an editable blank field has an enabled
+Schema-1 Edit/Duplicate blank retains Core/no-override semantics. No preset is
+assigned or substituted. On Add from a sparse schema-1 custom default, a field
+without a captured color has an enabled
 picker starting at black for choosing a color. This is a UI-only starting value,
 not a Core preview or saved override; the text remains blank until a color is
-chosen. Clearing or resetting a scratch field restores that blank state. Existing
+chosen. Clearing or resetting an Add field restores its captured starting state. Existing
 schema-1 edit/duplicate forms still require explicit valid hex to enable a picker
 when no inherited hex is available.
 
@@ -134,6 +184,48 @@ continue to work. With JavaScript disabled, native collapse CSS leaves every
 fieldset visible. No external picker, custom CSS or additional dependency is
 required. Initial built-in duplication stays metadata-only with a read-only
 palette; color pickers appear when editing the saved custom copy.
+
+### Add redesign verification and Stage 2 browser checks
+
+The focused native PHP regression entrypoint is:
+
+```text
+php -n tests/add-theme.php --backdrop-root="<absolute-Backdrop-source-root>" --h5p-root="<absolute-H5P-module-source-root>"
+php -n tests/admin-color-form.php
+```
+
+The first command includes existing admin, schema, preset-copy, form enhancement
+and publication regressions as well as the new Add cases. The full
+`tests/run.php` also includes Add coverage. Both use isolated fixture storage;
+neither bootstraps a site or changes an installed module. Runtime filesystem
+tests additionally require temporary-file rename permissions.
+Native cache-lifecycle cases run GET, POST and correction in separate PHP
+processes with a private server/tempstore fixture. They cover expiration, missing
+or invalid state, session mismatch, CSRF, forged input, stale sources, harmless
+source/settings edits and missing-default ID collisions.
+
+Stage 2 requires these manual checks on an explicitly authorized test deployment:
+
+1. Open Add with each built-in default, both custom schemas, a settings.php
+   override, Core/null and a broken default. Verify the actual starting name,
+   explicit fallback explanation, blank inputs and correct starting swatches.
+2. Check blank Save, typed hex, picker choices, clearing and native Reset.
+   For Add, blank retains the captured custom override; after saving, Edit
+   clearing restores the pinned preset or Core. Verify expressions remain exact,
+   and expression-only swatches explain why their picker is unavailable.
+3. Trigger validation errors and rebuilds. Verify entered text, starting name
+   and swatches remain stable. Change the source/default in another session;
+   verify Save refuses the stale form and requires reloading Add.
+4. Confirm Edit names the pinned preset/version and distinguishes saved overrides
+   from inheritance without inventing a custom source. Check legacy Edit,
+   custom Duplicate and preset Duplicate behavior.
+5. Verify keyboard/screen-reader labels and instructions, collapsed error groups,
+   no-JavaScript operation and browsers without native color inputs. Check narrow
+   layouts and long/translated theme names.
+6. Confirm a new copy is absent from learner choices, while source visibility and
+   the global default remain unchanged. Visibility must require the existing
+   separate publication action. No Stage 2 deployment or browser work is implied
+   by the repository-only Stage 1 tests.
 
 ## Duplicating a built-in
 

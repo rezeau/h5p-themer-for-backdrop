@@ -243,6 +243,7 @@ require __DIR__ . '/admin.php';
 require __DIR__ . '/config-compatibility.php';
 require __DIR__ . '/preset-admin.php';
 require __DIR__ . '/form-enhancements.php';
+require __DIR__ . '/add-theme.php';
 require __DIR__ . '/runtime.php';
 require __DIR__ . '/preview.php';
 require __DIR__ . '/preview-live.php';
