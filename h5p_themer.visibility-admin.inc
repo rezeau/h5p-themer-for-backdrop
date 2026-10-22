@@ -25,8 +25,28 @@ function _h5p_themer_visibility_admin_snapshot() {
   // Existing capture includes original definitions (also invalid objects),
   // references, resolved colors and effective settings, without writing them.
   $capture = _h5p_themer_visibility_capture('upgrade');
-  return array('fingerprint' => hash('sha256', serialize(array($publication['fingerprint'], $capture['hash']))),
-    'publication' => $publication, 'choices' => $catalog['data'], 'catalog_hash' => $capture['hash']);
+  $generation = _h5p_themer_visibility_admin_generation();
+  return array('fingerprint' => hash('sha256', serialize(array($publication['fingerprint'], $capture['hash'], $generation))),
+    'publication' => $publication, 'choices' => $catalog['data'], 'catalog_hash' => $capture['hash'], 'generation' => $generation);
+}
+
+/** Environment-local identity marker; never exported with theme configuration. */
+function _h5p_themer_visibility_admin_generation() {
+  $states = state_initialize();
+  if (!is_array($states)) { throw new ConfigException('Unknown administration state.'); }
+  $key = 'h5p_themer.visibility_form_generation';
+  if (!array_key_exists($key, $states)) { return NULL; }
+  if (!is_string($states[$key]) || preg_match('/\A[a-f0-9]{64}\z/', $states[$key]) !== 1) {
+    throw new ConfigException('Invalid visibility form generation.');
+  }
+  return $states[$key];
+}
+
+/** Called under the publication lock, before deleting any theme definition. */
+function _h5p_themer_visibility_admin_invalidate() {
+  $generation = bin2hex(random_bytes(32));
+  state_set('h5p_themer.visibility_form_generation', $generation);
+  if (_h5p_themer_visibility_admin_generation() !== $generation) { throw new ConfigException('Visibility form invalidation failed.'); }
 }
 
 /** Add processed Form API children to their table cells exactly once. */
@@ -41,6 +61,10 @@ function h5p_themer_visibility_table_pre_render($table) {
 
 /** Decorate the existing overview without reordering its names or operations. */
 function _h5p_themer_visibility_admin_build(array $build, &$form_state, array $overview_choices) {
+  if (!_h5p_themer_admin_cached_form($form_state, 'h5p_themer_visibility_snapshot',
+      _h5p_themer_visibility_context_valid(isset($form_state['h5p_themer_visibility_snapshot']) ? $form_state['h5p_themer_visibility_snapshot'] : NULL))) {
+    return _h5p_themer_admin_expired_form();
+  }
   $errors = array();
   try {
     $current = _h5p_themer_visibility_admin_snapshot();
@@ -98,8 +122,20 @@ function _h5p_themer_visibility_admin_build(array $build, &$form_state, array $o
   return $build;
 }
 
+/** No cached form may validate using absent or malformed trusted state. */
+function _h5p_themer_visibility_context_valid($snapshot) {
+  return is_array($snapshot) && isset($snapshot['fingerprint'], $snapshot['publication'], $snapshot['choices'], $snapshot['catalog_hash']) &&
+    array_key_exists('generation', $snapshot) && ($snapshot['generation'] === NULL ||
+      (is_string($snapshot['generation']) && preg_match('/\A[a-f0-9]{64}\z/', $snapshot['generation']) === 1)) &&
+    is_string($snapshot['fingerprint']) && preg_match('/\A[a-f0-9]{64}\z/', $snapshot['fingerprint']) === 1 &&
+    is_string($snapshot['catalog_hash']) && preg_match('/\A[a-f0-9]{64}\z/', $snapshot['catalog_hash']) === 1 &&
+    is_array($snapshot['publication']) && is_array($snapshot['choices']);
+}
+
 /** Keep malformed scalar groups from failing inside Core before validation. */
 function h5p_themer_visibility_form_process($element, &$form_state) {
+  // This flag describes only the current request, not a previous failed POST.
+  unset($form_state['h5p_themer_visibility_bad_input']);
   if (isset($form_state['input']) && is_array($form_state['input']) && array_key_exists('visibility', $form_state['input']) && !is_array($form_state['input']['visibility'])) {
     $form_state['h5p_themer_visibility_bad_input'] = TRUE;
     $form_state['input']['visibility'] = array();
@@ -113,8 +149,9 @@ function h5p_themer_visibility_form_validate($form, &$form_state) {
   try {
     if (!empty($form_state['h5p_themer_visibility_bad_input'])) { throw new ConfigException('Malformed checkbox group.'); }
     $snapshot = isset($form_state['h5p_themer_visibility_snapshot']) ? $form_state['h5p_themer_visibility_snapshot'] : NULL;
+    if (!_h5p_themer_visibility_context_valid($snapshot)) { throw new ConfigException('Missing or invalid form context.'); }
     $current = _h5p_themer_visibility_admin_snapshot();
-    if ($snapshot === NULL || $snapshot['fingerprint'] !== $current['fingerprint']) { throw new ConfigException('Stale or unverified form.'); }
+    if ($snapshot !== $current) { throw new ConfigException('Stale or unverified form.'); }
     $input = isset($form_state['input']) ? $form_state['input'] : array();
     if (!is_array($input) || array_diff(array_keys($input), array('visibility', 'form_id', 'form_build_id', 'form_token', 'op'))) { throw new ConfigException('Unexpected form input.'); }
     $raw = array_key_exists('visibility', $input) ? $input['visibility'] : array();
@@ -145,11 +182,11 @@ function h5p_themer_visibility_form_submit($form, &$form_state) {
   if (form_get_errors()) { return; }
   if (!lock_acquire('h5p_themer_admin_write', 120)) {
     form_set_error('_form', t('Another H5P theme operation is in progress. Try again.'));
-    $form_state['rebuild'] = TRUE; return;
+    $form_state['rebuild'] = FALSE; return;
   }
   try {
     h5p_themer_visibility_form_validate($form, $form_state);
-    if (form_get_errors()) { $form_state['rebuild'] = TRUE; return; }
+    if (form_get_errors()) { $form_state['rebuild'] = FALSE; return; }
     $current = _h5p_themer_visibility_admin_snapshot();
     $candidate = $form_state['h5p_themer_visibility_candidate'];
     if ($candidate === $current['publication']['policy']) {
@@ -176,12 +213,12 @@ function h5p_themer_visibility_form_submit($form, &$form_state) {
   }
   catch (Throwable $e) {
     form_set_error('_form', t('The visibility save could not be verified. Policy data may have been written; no automatic visibility restoration was attempted. Inspect activation diagnostics and stored policy before retrying.'));
-    $form_state['rebuild'] = TRUE;
+    $form_state['rebuild'] = FALSE;
   }
   finally {
     if (isset($runtime_before)) {
       try { _h5p_themer_admin_cache_invalidate($runtime_before); }
-      catch (Throwable $e) { form_set_error('_form', t('Learner output cache invalidation could not be verified. Restrict learner access until a targeted refresh is authorized.')); $form_state['rebuild'] = TRUE; }
+      catch (Throwable $e) { form_set_error('_form', t('Learner output cache invalidation could not be verified. Restrict learner access until a targeted refresh is authorized.')); $form_state['rebuild'] = FALSE; }
     }
     lock_release('h5p_themer_admin_write');
   }

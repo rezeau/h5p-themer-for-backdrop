@@ -22,7 +22,8 @@ require dirname(__DIR__) . '/h5p_themer.config.inc';
 
 // Execute the two unmodified production function bodies with the collaborators
 // above. Other functions in the admin include require native framework services.
-$names = array('_h5p_themer_admin_color_groups', '_h5p_themer_admin_add_context_valid', 'h5p_themer_theme_form');
+$names = array('_h5p_themer_admin_color_groups', '_h5p_themer_admin_add_context_valid', '_h5p_themer_admin_cached_form',
+  '_h5p_themer_admin_expired_form', '_h5p_themer_admin_theme_context_valid', 'h5p_themer_theme_form');
 $tokens = token_get_all(file_get_contents(dirname(__DIR__) . '/h5p_themer.admin.inc'));
 $found = array();
 for ($i = 0; $i < count($tokens); $i++) {
@@ -45,11 +46,15 @@ function form_check($condition, $message) {
   if (!$condition) { throw new RuntimeException($message); }
   $GLOBALS['passed']++;
 }
-$pinned = array('schema_version' => 2, 'label' => 'Pinned', 'density' => 'large', 'base_preset' => array('id' => 'mint', 'version' => 'moodle-478fed30d2a4'), 'colors' => array());
-$legacy = array('schema_version' => 1, 'label' => 'Legacy', 'density' => 'large', 'colors' => array('--h5p-theme-background' => '#AbC'));
+$pinned = array('schema_version' => 2, 'id' => 'example', 'label' => 'Pinned', 'density' => 'large', 'base_preset' => array('id' => 'mint', 'version' => 'moodle-478fed30d2a4'), 'colors' => array());
+$legacy = array('schema_version' => 1, 'id' => 'example', 'label' => 'Legacy', 'density' => 'large', 'colors' => array('--h5p-theme-background' => '#AbC'));
 foreach (array(array('add', $legacy), array('add', $pinned), array('edit', $legacy), array('duplicate', $legacy), array('edit', $pinned), array('duplicate', $pinned), array('preset_duplicate', $pinned)) as $case) {
   list($operation, $source) = $case;
   $state = array('h5p_themer' => array('operation' => $operation, 'original' => $source, 'id' => 'example'));
+  if ($operation === 'preset_duplicate') {
+    $state['h5p_themer']['id'] = 'mint';
+    $state['h5p_themer']['preset'] = h5p_themer_preset_load('mint', 'moodle-478fed30d2a4')['data'];
+  }
   if ($operation === 'add') {
     $preset = isset($source['base_preset']) ? h5p_themer_preset_load('mint', 'moodle-478fed30d2a4')['data'] : NULL;
     $palette = array('label' => $source['label'], 'colors' => array_replace($preset !== NULL ? $preset['colors'] : array(), $source['colors']));

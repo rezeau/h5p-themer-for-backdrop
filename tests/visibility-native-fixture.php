@@ -44,6 +44,9 @@ class H5PVisibilityQuery {
       unset(H5PVisibilityNativeFixture::$states[$key]); H5PVisibilityNativeFixture::$stateWrites++; return 1;
     }
     $data = unserialize($this->fields['value']);
+    if ($key === 'h5p_themer.visibility_form_generation' && H5PVisibilityNativeFixture::$fault === 'generation_write') {
+      throw new RuntimeException('Fixture visibility generation write failure.');
+    }
     if ($key === 'h5p_themer.visibility_activation') {
       $fault = H5PVisibilityNativeFixture::$fault;
       if (($fault === 'prepare_write' && $data['status'] === 'prepared') ||
@@ -54,6 +57,9 @@ class H5PVisibilityQuery {
       }
     }
     H5PVisibilityNativeFixture::$states[$key] = $this->fields['value'];
+    if ($key === 'h5p_themer.visibility_form_generation' && H5PVisibilityNativeFixture::$fault === 'generation_verify') {
+      H5PVisibilityNativeFixture::$states[$key] = serialize('invalid');
+    }
     H5PVisibilityNativeFixture::$stateWrites++;
     if ($key === 'h5p_themer.visibility_activation' && H5PVisibilityNativeFixture::$fault === 'final_write_after' && $data['status'] === 'complete' && !$data['cache_pending']) { throw new RuntimeException('Fixture post-persistence failure.'); }
     return 1;

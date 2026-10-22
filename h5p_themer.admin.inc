@@ -304,6 +304,56 @@ function _h5p_themer_admin_add_expired_validate($form, &$form_state) {
   form_set_error('_form', t('The original Add theme form is missing, expired or invalid. Reload Add theme before saving.'));
 }
 
+/**
+ * Persist trusted originals in native session-bound Form API tempstore.
+ * A cache miss must never turn POST (or a rebuild) into a new initial capture.
+ * Submit errors keep rebuild FALSE: Core skips rebuilding forms with errors,
+ * and otherwise would discard the submitted cache without storing a correction.
+ */
+function _h5p_themer_admin_cached_form(&$form_state, $key, $valid) {
+  $form_state['cache'] = TRUE;
+  $present = array_key_exists($key, $form_state);
+  $submission = !empty($form_state['input']) || !empty($form_state['programmed']) || !empty($form_state['rebuild']) ||
+    (isset($_SERVER['REQUEST_METHOD']) && !in_array($_SERVER['REQUEST_METHOD'], array('GET', 'HEAD'), TRUE));
+  if (($present && !$valid) || (!$present && $submission)) {
+    $form_state['cache'] = FALSE;
+    $form_state['no_cache'] = TRUE;
+    return FALSE;
+  }
+  return TRUE;
+}
+
+/** Invalid/missing cached context is terminal until a new initial GET. */
+function _h5p_themer_admin_expired_form() {
+  return array('#markup' => '<p role="alert">' . t('The original administration form is missing, expired or invalid. Reload the page before saving.') . '</p>',
+    '#validate' => array('_h5p_themer_admin_expired_validate'), '#submit' => array());
+}
+
+function _h5p_themer_admin_expired_validate($form, &$form_state) {
+  form_set_error('_form', t('The original administration form is missing, expired or invalid. Reload the page before saving.'));
+}
+
+/** Validate the cached shape before accessing it, including on cache-hit POSTs. */
+function _h5p_themer_admin_theme_context_valid($context, $operation) {
+  if (!is_array($context) || !isset($context['id'], $context['original']) ||
+      !h5p_themer_valid_theme_id($context['id']) || !is_array($context['original'])) { return FALSE; }
+  $original = $context['original'];
+  if ($operation !== 'delete' && (!isset($context['operation']) || $context['operation'] !== $operation ||
+      !in_array($operation, array('edit', 'duplicate', 'preset_duplicate'), TRUE))) { return FALSE; }
+  if ($operation === 'preset_duplicate') {
+    if (!isset($context['preset'], $original['base_preset']['id'], $original['base_preset']['version']) ||
+        $original['base_preset']['id'] !== $context['id']) { return FALSE; }
+    $preset = h5p_themer_preset_load($context['id'], $original['base_preset']['version']);
+    if ($preset['errors'] || $preset['data'] !== $context['preset']) { return FALSE; }
+    $original['id'] = $context['id'];
+  }
+  return !h5p_themer_config_errors('h5p_themer.theme.' . $context['id'], $original);
+}
+
+function _h5p_themer_admin_settings_context_valid($context) {
+  return is_array($context) && !h5p_themer_config_errors('h5p_themer.settings', $context);
+}
+
 /** Recheck before validation and immediately before persistence under the lock. */
 function _h5p_themer_admin_add_check(array $context) {
   try {
@@ -361,6 +411,14 @@ function h5p_themer_theme_form($form, &$form_state, $operation = 'add', $id = NU
       $form_state['no_cache'] = TRUE;
       return array('#markup' => '<p role="alert">' . t('The original Add theme form is missing, expired or invalid. Reload Add theme before saving.') . '</p>',
         '#validate' => array('_h5p_themer_admin_add_expired_validate'), '#submit' => array());
+    }
+  }
+  else {
+    $context = isset($form_state['h5p_themer']) ? $form_state['h5p_themer'] : NULL;
+    // Rebuilds use trusted cached context, never submitted operation/source data.
+    $cached_operation = isset($context['operation']) ? $context['operation'] : $operation;
+    if (!_h5p_themer_admin_cached_form($form_state, 'h5p_themer', _h5p_themer_admin_theme_context_valid($context, $cached_operation))) {
+      return _h5p_themer_admin_expired_form();
     }
   }
   if (!isset($form_state['h5p_themer'])) {
@@ -484,7 +542,8 @@ function h5p_themer_theme_form($form, &$form_state, $operation = 'add', $id = NU
   }
   $form['#validate'] = array('h5p_themer_theme_form_validate');
   $form['#submit'] = array('h5p_themer_theme_form_submit');
-  if ($adding) { $form['#h5p_themer_operation'] = 'add'; }
+  $form['#h5p_themer_operation'] = $context['operation'];
+  if (!$adding) { $form['#h5p_themer_source_id'] = $context['id']; }
   $errors = $editing ? _h5p_themer_admin_check_original('h5p_themer.theme.' . $context['id'], $context['original']) : array();
   $errors = array_merge($errors, _h5p_themer_publication_form($form_state, TRUE));
   return _h5p_themer_admin_actions($form, in_array($context['operation'], array('duplicate', 'preset_duplicate'), TRUE) ? t('Create duplicate') : t('Save theme'), $errors);
@@ -507,6 +566,12 @@ function h5p_themer_theme_form_validate($form, &$form_state) {
   if (isset($form['#h5p_themer_operation']) && $form['#h5p_themer_operation'] === 'add' &&
       !_h5p_themer_admin_add_context_valid(isset($form_state['h5p_themer']) ? $form_state['h5p_themer'] : NULL)) {
     _h5p_themer_admin_add_expired_validate($form, $form_state);
+    return;
+  }
+  if (isset($form['#h5p_themer_operation']) && $form['#h5p_themer_operation'] !== 'add' &&
+      (!_h5p_themer_admin_theme_context_valid(isset($form_state['h5p_themer']) ? $form_state['h5p_themer'] : NULL, $form['#h5p_themer_operation']) ||
+       $form_state['h5p_themer']['id'] !== $form['#h5p_themer_source_id'])) {
+    _h5p_themer_admin_expired_validate($form, $form_state);
     return;
   }
   $guard = array_merge(_h5p_themer_admin_guard(), _h5p_themer_publication_form($form_state));
@@ -621,13 +686,13 @@ function h5p_themer_theme_form_submit($form, &$form_state) {
   }
   if (!lock_acquire('h5p_themer_admin_write')) {
     form_set_error('_form', t('Another theme operation is in progress. Try saving again.'));
-    $form_state['rebuild'] = TRUE;
+    $form_state['rebuild'] = $form_state['h5p_themer']['operation'] === 'add';
     return;
   }
   try {
     h5p_themer_theme_form_validate($form, $form_state);
     if (form_get_errors()) {
-      $form_state['rebuild'] = TRUE;
+      $form_state['rebuild'] = $form_state['h5p_themer']['operation'] === 'add';
       return;
     }
     $candidate = $form_state['h5p_themer_candidate'];
@@ -656,12 +721,12 @@ function h5p_themer_theme_form_submit($form, &$form_state) {
   }
   catch (Throwable $e) {
     form_set_error('_form', t('The theme save could not be verified. A restrictive visibility entry or theme definition may have been saved. Inspect stored state before retrying; visibility has not been automatically restored.'));
-    $form_state['rebuild'] = TRUE;
+    $form_state['rebuild'] = $form_state['h5p_themer']['operation'] === 'add';
   }
   finally {
     if (isset($runtime_before)) {
       try { _h5p_themer_admin_cache_invalidate($runtime_before); }
-      catch (Throwable $e) { form_set_error('_form', t('Output cache invalidation could not be verified. Restrict learner access until a targeted refresh is authorized.')); $form_state['rebuild'] = TRUE; }
+      catch (Throwable $e) { form_set_error('_form', t('Output cache invalidation could not be verified. Restrict learner access until a targeted refresh is authorized.')); $form_state['rebuild'] = $form_state['h5p_themer']['operation'] === 'add'; }
     }
     lock_release('h5p_themer_admin_write');
   }
@@ -673,6 +738,10 @@ function h5p_themer_theme_form_submit($form, &$form_state) {
 function h5p_themer_default_form($form, &$form_state) {
   if (!h5p_themer_admin_access()) {
     return array('#markup' => t('Access denied.'));
+  }
+  if (!_h5p_themer_admin_cached_form($form_state, 'h5p_themer_settings',
+      _h5p_themer_admin_settings_context_valid(isset($form_state['h5p_themer_settings']) ? $form_state['h5p_themer_settings'] : NULL))) {
+    return _h5p_themer_admin_expired_form();
   }
   if (!isset($form_state['h5p_themer_settings'])) {
     $settings = _h5p_themer_admin_original('h5p_themer.settings');
@@ -709,6 +778,10 @@ function h5p_themer_default_form($form, &$form_state) {
  */
 function h5p_themer_default_form_validate($form, &$form_state) {
   unset($form_state['h5p_themer_candidate']);
+  if (!_h5p_themer_admin_settings_context_valid(isset($form_state['h5p_themer_settings']) ? $form_state['h5p_themer_settings'] : NULL)) {
+    _h5p_themer_admin_expired_validate($form, $form_state);
+    return;
+  }
   $errors = _h5p_themer_admin_guard();
   if (!$errors && isset($form_state['h5p_themer_settings'])) {
     $errors = _h5p_themer_admin_check_original('h5p_themer.settings', $form_state['h5p_themer_settings']);
@@ -776,13 +849,13 @@ function h5p_themer_default_form_submit($form, &$form_state) {
   }
   if (!lock_acquire('h5p_themer_admin_write')) {
     form_set_error('_form', t('Another theme operation is in progress. Try saving again.'));
-    $form_state['rebuild'] = TRUE;
+    $form_state['rebuild'] = FALSE;
     return;
   }
   try {
     h5p_themer_default_form_validate($form, $form_state);
     if (form_get_errors()) {
-      $form_state['rebuild'] = TRUE;
+      $form_state['rebuild'] = FALSE;
       return;
     }
     $record = new Config('h5p_themer.settings', config_get_config_storage());
@@ -797,7 +870,7 @@ function h5p_themer_default_form_submit($form, &$form_state) {
   }
   catch (ConfigException $e) {
     form_set_error('_form', t('The global default could not be saved. Theme definitions were not changed.'));
-    $form_state['rebuild'] = TRUE;
+    $form_state['rebuild'] = FALSE;
   }
   finally {
     lock_release('h5p_themer_admin_write');
@@ -838,6 +911,10 @@ function h5p_themer_delete_form($form, &$form_state, $id) {
   if (!h5p_themer_admin_access()) {
     return array('#markup' => t('Access denied.'));
   }
+  if (!_h5p_themer_admin_cached_form($form_state, 'h5p_themer',
+      _h5p_themer_admin_theme_context_valid(isset($form_state['h5p_themer']) ? $form_state['h5p_themer'] : NULL, 'delete'))) {
+    return _h5p_themer_admin_expired_form();
+  }
   if (!isset($form_state['h5p_themer'])) {
     if (!h5p_themer_valid_theme_id($id)) {
       return array('#markup' => t('Invalid theme ID.'));
@@ -849,6 +926,7 @@ function h5p_themer_delete_form($form, &$form_state, $id) {
     $form_state['h5p_themer'] = array('id' => $id, 'original' => $theme['data']);
   }
   $context = $form_state['h5p_themer'];
+  $form['#h5p_themer_source_id'] = $context['id'];
   $form['#validate'] = array('h5p_themer_delete_form_validate');
   $form['#submit'] = array('h5p_themer_delete_form_submit');
   $form['#method'] = 'post';
@@ -866,6 +944,11 @@ function h5p_themer_delete_form($form, &$form_state, $id) {
  * Deletion validation; the confirmation is supplied by native confirm_form().
  */
 function h5p_themer_delete_form_validate($form, &$form_state) {
+  if (!_h5p_themer_admin_theme_context_valid(isset($form_state['h5p_themer']) ? $form_state['h5p_themer'] : NULL, 'delete') ||
+      $form_state['h5p_themer']['id'] !== $form['#h5p_themer_source_id']) {
+    _h5p_themer_admin_expired_validate($form, $form_state);
+    return;
+  }
   $errors = array_merge(_h5p_themer_admin_guard(), _h5p_themer_publication_form($form_state));
   if (empty($form_state['h5p_themer']) || empty($form_state['values']['confirm'])) {
     $errors[] = t('Explicit confirmation is required.');
@@ -887,13 +970,13 @@ function h5p_themer_delete_form_submit($form, &$form_state) {
   }
   if (!lock_acquire('h5p_themer_admin_write')) {
     form_set_error('_form', t('Another theme operation is in progress. Try again.'));
-    $form_state['rebuild'] = TRUE;
+    $form_state['rebuild'] = FALSE;
     return;
   }
   try {
     h5p_themer_delete_form_validate($form, $form_state);
     if (form_get_errors()) {
-      $form_state['rebuild'] = TRUE;
+      $form_state['rebuild'] = FALSE;
       return;
     }
     $runtime_before = _h5p_themer_admin_cache_snapshot();
@@ -902,6 +985,12 @@ function h5p_themer_delete_form_submit($form, &$form_state) {
     _h5p_themer_visibility_lease();
     _h5p_themer_publication_state($publication);
     if (_h5p_themer_admin_delete_errors($form_state['h5p_themer'])) { throw new ConfigException('Deletion protection changed before persistence.'); }
+    // Content/policy can be identical after recreation. Retire old visibility
+    // forms before deletion so they cannot authorize publication of a new ID use.
+    _h5p_themer_visibility_admin_invalidate();
+    _h5p_themer_visibility_lease();
+    _h5p_themer_publication_state($publication);
+    if (_h5p_themer_admin_delete_errors($form_state['h5p_themer'])) { throw new ConfigException('Deletion protection changed during form invalidation.'); }
     $storage = config_get_config_storage();
     (new Config('h5p_themer.theme.' . $id, $storage))->delete();
     if ($storage->exists('h5p_themer.theme.' . $id) !== FALSE) { throw new ConfigException('Deletion verification failed.'); }
@@ -913,12 +1002,12 @@ function h5p_themer_delete_form_submit($form, &$form_state) {
   }
   catch (Throwable $e) {
     form_set_error('_form', t('The deletion could not be verified. A restrictive visibility entry may have been saved and the definition may still exist. Inspect stored state before retrying; visibility has not been automatically restored.'));
-    $form_state['rebuild'] = TRUE;
+    $form_state['rebuild'] = FALSE;
   }
   finally {
     if (isset($runtime_before)) {
       try { _h5p_themer_admin_cache_invalidate($runtime_before); }
-      catch (Throwable $e) { form_set_error('_form', t('Output cache invalidation could not be verified. Restrict learner access until a targeted refresh is authorized.')); $form_state['rebuild'] = TRUE; }
+      catch (Throwable $e) { form_set_error('_form', t('Output cache invalidation could not be verified. Restrict learner access until a targeted refresh is authorized.')); $form_state['rebuild'] = FALSE; }
     }
     lock_release('h5p_themer_admin_write');
   }

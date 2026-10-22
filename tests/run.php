@@ -256,6 +256,7 @@ require __DIR__ . '/visibility-policy.php';
 require __DIR__ . '/visibility-activation.php';
 require __DIR__ . '/visibility-publication.php';
 require __DIR__ . '/visibility-admin.php';
+require __DIR__ . '/admin-form-requests.php';
 require __DIR__ . '/config-protection.php';
 
 printf("PHP %s: %d passed, %d failed\n", PHP_VERSION, $passed, $failed);
