@@ -59,7 +59,7 @@ function h5p_themer_menu() {
     'type' => MENU_LOCAL_ACTION,
   ) + $common;
   $items[$base . '/default'] = array(
-    'title' => 'Global default',
+    'title' => 'Global Default',
     'page callback' => 'backdrop_get_form',
     'page arguments' => array('h5p_themer_default_form'),
     'type' => MENU_LOCAL_TASK,

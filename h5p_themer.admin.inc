@@ -63,10 +63,10 @@ function h5p_themer_overview($form = array(), &$form_state = NULL) {
   if ($warnings) {
     $build['warnings'] = array('#markup' => '<p role="alert">' . implode(' ', array_unique($warnings)) . '</p>');
   }
-  $build['default_link'] = array('#type' => 'link', '#title' => t('Select or clear the global default'), '#href' => $base . '/default');
+  $build['default_link'] = array('#type' => 'link', '#title' => t('Select or clear the Global Default'), '#href' => $base . '/default');
   $build['core_heading'] = array('#markup' => '<h2>' . t('H5P Core defaults') . '</h2>');
   $build['core'] = array('#theme' => 'table',
-    '#header' => array(t('Theme'), t('Description'), t('Stored global default'), t('Effective global default')),
+    '#header' => array(t('Theme'), t('Description'), t('Stored Global Default'), t('Effective Global Default')),
     '#rows' => array(array(t('H5P Core defaults'), t('Original H5P styling with no Themer color or density overrides. Distinct from Daylight.'),
       $stored_token === 'core' ? t('Yes') : t('No'), $effective_token === 'core' ? t('Yes') : t('No'))));
   $build['builtins_heading'] = array('#markup' => '<h2>' . t('Built-in themes') . '</h2>');
@@ -84,7 +84,7 @@ function h5p_themer_overview($form = array(), &$form_state = NULL) {
       array('data' => array('#type' => 'operations', '#links' => $links)));
   }
   $build['builtins'] = array('#theme' => 'table',
-    '#header' => array(t('Theme'), t('Catalog version'), t('Description'), t('Stored global default'), t('Effective global default'), t('Operations')),
+    '#header' => array(t('Theme'), t('Catalog version'), t('Description'), t('Stored Global Default'), t('Effective Global Default'), t('Operations')),
     '#rows' => $rows);
   $build['custom_heading'] = array('#markup' => '<h2>' . t('Custom themes') . '</h2>');
   $rows = array();
@@ -103,7 +103,7 @@ function h5p_themer_overview($form = array(), &$form_state = NULL) {
     $rows[] = array(t('Invalid theme definition'), check_plain(substr($name, strlen('h5p_themer.theme.'))), t('Unknown'), t('Unknown'), t('Unknown'), implode(' ', $errors));
   }
   $build['themes'] = array('#theme' => 'table',
-    '#header' => array(t('Theme'), t('Machine ID'), t('Density'), t('Stored global default'), t('Effective global default'), t('Operations')),
+    '#header' => array(t('Theme'), t('Machine ID'), t('Density'), t('Stored Global Default'), t('Effective Global Default'), t('Operations')),
     '#rows' => $rows, '#empty' => t('No custom themes have been saved. Use Add theme or duplicate a built-in.'));
   return _h5p_themer_visibility_admin_build($build, $form_state, $choices);
 }
@@ -762,7 +762,7 @@ function h5p_themer_default_form($form, &$form_state) {
   if ($choices['errors']) {
     $form['collection_warning'] = array('#markup' => '<p role="alert">' . implode(' ', $choices['errors']) . '</p>');
   }
-  $form['default_theme'] = array('#type' => 'select', '#title' => t('Global default theme'), '#options' => $options, '#default_value' => $selected,
+  $form['default_theme'] = array('#type' => 'select', '#title' => t('Global Default theme'), '#options' => $options, '#default_value' => $selected,
     '#description' => t('Core, built-in and custom choices are distinct. The selected global colors apply to compatible H5P playback after reload. Density is not applied.'));
   $form['learner_selection_enabled'] = array('#type' => 'checkbox',
     '#title' => t('Allow learners to select their H5P theme'),
