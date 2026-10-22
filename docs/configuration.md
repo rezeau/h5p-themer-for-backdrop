@@ -5,8 +5,9 @@ SPDX-License-Identifier: GPL-2.0-or-later.
 The schema-1 contract remains supported. The implemented schema-2 extensions
 add pinned bases and typed references without forcing migration of schema-1
 themes. Both schemas are supported by native forms, previews and global colors.
-See [the schema-2/read-API record](phase-1c-step-2a.md),
-[administration](administration.md) and [installation](installation.md).
+See [administration](administration.md), [installation and upgrades](installation.md)
+and the [v0.2.0 release notes](release-notes-v0.2.0.md). The
+[schema-2/read-API record](phase-1c-step-2a.md) preserves historical design evidence.
 
 ## Stored objects
 
@@ -53,6 +54,44 @@ An example definition for `h5p_themer.theme.ocean.json` is:
 
 This example is documentation, not a shipped theme. Definitions are native
 Backdrop configuration; no custom table or per-content/user assignment exists.
+
+Schema-2 themes retain the same identity/label/density fields, integer
+`schema_version: 2`, an exact `base_preset: {id, version}` such as
+`{id: "mint", version: "moodle-478fed30d2a4"}`, and a sparse hexadecimal `colors`
+map. Inherited preset expressions remain in immutable code data, never in the
+custom override map. Preset pins do not change when the module release changes.
+
+In settings schema 1, a non-null `default_theme` is a custom ID string. In schema
+2 it is a typed `{kind: "custom", id}` or `{kind: "builtin", id, version}`
+reference; null still means **H5P Core defaults (no overrides)** in **Global Default**.
+The built-in and custom namespaces are distinct even when IDs match. Existing
+theme/settings schemas are not migrated merely by viewing or editing a theme.
+
+### Learner visibility and environment state
+
+`h5p_themer.learner_visibility` is separate native configuration, created by
+explicit installation/update activation rather than shipped as a default policy.
+It has integer `schema_version: 1` and a `themes` map of optional typed tokens
+such as `builtin:mint` and `custom:ocean` to strict Boolean values. Fixed choices
+`site_default`, `core` and `builtin:daylight` are not editable policy entries.
+After activation, an absent/false optional entry means hidden. Invalid policy or
+incomplete activation after the persisted barrier fails closed for optional choices.
+
+Before first activation, absent policy preserves the legacy unfiltered catalog.
+Upgrade activation initializes existing resolvable optional choices as available;
+fresh activation makes optional built-ins available and any existing customs
+hidden. Completed activation preserves later saved visibility, including false
+entries. New/copied/recreated custom IDs are hidden; deletion retains a false
+tombstone. No existing theme data is migrated. See the
+[upgrade procedure](installation.md#upgrading-an-existing-installation).
+
+The installed module schema witness and `h5p_themer.visibility_activation`
+journal are environment state, not theme fields. The server-side
+`h5p_themer.visibility_form_generation` state value retires old visibility forms
+before deletion, including identical same-ID recreation. These state values are
+not learner preferences or exported theme provenance; preserve database state
+alongside configuration for recovery. GET requests never initialize policy or
+write these state values; native form tempstore caching is separate.
 
 ## Validation rules
 
@@ -120,7 +159,7 @@ must pass the same schema checks. Import validation passes `$original = TRUE`
 and uses stored data, excluding environment overrides.
 
 Reads remain available during H5P compatibility failures so administration can
-inspect definitions. A future renderer must separately require
+inspect definitions. Runtime rendering separately requires
 `h5p_themer_compatibility()['compatible']` before applying anything. Neither the
 read API nor the compatibility function applies themes.
 
@@ -137,8 +176,10 @@ read API nor the compatibility function applies themes.
 - Built-in: the existing typed `{kind, id, version}` pinned reference.
 - Custom: the existing typed `{kind, id}` reference, independent of its schema.
 
-All five built-ins and every resolvable saved custom appear without per-theme
-approval. Customs use effective overrides and existing validation/resolution,
+This full read-only catalog includes all five built-ins and every resolvable
+saved custom, including hidden choices. It is not the learner publication list.
+`h5p_themer_learner_catalog()` applies the activation-gated visibility policy for
+learner projections. Customs use effective overrides and existing validation/resolution,
 including pinned inheritance; they are sorted naturally by label, then ID.
 Core, Daylight and a same-ID custom remain separate. No second palette resolver
 is introduced. Call the existing `h5p_themer_selection_resolve()` for entries
@@ -159,11 +200,11 @@ the existing caller responsibility for native Config/cache freshness.
 
 ## Native configuration validation and import/export
 
-`hook_config_info()` registers settings and the theme collection (`name_key` is
-`id`, `label_key` is `label`). `hook_config_data_validate()` checks object shape
-and identity. Create/update import hooks check the settings reference against
-the final proposed theme: active storage for unchanged themes, staging storage
-for created/updated themes, and rejection for deleted themes.
+`hook_config_info()` registers settings, visibility policy and the theme collection
+(`name_key` is `id`, `label_key` is `label`). `hook_config_data_validate()` checks
+object shape and identity. Settings import validation checks the selected custom
+reference against the final proposed plan. Theme/policy mutations are rejected;
+an import cannot supply a replacement definition to repair that reference.
 
 Settings-only imports require any selected custom theme to exist and validate.
 Native create/update/delete imports of theme definitions and learner visibility
@@ -207,22 +248,44 @@ playback retains the existing global runtime helper.
 
 ## Administration writes
 
-See [administration.md](administration.md). Forms edit stored original values,
-not environment overrides. A changed source/settings record rejects a stale
-submission rather than overwriting another administrator's work. Each operation
-writes/deletes only its target object; duplication never selects a new default.
+See [administration](administration.md). Edit, custom Duplicate, Global Default
+and Delete use stored originals. Add deliberately reads the effective Global
+Default and custom overrides to build its independent seed. Preset Duplicate
+uses immutable code data and initially stores no overrides. Blank Add fields
+retain starting colors; blank Edit/custom Duplicate fields remove overrides.
+No creation workflow changes its source or selects a new Global Default.
+
+Native session-bound Form API tempstore preserves original contexts across
+GET/POST and rebuilds. Missing, expired, invalid or wrong-session context is
+rejected; posted snapshot fields cannot replace server state. Source/settings
+and publication dependencies are rechecked on submission and under the lock.
+Ordinary validation corrections retain their original snapshot rather than
+capturing the latest source. Visibility checks the stored snapshot against the
+current catalog/policy and deletion generation, preventing a stale republish
+after concurrent hiding or same-ID recreation.
+
+Creation/deletion may first write a restrictive visibility entry and verify it
+before saving/deleting the definition. Edit preserves visibility. Save visibility
+writes only policy; Global Default writes settings. Deletion also advances and
+verifies the environment-local visibility-form generation. No new theme schema
+field or custom-parent reference is introduced.
 
 Theme writes use the shared field validator and `Config::validateData()`.
 Default writes additionally call the Phase 1A reference validator. Deletion
 calls the Phase 1A deletion safeguard and also checks the effective default, so
 a settings.php default override cannot silently become a broken reference.
-Modified existing objects with top-level overrides are read-only in these forms.
+Edit/Delete and Global Default mutations reject conflicting top-level overrides.
+Custom Duplicate can copy a source's stored original without persisting its
+environment-specific effective overrides.
 
-All three submit handlers recheck validation under `h5p_themer_admin_write`.
+All four submit handlers recheck validation under `h5p_themer_admin_write`.
 The lock coordinates these administration forms; direct filesystem edits and
 native config imports do not participate in it. Native Config storage remains
 responsible for filesystem write behavior. No cross-object atomic transaction
-or coordination with concurrent imports is claimed.
+or coordination with concurrent imports is claimed. Failed writes/read-back may
+leave restrictive policy or partially applied definition changes. There is no
+automatic rollback that restores visibility. Inspect diagnostics and stored state
+before retrying; settings-only recovery does not repair malformed theme/policy data.
 
 Malformed definitions remain visible but cannot be edited/duplicated/deleted
 through these forms. They require a separately planned configuration recovery;
@@ -341,11 +404,16 @@ attachments; a learner's explicit Core choice does not disable the feature.
 
 ## Qualification status
 
-Phase 2C functionality is implemented. The verified suite totals are PHP 7.4.33
-1,854/1,854 PASS, PHP 8.4.22 1,854/1,854 PASS and Node.js 22.23.1 291/291 PASS.
+The latest verified release-code totals are **3,519 passed, 0 failed** on each of
+PHP **7.4.33**, **8.3.18** and **8.4.22**, and **387 passed, 0 failed** on Node.js
+**22.23.1**, using Backdrop **1.35.2** source definitions and H5P Core API **1.28**.
+The PHP suite includes 325 separate-request administration lifecycle assertions.
+The suites use isolated collaborators and private files; these results do not
+establish database-backed upgrades, every Backdrop 1.x release or other H5P APIs.
 The user confirmed Firefox Step 5E 10/10 PASS and Step 6E 9/9 PASS; no additional
 browser testing is claimed by publication corrections. Source/tests check native
 select/label association, but keyboard-only, screen-reader announcements, focus
 on control removal, narrow/mobile layout, RTL/long labels, Chromium, Safari,
 restricted storage and broader library compatibility are not fully qualified.
-This is development prerelease functionality, not a stable-production or WCAG claim.
+The v0.2.0 release designation is not a claim of universal compatibility or WCAG
+certification. Historical checkpoint totals remain in their original phase records.

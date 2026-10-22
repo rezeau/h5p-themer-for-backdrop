@@ -4,7 +4,8 @@ SPDX-License-Identifier: GPL-2.0-or-later.
 
 The implemented module provides immutable built-ins, both custom-theme schemas,
 native picker companions, global color runtime and saved/unsaved theme previews.
-Stored density is not applied. See [installation](installation.md) for setup.
+Stored density is not applied. See [installation and upgrades](installation.md)
+and the [v0.2.0 release notes](release-notes-v0.2.0.md).
 
 ## Routes and access
 
@@ -13,11 +14,11 @@ All paths start with `admin/config/content/h5p-themer`:
 | Suffix | Purpose |
 | --- | --- |
 | (none), `/list` | Core, built-in and custom overview |
-| `/add` | Create an independent custom theme from the effective global default |
+| `/add` | Create an independent custom theme from the effective Global Default |
 | `/<custom-id>/edit` | Edit custom text, density and sparse overrides |
 | `/<custom-id>/duplicate` | Copy a custom theme under a new custom ID |
 | `/<custom-id>/delete` | Native custom deletion confirmation |
-| `/default` | Global default and learner-selection toggle |
+| `/default` | Global Default and learner-selection toggle |
 | `/presets/<preset-id>/<version>` | Read-only built-in inspection |
 | `/presets/<preset-id>/<version>/duplicate` | Create a pinned schema-2 custom copy |
 
@@ -37,7 +38,9 @@ Step 2C adds no menu routes and performs no cache or menu rebuild.
 
 ## Overview and built-in inspection
 
-The overview has three separate sections:
+The overview includes a Site default row and three theme groups. The Core choice
+in Global Default is **H5P Core defaults (no overrides)**; the overview and
+learner selector abbreviate it to **H5P Core defaults**:
 
 1. **H5P Core defaults:** original styling with no Themer color/density
    overrides. This is distinct from Daylight.
@@ -63,9 +66,17 @@ support. The palette itself defines no density override.
 
 ## Creating and editing custom themes
 
-Add theme starts from the **effective global default**, including validated
+| Workflow | Starting data and blank-field behavior | Result |
+| --- | --- | --- |
+| Add | Effective Global Default; blank retains captured starting colors | Independent custom theme, hidden from learners |
+| Edit | Stored saved overrides; clearing restores pinned-preset/Core inheritance | Same ID and schema; existing visibility preserved |
+| Duplicate (custom) | Stored original custom definition; blank removes an override | Independent new ID, same schema/pin, hidden |
+| Preset Duplicate | Built-in Duplicate action; initial palette is read-only | New schema-2 ID with exact pin and empty overrides, hidden; Edit afterward |
+
+Add theme starts from the **effective Global Default**, including validated
 top-level settings.php overrides. It displays the actual starting theme name.
-Core/null, missing, invalid or unresolvable defaults use the explicitly identified
+**H5P Core defaults (no overrides)**/null, missing, invalid or unresolvable
+defaults use the explicitly identified
 **Daylight fallback**, pinned to `moodle-478fed30d2a4`. This affects only the new
 theme's starting definition; it never repairs or changes global settings.
 
@@ -131,8 +142,8 @@ unknown submitted color keys are rejected even when their values are blank.
 
 Saved colors are never silently normalized. Schema, pinned base and native
 metadata come from trusted stored form context rather than posted fields.
-Edit and Duplicate use originals, not environment-specific effective values. Existing
-objects with settings.php overrides are read-only until the overrides are
+Edit and Duplicate use originals, not environment-specific effective values.
+Editing an object with settings.php overrides is blocked until the overrides are
 resolved. Duplicating an overridden custom source copies its stored original
 without modifying that source or persisting its effective overrides.
 
@@ -185,7 +196,7 @@ fieldset visible. No external picker, custom CSS or additional dependency is
 required. Initial built-in duplication stays metadata-only with a read-only
 palette; color pickers appear when editing the saved custom copy.
 
-### Add redesign verification and Stage 2 browser checks
+### Add verification and browser checks
 
 The focused native PHP regression entrypoint is:
 
@@ -204,7 +215,11 @@ processes with a private server/tempstore fixture. They cover expiration, missin
 or invalid state, session mismatch, CSRF, forged input, stale sources, harmless
 source/settings edits and missing-default ID collisions.
 
-Stage 2 requires these manual checks on an explicitly authorized test deployment:
+User-confirmed Firefox checks covered starting-theme instructions, native pickers,
+creation/editing, saved colors, default-hidden creation, independent copying of a
+customized Global Default and Daylight fallback from Core. The following broader
+checks remain the acceptance checklist for a test deployment; this documentation
+does not claim they have all passed:
 
 1. Open Add with each built-in default, both custom schemas, a settings.php
    override, Core/null and a broken default. Verify the actual starting name,
@@ -224,10 +239,10 @@ Stage 2 requires these manual checks on an explicitly authorized test deployment
    layouts and long/translated theme names.
 6. Confirm a new copy is absent from learner choices, while source visibility and
    the global default remain unchanged. Visibility must require the existing
-   separate publication action. No Stage 2 deployment or browser work is implied
-   by the repository-only Stage 1 tests.
+   separate publication action. Automated fixture tests do not establish browser
+   or database-backed deployment behavior.
 
-## Duplicating a built-in
+## Duplicating a built-in (Preset Duplicate)
 
 Select Duplicate from its overview row or View page. Supply a new custom ID,
 label and description. Density initially is `large` and can be chosen in the
@@ -250,13 +265,16 @@ validation and locked submission.
 A schema-1 source produces a schema-1 copy. A schema-2 source produces a
 schema-2 copy with the same exact base/version and sparse override map.
 Description, density and editable values are prefilled and may be changed.
-Every copy requires a new independent custom ID. Saving affects only the new
-object, leaving the source and default unchanged. Stale/changed sources and
+Every copy requires a new independent custom ID. Saving creates the new
+definition and its hidden visibility entry, leaving the source and Global Default
+unchanged. Stale/changed sources and
 post-build ID collisions are rejected.
 
 ## Selecting and clearing the global default
 
-The selector lists Core, five built-ins and all valid customs. Internal
+Open **Global Default**. Its selector lists **H5P Core defaults (no overrides)**,
+five built-ins and all valid customs, including themes hidden from explicit
+learner choices. Internal
 selection tokens such as `core`, `builtin:daylight` and `custom:daylight`
 are form-only keys. They are checked against the current allowed collection
 during validation and again under the write lock; they are never persisted
@@ -281,13 +299,50 @@ explicitly clears or replaces it. Malformed settings, including an unknown
 catalog version, produce a clear diagnostic and require validated configuration
 repair. Settings.php overrides retain precedence and block UI settings writes.
 
+## Learner visibility and publication
+
+The Themes overview has **Available to learners** checkboxes and one explicit
+**Save visibility** action. Changing a checkbox does not autosave. Site default,
+Core and Daylight are checked, disabled fixed choices whenever the validated
+learner catalog is usable. Optional valid built-ins and custom themes appear
+only when their saved visibility entry is true. Invalid/unresolvable definitions
+have diagnostics rather than a usable publication control.
+
+Add, Duplicate and Preset Duplicate create hidden custom themes. Editing keeps
+the existing visibility choice. Deletion retains a false tombstone, and recreation
+of the same ID stays hidden. Hidden definitions remain editable and previewable;
+they can still be Global Default and apply through Site default. This controls
+learner choice availability, not access to H5P content or secrecy of palette data.
+
+Fresh installation initializes optional built-ins as available and customs as
+hidden. First-time upgrade activation initializes existing resolvable optional
+choices as available without enabling learner selection. Once activation is
+complete, updates/retries preserve the saved policy, including hidden entries.
+Missing/damaged policy or incomplete activation after the persisted barrier hides
+optional choices and blocks publication; page reads do not repair it. Follow the
+[upgrade guide](installation.md#upgrading-an-existing-installation).
+
+Visibility writes require compatible H5P, completed activation, trusted form state,
+no conflicting policy/catalog overrides, and the publication lock. A concurrent
+hide invalidates an old submission. A server-side deletion generation also retires
+old visibility forms even when a same-ID replacement has identical data. Reload
+after stale/expired context; ordinary input corrections retain the original state.
+Only visibility is saved by Save visibility; definitions and Global Default do not change.
+
+Native theme/policy imports and synchronization mutations are rejected, including
+mixed plans. Settings-only and unrelated imports and ordinary exports remain
+available. There is no custom import or import-based theme/policy restore workflow;
+see [configuration restrictions](configuration.md#native-configuration-validation-and-importexport).
+
 ## Administrator learner-selection setting
 
-Global Default contains **Allow learners to select their H5P theme**. It saves the
+**Global Default** contains **Allow learners to select their H5P theme**. It saves the
 optional strict Boolean learner_selection_enabled, false by default. Missing is
 false in settings schemas 1 and 2; toggling preserves the schema/global reference.
 Effective settings overrides, permissions, native CSRF, stale checks and locking
-remain unchanged. There are no per-theme approval checkboxes.
+apply. Per-theme publication is controlled separately by the overview's
+**Available to learners** checkboxes; enabling learner selection does not publish
+a hidden theme.
 
 When enabled, one H5P theme dropdown appears above the first eligible
 activity and controls eligible DIV and same-origin internal-iframe activities on
@@ -297,8 +352,8 @@ session choice, otherwise Site default. The options remain distinct:
 - Site default follows the administrator's configured global theme.
 - H5P Core defaults explicitly uses native Core colors, independently of that
   global theme; it is not Daylight.
-- Daylight, Lavender, Mint, Sunset and Dark are the five built-in palettes.
-- Every valid saved custom theme is available, with existing inheritance.
+- Daylight is fixed; Lavender, Mint, Sunset and Dark require publication.
+- Valid saved custom themes require publication, with existing inheritance.
 
 Core restores actual native root values, including when global CSS is present;
 sparse schema-1 customs inherit Core, while schema-2 customs inherit the pinned
@@ -311,7 +366,10 @@ default. Stored custom machine IDs survive label changes; unavailable/deleted
 choices fall back to Site default and are removed on restoration when possible.
 The native select has an associated label and polite status region; source/tests
 check control identity and ordinary focus preservation. Initial pending playback
-does not expose a selector; the visible control reports applied or partial support.
+does not expose a selector. Ordinary successful switching leaves the live status
+empty and hidden; explanatory text is in the compact **?** help panel. Partial
+support and fallback warnings stay visible in the polite live region outside
+collapsed help. The help button has an intentional 24px minimum target size.
 Keyboard-only and assistive-technology acceptance still require manual qualification.
 Storage failure leaves page-only switching usable.
 No account, cross-device or durable cross-session preference is implemented, and
@@ -327,8 +385,8 @@ handled with load listeners and targeted observers, without polling. Unavailable
 learner JavaScript leaves global styling active. H5P still needs its own scripts.
 New server catalog delivery detects deleted choices; open pages do not poll for
 deletions or administrator changes. See [the historical switching architecture](phase-2c-step-4a.md).
-Phase 2C functionality has been transferred and passed the user-confirmed Firefox
-checks below; this does not establish stable production or universal library support.
+Recorded Firefox checks are described below; they do not establish universal
+library, browser or assistive-technology support.
 
 The combined administration output fingerprint includes the enabled catalog and
 all palette bundle dependencies. Changing a selectable palette invalidates cached
@@ -344,6 +402,15 @@ stored or effective global default, whether the reference is legacy or typed.
 Invalid effective settings block deletion conservatively. A built-in default
 does not protect an unrelated same-name custom object.
 
+Add, Edit, custom Duplicate, Preset Duplicate, Global Default, Delete and Save
+visibility retain trusted original context in native session-bound Form API
+tempstore across GET/POST and rebuilds. Missing, expired, malformed or wrong-session
+context fails closed; a POST never silently captures a new original. Relevant
+source/settings/catalog/policy changes reject stale submissions. Normal validation
+corrections retain entered values and the original context. A failed submit may
+require a reload if its original cache is no longer available; no retry captures
+a replacement snapshot.
+
 Source snapshots, current references and overrides are rechecked on submit,
 including under the lock. A default selected or overridden after a confirmation
 form was built remains protected. Malformed custom definitions stay visible
@@ -358,7 +425,12 @@ The lock coordinates these administration mutations, not concurrent native
 imports or manual filesystem edits. Native Config storage remains responsible
 for persistence. Multi-object import is not transactional, and no atomic
 cross-process behavior or real filesystem concurrency is claimed from unit
-tests. Existing final-state import reference validation remains active.
+tests. Settings-only import reference validation remains active; theme/policy
+imports are rejected. Creation/deletion can first persist a restrictive policy
+entry; deletion also updates the server-side visibility-form marker. These are
+not atomic multi-object transactions. A failure may leave a hidden entry or a
+definition already written/deleted. Inspect stored state before retrying; there
+is no automatic rollback that restores learner visibility.
 
 ## Verification and limitations
 
@@ -372,8 +444,9 @@ selected-theme deletion protection and storage/lock failures.
 Node tests exercise the production picker and preview behaviors with DOM/event
 doubles and installed Backdrop once/collapse scripts. They are not a browser
 emulator. Set `BACKDROP_SOURCE_ROOT` and `PHP_EXECUTABLE` as described in the [README](../README.md).
-The complete Phase 2C totals are 1,854/1,854 PASS with PHP 7.4.33, 1,854/1,854 PASS
-with PHP 8.4.22, and 291/291 PASS with Node.js 22.23.1, all with zero failures.
+The latest verified totals are **3,519 passed, 0 failed** on each of PHP
+**7.4.33**, **8.3.18** and **8.4.22**, and **387 passed, 0 failed** on Node.js
+**22.23.1**. PHP includes 325 separate-request administration lifecycle assertions.
 Learner tests use the actual
 PHP-produced palette contract and check frame readiness, fallback, cascade and
 activity identity. The user confirmed Firefox Step 5E **10/10 PASS** and Step 6E
@@ -511,7 +584,8 @@ It passed **12/12 user-confirmed initial Firefox functional checks** in the
 disposable test environment; the compact layout was subsequently accepted in
 Firefox, with all nine themes visible without scrolling at normal zoom. Desktop
 option rows have a 32px minimum; coarse-pointer option rows retain a 44px minimum.
-It has not been deployed to the original Backdrop site. NVDA, touch, forced-colors,
-RTL, high zoom and other-browser verification remain limited; these results do
+Those are recorded checkpoint results, not a claim about the current state of
+every installation. NVDA, touch, forced-colors, RTL, high zoom and other-browser
+verification remain limited; these results do
 not establish full WCAG compliance. See the [implementation record and manual
 checklist](phase-2d-learner-icons.md) for acceptance evidence and remaining limits.

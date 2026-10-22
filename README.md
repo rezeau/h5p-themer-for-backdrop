@@ -5,6 +5,10 @@ compatible H5P content. The implemented administration interface includes five
 immutable built-in themes, named custom themes, saved-theme previews, and live
 previews of unsaved color edits.
 
+This documentation describes **v0.2.0**. See the
+[release notes](docs/release-notes-v0.2.0.md) for changes since v0.1.0 and the
+[installation and upgrade guide](docs/installation.md) before deployment.
+
 ## Requirements
 
 - Backdrop CMS **1.x** is declared in module metadata. Actual inspection and local
@@ -15,7 +19,7 @@ previews of unsaved color edits.
   automatically compatible.
 - Writable local public storage with a browser-safe relative directory path for
   generated global-theme CSS.
-- PHP **7.4.33** and **8.4.22** have passed the regression suite.
+- PHP **7.4.33**, **8.3.18** and **8.4.22** have passed the regression suite.
 - Visible recoloring requires an H5P content library/version that consumes the
   relevant theme CSS custom properties.
 
@@ -23,9 +27,9 @@ No H5P Core, Editor or integration source changes are needed. The module adds no
 external picker dependency. Administrator-enabled learner selection changes
 eligible activities' styling without restarting them. A validated preference can
 follow the current browser tab session using sessionStorage; it is not an account
-preference and does not save H5P answers. Phase 2C functionality is implemented
-and has passed the recorded Firefox acceptance checks. This remains development
-software, with limited browser and accessibility qualification.
+preference and does not save H5P answers. Recorded Firefox functional acceptance
+and isolated automated tests support the implemented behavior; browser,
+accessibility and database-backed deployment qualification remain limited.
 
 ## Install and use
 
@@ -36,9 +40,12 @@ directory named `h5p_themer`.
 Open `admin/config/content/h5p-themer` with the restricted **Administer H5P themes**
 permission. The overview separates:
 
-- **H5P Core defaults:** original styling, represented by a null global selection.
+- **H5P Core defaults (no overrides):** the Core choice in Global Default,
+  represented by a null selection; the overview/learner UI abbreviates it to
+  **H5P Core defaults**.
 - **Built-in themes:** Daylight, Lavender, Mint, Sunset and Dark. Daylight is the
-  default preset's name; it is not Core styling and is not automatically selected.
+  default preset's name; it is distinct from Core. Add uses it as a fallback
+  starting theme without changing Global Default.
   Built-ins offer View and Duplicate, not Edit or Delete.
 - **Custom themes:** multiple named definitions with editing, duplication and
   protected deletion. Duplicate a built-in to create a custom theme pinned to
@@ -48,7 +55,7 @@ New installation defaults to Core/null. Use Global Default to select Core, a
 built-in, or a custom theme. Reload activity pages after changing the global
 selection. Authored H5P content is not modified.
 
-**Add theme** starts from the effective global default. Core/null, invalid,
+**Add theme** starts from the effective **Global Default**. Core/null, invalid,
 missing or unresolvable defaults use a clearly identified Daylight fallback
 pinned to `moodle-478fed30d2a4`. Blank Add fields retain captured starting colors;
 enter hexadecimal overrides or use an available picker to replace them. Save
@@ -69,6 +76,12 @@ present; earlier custom-copy provenance is not recorded or inferred.
 Native color pickers enhance the textfields without becoming separate
 submitted values. General settings start expanded, color groups collapsed, and
 groups containing validation errors open automatically.
+
+Add, Edit and the two Duplicate workflows are compared in the
+[administration guide](docs/administration.md#creating-and-editing-custom-themes).
+Theme, Global Default and visibility forms retain trusted snapshots across
+requests; stale or expired forms require a reload. Ordinary validation corrections
+retain the original context instead of silently rebasing onto new data.
 
 ## Theme Preview and Live Preview
 
@@ -132,14 +145,20 @@ Current limits:
 
 ## Verification and developer tests
 
-The two-color learner-picker regression results, verified in the independent
-integration clone, are:
+The latest verified automated results for the release code are:
 
 | Runtime | Passed | Failed |
 | --- | ---: | ---: |
-| PHP 7.4.33 | 1,898 | 0 |
-| PHP 8.4.22 | 1,898 | 0 |
-| Node.js 22.23.1 | 351 | 0 |
+| PHP 7.4.33 | 3,519 | 0 |
+| PHP 8.3.18 | 3,519 | 0 |
+| PHP 8.4.22 | 3,519 | 0 |
+| Node.js 22.23.1 | 387 | 0 |
+
+PHP totals include 325 separate-request administration lifecycle assertions.
+The JavaScript total includes the corrected compact-help/status and responsive
+help-target expectations; the three obsolete assertion failures are resolved.
+Earlier phase totals remain in their historical records. Documentation preparation
+does not claim a new test run or additional browser acceptance.
 
 Use an existing Backdrop source tree with API-1.28 H5P. Replace the placeholders
 below with your own absolute source paths and select the required PHP executable:
@@ -156,13 +175,13 @@ no machine-specific fallback. Learner contract tests also require
 ```powershell
 $env:BACKDROP_SOURCE_ROOT = '<absolute-Backdrop-source-root>'
 $env:PHP_EXECUTABLE = '<absolute-PHP-CLI-executable>'
-node --test --test-reporter=spec tests/js/admin-colors.test.cjs tests/js/preview-live.test.cjs tests/js/learner.test.cjs tests/js/learner-switching.test.cjs tests/js/learner-session.test.cjs tests/js/learner-compatibility.test.cjs tests/js/learner-picker.test.cjs tests/js/learner-visibility.test.cjs
+node --test --test-reporter=spec (Get-ChildItem tests/js/*.test.cjs).FullName
 ```
 
 Or in a POSIX shell:
 
 ```sh
-BACKDROP_SOURCE_ROOT="<absolute-Backdrop-source-root>" PHP_EXECUTABLE="<absolute-PHP-CLI-executable>" node --test --test-reporter=spec tests/js/admin-colors.test.cjs tests/js/preview-live.test.cjs tests/js/learner.test.cjs tests/js/learner-switching.test.cjs tests/js/learner-session.test.cjs tests/js/learner-compatibility.test.cjs tests/js/learner-picker.test.cjs tests/js/learner-visibility.test.cjs
+BACKDROP_SOURCE_ROOT="<absolute-Backdrop-source-root>" PHP_EXECUTABLE="<absolute-PHP-CLI-executable>" node --test --test-reporter=spec tests/js/*.test.cjs
 ```
 
 No npm packages or live site bootstrap are used. PHP tests load native definitions
@@ -208,7 +227,7 @@ universal browser support is claimed.
 Historical phase records in `docs/` describe the evidence available at each
 earlier checkpoint, not the current deployment state or installation procedure.
 
-## Learner selection, release status and recovery
+## Learner selection and recovery
 
 In **Global Default**, enable **Allow learners to select their H5P theme** to
 offer one **H5P theme** selector above the first eligible activity. The
@@ -217,9 +236,17 @@ setting is false by default. Choices are:
 - **Site default:** follow the administrator's configured global theme.
 - **H5P Core defaults:** explicitly use the native Core palette, independently
   of the administrator's global selection. This is distinct from Daylight.
-- **Daylight, Lavender, Mint, Sunset and Dark:** the five built-in palettes.
-- **Saved custom themes:** every valid available custom theme, using sparse
+- **Daylight:** always available when the validated learner catalog is usable.
+- **Lavender, Mint, Sunset and Dark:** available when published for learners.
+- **Saved custom themes:** valid themes explicitly published for learners, using sparse
   Core inheritance for schema 1 or its pinned base for schema 2.
+
+Use **Available to learners** and **Save visibility** on the Themes overview.
+Site default, Core and Daylight are fixed choices. Add, custom Duplicate and
+Preset Duplicate create hidden custom themes; recreated IDs start hidden too.
+Hiding a theme removes its explicit learner option without changing its definition
+or Global Default. A hidden global theme still applies through Site default.
+See [visibility administration](docs/administration.md#learner-visibility-and-publication).
 
 Compatibility requires the library-owned `.h5p-theme` marker on the player's own
 direct `.h5p-container` and matching stylesheet readiness. Unsupported or unmarked
@@ -240,20 +267,16 @@ does not navigate/reinitialize H5P or change answers/scoring. Themer does not
 preserve answers across navigation or reload. Without learner JavaScript, global
 styling remains active; H5P still requires its own scripts.
 
-[Phase 2C functionality is implemented](docs/roadmap.md), including live switching,
-session persistence and compatibility-based visibility. Broader qualification is
-unfinished. **`v0.2.0-alpha.1` is already published**; **`v0.2.0-alpha.2` is the
-proposed next prerelease**, not a release created by these corrections. This
-remains development software, not a stable production release. The two-color
-selector refinement is integrated and tested in an independent Git clone; see its
-[implementation and acceptance checklist](docs/phase-2d-learner-icons.md). It passed
-user-confirmed Firefox acceptance in the disposable test environment but has not
-been deployed to the original Backdrop site or published. Additional
-accessibility-oriented built-in theme work remains deferred.
+v0.2.0 combines learner switching, tab-session preferences, the two-color picker,
+compact help, explicit visibility publication and the redesigned Add workflow.
+The alpha/beta milestones remain documented in the [historical roadmap](docs/roadmap.md)
+and [picker implementation record](docs/phase-2d-learner-icons.md). Their statements
+about proposed releases or deployment describe those checkpoints, not current
+installation instructions. Additional accessibility-oriented presets remain deferred.
 
-To disable Themer color overrides through normal administration, select **H5P
-Core defaults as the global default and disable learner theme selection**, then
-save and reload activity pages. Global Core alone can still load learner assets
+To disable Themer color overrides through normal administration, select
+**H5P Core defaults (no overrides)** in **Global Default** and disable learner
+theme selection, then save and reload activity pages. Global Core alone can still load learner assets
 when selection is enabled. Choosing Core in the learner selector affects only
 that learner's styling/session preference; it does not disable the feature.
 
@@ -264,14 +287,14 @@ procedures, preserving configuration and authored content. Existing immutable CS
 can remain unreferenced until planned cleanup; do not delete it to refresh JS.
 See [runtime history](docs/phase-2a-runtime.md) for earlier recovery context.
 
-## Isolated R2/R3 development
+## Visibility activation, imports and development history
 
 The [visibility foundation](docs/r2-r3-phase-1.md) adds a separate read-only policy
 and a shared filtered learner catalog. Missing policy preserves legacy visibility
 only before the recorded activation barrier. Fixed choices are always Site default,
 Core and Daylight when the validated catalog is usable. The
 [persistent activation journal](docs/r2-r3-activation.md) and two-step initialization
-are implemented in this workspace. [Custom publication safeguards](docs/r2-r3-publication.md)
+are implemented. [Custom publication safeguards](docs/r2-r3-publication.md)
 now make new/copied themes hidden, preserve editing visibility and retain deletion
 tombstones. [Native visibility controls](docs/r2-r3-visibility-admin.md) now provide
 an explicit Save visibility action on the Themes overview. Custom import forms,
@@ -286,11 +309,13 @@ Existing import journal data is left untouched and no longer gates runtime or
 administration. Before any separately authorized deployment over the old import
 implementation, review and resolve unfinished/damaged operations and pending
 output-cache refreshes. Removing the gate cannot repair partially applied data.
-Refresh menu registrations and targeted output caches during that deployment.
+Follow the [upgrade procedure](docs/installation.md#upgrading-an-existing-installation)
+for database updates, activation preservation, menu registrations and cache delivery.
 The compact learner '?' help button is implemented: it reveals or hides the
 explanation without changing theme selection. Further administrator UI and
 preview improvements remain separate, deferred work.
-This development workspace has not been deployed.
+The checkpoint documents preserve historical deployment observations; this README
+does not assert installation or release publication merely from source changes.
 
 Repository-local boundary checks (no Backdrop/H5P sources or site bootstrap):
 
