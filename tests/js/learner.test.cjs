@@ -42,6 +42,27 @@ test('without MutationObserver, Backdrop reattachment discovers later content',(
 test('changed server options replace only control, keep player and focus',()=>{const f=fixture();const p=f.player();f.attach();const old=f.panel();f.metadata.options.at(-1).label='Renamed';f.attach();assert.equal(f.panel(),old);assert.equal(p.node.children[0],p.marker);assert.equal(f.select().children.at(-1).textContent,'Renamed');f.unchanged();});
 test('no JavaScript attachment leaves activity and global styling untouched',()=>{const f=fixture();const p=f.player();const children=[...f.doc.body.children];assert.equal(f.panel(),null);assert.deepEqual(f.doc.body.children,children);assert.equal(p.node.children[0],p.marker);f.unchanged();});
 test('native changes switch theme without keyboard interception or server persistence',()=>{const f=fixture();const p=f.player();f.attach();f.select().value='builtin:mint';f.select().dispatchEvent(new f.h.Event('change'));p.marker.dispatchEvent(new f.h.Event('keydown',{key:'ArrowDown'}));assert.equal(p.node.getAttribute('style'),null);assert.deepEqual(Object.keys(f.select().listeners),['change']);assert.equal(f.doc.documentElement.getAttribute('data-h5p-themer-learner'),f.metadata.keys['builtin:mint']);assert.equal(p.node.children[0],p.marker);f.unchanged();});
-test('responsive CSS is scoped, shrinkable, with no theme variables or fixed widths',()=>{const css=fs.readFileSync(path.join(__dirname,'../../css/h5p_themer.learner.css'),'utf8');assert.match(css,/max-width: 100%/);assert.match(css,/min-width: 0/);assert.match(css,/box-sizing: border-box/);assert.match(css,/overflow-wrap: anywhere/);assert.doesNotMatch(css,/--h5p-theme-|(?:min-|max-)?width:\s*[1-9][0-9]*px/);for(const selector of css.matchAll(/([^{}]+)\{/g)){const value=selector[1].replace(/\/\*[\s\S]*?\*\//g,'').trim();assert.ok(value.startsWith('.h5p-themer-learner-controls'));}});
+test('responsive CSS is scoped and shrinkable with a 24px minimum help target',()=>{
+ const css=fs.readFileSync(path.join(__dirname,'../../css/h5p_themer.learner.css'),'utf8');
+ assert.match(css,/max-width: 100%/);assert.match(css,/min-width: 0/);assert.match(css,/box-sizing: border-box/);assert.match(css,/overflow-wrap: anywhere/);
+ assert.doesNotMatch(css,/--h5p-theme-/);
+ const rules=[...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(([,selector,body])=>({selector:selector.replace(/\/\*[\s\S]*?\*\//g,'').trim(),body}));
+ const helpSelector='.h5p-themer-learner-controls .h5p-themer-learner-help';
+ assert.equal(rules.filter(rule=>rule.selector===helpSelector).length,1);
+ for(const {selector,body} of rules){
+  for(const value of selector.split(',')){assert.ok(value.trim().startsWith('.h5p-themer-learner-controls'));}
+  let layout=body;
+  if(selector===helpSelector){
+   assert.match(body,/(?:^|;)\s*min-width:\s*24px\s*;/);assert.match(body,/(?:^|;)\s*min-height:\s*24px\s*;/);
+   // Permit only this exact minimum; other fixed pixel widths remain forbidden.
+   layout=body.replace(/(^|;)\s*min-width:\s*24px\s*(?=;)/,'$1');
+  }
+  assert.doesNotMatch(layout,/(?:min-|max-)?width:\s*[1-9][0-9]*px/);
+ }
+ assert.match(rules.find(rule=>rule.selector==='.h5p-themer-learner-controls').body,/grid-template-columns:\s*minmax\(0,\s*1fr\) auto/);
+ for(const target of ['.h5p-themer-learner-select','.h5p-themer-picker']){
+  assert.ok(rules.some(rule=>rule.selector.split(',').some(value=>value.trim()==='.h5p-themer-learner-controls '+target)&&/(?:^|;)\s*min-width:\s*0\s*;/.test(rule.body)));
+ }
+});
 
 test('observer discovers an iframe later inserted into an empty wrapper',()=>{const f=fixture();const root=f.element('div',{class:'h5p-iframe-wrapper'});f.attach();assert.equal(f.panel(),null);f.h.window.H5PIntegration.contents['cid-7']={};const iframe=f.element('iframe',{class:'h5p-iframe','data-content-id':'7',src:'about:blank'},root);f.mutate([{target:root,addedNodes:[iframe],removedNodes:[]}]);assert.equal(f.panel(),null);assert.equal(iframe.listeners.load.length,1);f.unchanged();});

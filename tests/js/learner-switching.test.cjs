@@ -128,7 +128,11 @@ for(const url of ['about:blank','http://example.invalid/node/7'])test('internal 
  assert.equal(root.closest('html['+attr+'="'+key+'"]'),html);
  assert.ok(contract.bundle.css.includes('html['+attr+'="'+key+'"] .h5p-content['+eligible+'] {'));
  assert.equal(cascade(p.child.doc)['--h5p-theme-main-cta-base'],contract.palettes['builtin:dark']['--h5p-theme-main-cta-base']);
- assert.equal(f.panel().querySelector('[role="status"]').textContent,f.metadata.applied);f.unchanged();
+ const status=f.panel().querySelector('[role="status"]'),help=f.panel().querySelector('.h5p-themer-learner-description');
+ assert.equal(status.textContent,'');assert.ok(status.hasAttribute('hidden'));
+ assert.equal(status.getAttribute('aria-live'),'polite');assert.equal(status.getAttribute('aria-atomic'),'true');
+ assert.equal(help.textContent,f.metadata.message+' '+f.metadata.applied);assert.ok(help.hasAttribute('hidden'));
+ assert.equal(f.panel().querySelector('.h5p-themer-learner-help').getAttribute('aria-controls'),help.id);f.unchanged();
 });
 test('parent-derived iframe default fixture models initial blank then written H5P identity',()=>{
  const f=fixture(),p=f.player('7',{iframe:true});f.player('8');assert.equal(p.child.doc.URL,f.doc.URL);
