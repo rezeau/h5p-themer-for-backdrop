@@ -44,12 +44,14 @@ $GLOBALS['base_path'] = '/';
 
 $user = (object) array('uid' => 1);
 $admin_allowed = TRUE;
+$native_config_allowed = TRUE;
 $messages = array();
 $write_locked = FALSE;
 define('PASS_THROUGH', -1);
 define('WATCHDOG_ERROR', 3);
 function user_access($permission) {
-  return $permission === 'administer h5p themes' && $GLOBALS['admin_allowed'];
+  return ($permission === 'administer h5p themes' && $GLOBALS['admin_allowed']) ||
+    ($permission === 'synchronize configuration' && $GLOBALS['native_config_allowed']);
 }
 function backdrop_static_reset($name) {
   backdrop_static($name, NULL, TRUE);
@@ -136,6 +138,7 @@ function admin_reset() {
   reset_storage();
   form_clear_error();
   $GLOBALS['admin_allowed'] = TRUE;
+  $GLOBALS['native_config_allowed'] = TRUE;
   $GLOBALS['user']->uid = 1;
   $GLOBALS['h5p_enabled'] = TRUE;
   $GLOBALS['write_locked'] = FALSE;

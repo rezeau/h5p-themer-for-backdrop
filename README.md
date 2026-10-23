@@ -5,7 +5,11 @@ compatible H5P content. The implemented administration interface includes five
 immutable built-in themes, named custom themes, saved-theme previews, and live
 previews of unsaved color edits.
 
-This documentation describes **v0.2.0**. See the
+The stable baseline is **v0.2.0**. This development branch adds provisional
+**v0.2.1** [native single-theme creation](docs/configuration.md#provisional-v021-single-schema-2-theme-creation);
+native import, JSON round trip, duplicate rejection, Edit colors and hidden
+visibility have passed manual testing on a disposable Backdrop site. Broader
+native safety checks remain outstanding. See the
 [release notes](docs/release-notes-v0.2.0.md) for changes since v0.1.0 and the
 [installation and upgrade guide](docs/installation.md) before deployment.
 
@@ -298,8 +302,9 @@ are implemented. [Custom publication safeguards](docs/r2-r3-publication.md)
 now make new/copied themes hidden, preserve editing visibility and retain deletion
 tombstones. [Native visibility controls](docs/r2-r3-visibility-admin.md) now provide
 an explicit Save visibility action on the Themes overview. Custom import forms,
-coordination and recovery have been removed. Native theme/policy imports remain
-rejected by stateless validation and application guards; native configuration
+coordination and recovery have been removed. Provisional single schema-2 theme
+creation uses the existing native import form. Generic theme synchronization and
+visibility-policy imports remain rejected by stateless guards; native configuration
 exports, settings imports and unrelated configuration retain their existing
 behavior. No custom exporter is provided. New/recreated IDs remain hidden.
 

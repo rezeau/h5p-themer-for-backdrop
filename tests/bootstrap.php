@@ -63,6 +63,7 @@ function module_exists($name) {
   return $name === 'h5p' && $GLOBALS['h5p_enabled'];
 }
 function backdrop_get_path($type, $name) {
+  if ($type === 'module' && $name === 'config') { return 'core/modules/config'; }
   if ($type === 'module' && in_array($name, array('h5p', 'h5p_themer'), TRUE)) {
     return 'modules/' . $name;
   }
@@ -76,6 +77,9 @@ function module_invoke_all($hook, ...$args) {
 function backdrop_alter($type, &$data, ...$args) {
   if ($type !== 'config_info' && !(is_array($type) && reset($type) === 'form')) {
     throw new LogicException('Unexpected alter hook.');
+  }
+  if (is_array($type) && in_array('form_config_import_single_form', $type, TRUE)) {
+    h5p_themer_form_config_import_single_form_alter($data, $args[0]);
   }
 }
 function backdrop_json_encode($data, $pretty = FALSE) {
@@ -105,6 +109,7 @@ class H5PThemerMemoryStorage extends ConfigFileStorage {
   public static $failWrite = FALSE;
   public static $failDelete = FALSE;
   public static $failList = FALSE;
+  public static $beforeWrite = NULL;
   public function exists($name) {
     return isset(self::$raw[$this->directory][$name]);
   }
@@ -119,6 +124,7 @@ class H5PThemerMemoryStorage extends ConfigFileStorage {
     return $data;
   }
   public function write($name, array $data) {
+    if (self::$beforeWrite !== NULL) { call_user_func(self::$beforeWrite, $name, $data); }
     if (self::$failWrite || ($name === 'h5p_themer.learner_visibility' && H5PVisibilityNativeFixture::$fault === 'policy_save')) { throw new ConfigStorageException('Simulated unavailable storage.'); }
     if (strpos($name, 'h5p_themer.theme.') === 0 && in_array(H5PVisibilityNativeFixture::$fault, array('theme_save', 'theme_save_false'), TRUE)) {
       if (H5PVisibilityNativeFixture::$fault === 'theme_save_false') { return FALSE; }
@@ -206,6 +212,7 @@ function reset_storage() {
   H5PThemerMemoryStorage::$failWrite = FALSE;
   H5PThemerMemoryStorage::$failDelete = FALSE;
   H5PThemerMemoryStorage::$failList = FALSE;
+  H5PThemerMemoryStorage::$beforeWrite = NULL;
   $cache = &backdrop_static('config');
   $cache = array();
   $GLOBALS['config'] = array();

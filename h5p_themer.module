@@ -10,6 +10,7 @@ require_once __DIR__ . '/h5p_themer.visibility.inc';
 require_once __DIR__ . '/h5p_themer.runtime.inc';
 require_once __DIR__ . '/h5p_themer.learner-runtime.inc';
 require_once __DIR__ . '/h5p_themer.learner.inc';
+require_once __DIR__ . '/h5p_themer.import.inc';
 
 /**
  * Implements hook_permission().

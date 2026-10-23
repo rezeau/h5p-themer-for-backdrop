@@ -203,23 +203,64 @@ the existing caller responsibility for native Config/cache freshness.
 `hook_config_info()` registers settings, visibility policy and the theme collection
 (`name_key` is `id`, `label_key` is `label`). `hook_config_data_validate()` checks
 object shape and identity. Settings import validation checks the selected custom
-reference against the final proposed plan. Theme/policy mutations are rejected;
-an import cannot supply a replacement definition to repair that reference.
+reference against the final proposed plan. Generic theme/policy synchronization
+mutations are rejected; an import cannot replace a definition to repair that
+reference.
 
 Settings-only imports require any selected custom theme to exist and validate.
-Native create/update/delete imports of theme definitions and learner visibility
+Generic create/update/delete imports of theme definitions and learner visibility
 policies are rejected at both validation and application. Mixed plans containing
 such mutations are rejected even when an unrelated object validates first;
-unchanged entries do not block a plan. There is no custom import interface or
+unchanged entries do not block a plan. There is no separate import interface or
 privileged coordinator bypass. Administration retains default-theme deletion
 protection. Deleting settings remains permitted and leaves reads/status checks
 reporting missing configuration; it does not recreate defaults.
 
 Export uses Backdrop's ordinary configuration facilities and existing object
 schemas. Settings-only and unrelated native imports retain their supported
-behavior. Native theme/policy imports are deliberately unsupported; exports
-must not be treated as an authorized theme/policy restore workflow. Backdrop
-sync is not a multi-file database transaction.
+behavior. Bulk theme import, existing-theme updates, theme deletions and all
+visibility-policy imports remain unsupported. Backdrop sync is not a multi-file
+database transaction.
+
+### Provisional v0.2.1: single schema-2 theme creation
+
+The module alters Backdrop's existing `config_import_single_form` at
+Configuration manager → Single import/export → Import. Paste one exported JSON
+object with `_config_name: "h5p_themer.theme.<id>"`. The theme must use integer
+schema 2 and a known exact `base_preset` pin. The ID must match the configuration
+name suffix. Existing destinations, including malformed files, are rejected.
+Schema-1 theme import is not supported by this creation-only handler.
+
+Both `synchronize configuration` and `administer h5p themes` permissions are
+required, together with compatible H5P and completed, verified visibility
+activation. Destination theme or visibility-policy overrides and active config
+sync block creation. Stored and effective Global Default references are checked;
+creation cannot silently activate an unresolved reference. IDs, labels, density,
+descriptions, sparse hexadecimal overrides and preset pins are not normalized.
+
+The native form dispatches theme validation/submission to module handlers;
+settings and unrelated imports retain the core handlers. Generic config import
+guards remain intact. Under `h5p_themer_admin_write`, the handler repeats checks,
+persists and verifies only the destination's restrictive `custom:<id> = FALSE`
+policy entry, then saves and reads back the definition. All other themes,
+settings, policy entries and activation state are preserved. Visibility remains
+an explicit later administration action. Existing stale visibility forms reject
+the changed catalog/policy.
+
+Native Config request caches are refreshed and the existing output-cache
+invalidation helper runs. Hidden, unselected creation normally changes no
+delivered output and needs no page/layout flush. Partial policy changes that
+affect output still trigger invalidation. Writes are not atomic: failures may
+leave a restrictive tombstone or a saved hidden definition. Errors acknowledge
+uncertain persistence; there is no automatic visibility restoration or rollback.
+Arbitrary low-level writers do not share this lock. Native import, JSON round
+trip, duplicate rejection, imported Edit colors and hidden learner visibility
+have passed manual testing on a disposable Backdrop site; cleanup restored its
+original module and guards. Broader native permission, policy/update/delete
+restriction, unrelated-import and failure-path integration checks remain
+outstanding. The existing Edit form embeds saved and live-color previews; there
+is no dedicated Preview action, and the imported theme's embedded preview was
+not manually tested.
 
 **Native `Config::save()` does not automatically call `validateData()` or import
 hooks.** Low-level callers can bypass validation, as with other Backdrop config.
@@ -279,8 +320,9 @@ Custom Duplicate can copy a source's stored original without persisting its
 environment-specific effective overrides.
 
 All four submit handlers recheck validation under `h5p_themer_admin_write`.
-The lock coordinates these administration forms; direct filesystem edits and
-native config imports do not participate in it. Native Config storage remains
+The lock coordinates these administration forms and the single-theme creation
+handler; direct filesystem edits and generic native config imports do not
+participate in it. Native Config storage remains
 responsible for filesystem write behavior. No cross-object atomic transaction
 or coordination with concurrent imports is claimed. Failed writes/read-back may
 leave restrictive policy or partially applied definition changes. There is no

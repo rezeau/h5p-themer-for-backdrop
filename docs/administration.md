@@ -329,10 +329,13 @@ old visibility forms even when a same-ID replacement has identical data. Reload
 after stale/expired context; ordinary input corrections retain the original state.
 Only visibility is saved by Save visibility; definitions and Global Default do not change.
 
-Native theme/policy imports and synchronization mutations are rejected, including
-mixed plans. Settings-only and unrelated imports and ordinary exports remain
-available. There is no custom import or import-based theme/policy restore workflow;
-see [configuration restrictions](configuration.md#native-configuration-validation-and-importexport).
+Provisional v0.2.1 supports creation of one schema-2 custom theme through
+Configuration manager → Single import/export → Import. Both native configuration
+and H5P theme administration permissions are required. Imported themes stay hidden
+until explicitly published here. Existing-theme updates, deletions, bulk theme
+synchronization and visibility-policy imports remain rejected. Settings-only and
+unrelated imports and ordinary exports remain available. See the
+[single-import contract](configuration.md#provisional-v021-single-schema-2-theme-creation).
 
 ## Administrator learner-selection setting
 
@@ -421,12 +424,12 @@ built-ins remain inspectable while mutations are disabled and rejected at
 submit time. Config failures or busy locks yield errors without success
 redirects. Locks are released on validation/storage failures.
 
-The lock coordinates these administration mutations, not concurrent native
-imports or manual filesystem edits. Native Config storage remains responsible
+The lock coordinates these administration mutations and native single-theme
+creation, but not generic native imports or manual filesystem edits. Native Config storage remains responsible
 for persistence. Multi-object import is not transactional, and no atomic
 cross-process behavior or real filesystem concurrency is claimed from unit
-tests. Settings-only import reference validation remains active; theme/policy
-imports are rejected. Creation/deletion can first persist a restrictive policy
+tests. Settings-only import reference validation remains active; generic theme
+synchronization and visibility-policy imports are rejected. Creation/deletion can first persist a restrictive policy
 entry; deletion also updates the server-side visibility-form marker. These are
 not atomic multi-object transactions. A failure may leave a hidden entry or a
 definition already written/deleted. Inspect stored state before retrying; there
