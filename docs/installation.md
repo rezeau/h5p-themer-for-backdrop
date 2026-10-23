@@ -2,15 +2,16 @@
 
 SPDX-License-Identifier: GPL-2.0-or-later.
 
-This guide describes installation and upgrades for v0.2.0. Read the
-[release notes](release-notes-v0.2.0.md) before upgrading. Historical phase/checkpoint
+This guide covers the v0.2.0 baseline and the local v0.2.1 release candidate.
+Read the [candidate notes](release-notes-v0.2.1.md) and
+[v0.2.0 release notes](release-notes-v0.2.0.md) before upgrading. Historical phase/checkpoint
 records preserve development evidence; they are not installation instructions.
 
 ## 1. Prepare Backdrop and the H5P integration
 
 Backdrop **1.x** is the metadata declaration. Actual source inspection and local
 verification used **Backdrop 1.35.2**, H5P Core API **1.28**, and PHP **7.4.33**,
-**8.3.18** and **8.4.22**. The PHP suite passed 3,519 assertions on each version;
+**8.3.18** and **8.4.22**. The v0.2.1 feature PHP suite passed 3,673 assertions on each version;
 the JavaScript suite passed 387 tests on Node.js **22.23.1**. These are isolated
 automated tests, not database-backed installation or universal browser
 certification. Other Backdrop/PHP versions and arbitrary H5P integration releases

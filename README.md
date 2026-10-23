@@ -5,12 +5,14 @@ compatible H5P content. The implemented administration interface includes five
 immutable built-in themes, named custom themes, saved-theme previews, and live
 previews of unsaved color edits.
 
-The stable baseline is **v0.2.0**. This development branch adds provisional
-**v0.2.1** [native single-theme creation](docs/configuration.md#provisional-v021-single-schema-2-theme-creation);
+This code prepares the **v0.2.1 release candidate**, adding
+[native single-theme creation](docs/configuration.md#provisional-v021-single-schema-2-theme-creation)
+to the stable **v0.2.0** baseline. No v0.2.1 tag or release has been published;
 native import, JSON round trip, duplicate rejection, Edit colors and hidden
 visibility have passed manual testing on a disposable Backdrop site. Broader
 native safety checks remain outstanding. See the
-[release notes](docs/release-notes-v0.2.0.md) for changes since v0.1.0 and the
+[v0.2.1 candidate notes](docs/release-notes-v0.2.1.md),
+[v0.2.0 release notes](docs/release-notes-v0.2.0.md) and the
 [installation and upgrade guide](docs/installation.md) before deployment.
 
 ## Requirements
@@ -149,20 +151,23 @@ Current limits:
 
 ## Verification and developer tests
 
-The latest verified automated results for the release code are:
+The verified automated results for the v0.2.1 feature commit are:
 
 | Runtime | Passed | Failed |
 | --- | ---: | ---: |
-| PHP 7.4.33 | 3,519 | 0 |
-| PHP 8.3.18 | 3,519 | 0 |
-| PHP 8.4.22 | 3,519 | 0 |
+| PHP 7.4.33 | 3,673 | 0 |
+| PHP 8.3.18 | 3,673 | 0 |
+| PHP 8.4.22 | 3,673 | 0 |
 | Node.js 22.23.1 | 387 | 0 |
 
 PHP totals include 325 separate-request administration lifecycle assertions.
 The JavaScript total includes the corrected compact-help/status and responsive
 help-target expectations; the three obsolete assertion failures are resolved.
-Earlier phase totals remain in their historical records. Documentation preparation
-does not claim a new test run or additional browser acceptance.
+Earlier phase totals remain in their historical records. These complete suites
+ran outside the restricted sandbox so private temporary fixtures could perform
+atomic filesystem operations. Candidate preparation reuses this verification
+where executable code and tests are unchanged; it does not claim another full
+suite run or additional browser acceptance.
 
 Use an existing Backdrop source tree with API-1.28 H5P. Replace the placeholders
 below with your own absolute source paths and select the required PHP executable:
