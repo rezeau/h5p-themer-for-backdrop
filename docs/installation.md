@@ -271,6 +271,21 @@ do not bypass the guards with direct files or low-level saves. See the
 
 ## Deployment cache refresh
 
+When deploying the learner HTML cache-header correction, existing Backdrop
+page-cache entries must be refreshed, even if no JavaScript has changed. Older
+entries can still carry the previous browser cache policy. Use the native
+`cache_clear_all()` operation within a supported local CLI bootstrap that reaches
+`BACKDROP_BOOTSTRAP_FULL` for the intended site. This refreshes page/layout-path
+output in the verified Backdrop 1.35.2 environment. The correction alone does not
+require clearing JavaScript aggregates or deleting generated CSS or H5P assets.
+
+HTML containing learner settings now requires HTTP revalidation through
+`Cache-Control: no-cache, must-revalidate`, including Backdrop page-cache HIT
+responses. Existing browser copies advertised before deployment cannot be
+retroactively invalidated. Already-open pages are not automatically updated;
+they retain their supplied catalog until refresh/settings reattachment. There is
+no live polling or automatic page refresh.
+
 The Step 6C/6D deployment showed that Backdrop can reuse a JavaScript aggregate
 when source bytes change at the same filename. New content-addressed learner CSS
 can then be combined with the old controller, which never sets the eligibility

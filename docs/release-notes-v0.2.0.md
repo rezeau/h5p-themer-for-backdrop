@@ -125,6 +125,26 @@ instructions, saved colors, hidden creation, custom-source independence and Core
 fallback. It does not establish that every concurrency, accessibility or browser
 check has passed. Documentation preparation adds no new browser or test results.
 
+## Release-readiness notes
+
+The rollback rehearsal was not completed: filesystem restoration stopped before
+database restoration. The affected disposable test environment was subsequently
+recovered to its verified post-upgrade state, with all 6,573 recorded application
+files and all 70 database tables verified, followed by a successful functional
+browser smoke test. No confirmed module data-loss defect was found. The incomplete
+rollback rehearsal is an accepted verification limitation for v0.2.0; recovery
+does not establish that a complete rollback has been tested successfully.
+
+The existing administrator-browser `MutationObserver.observe` errors remain an
+unresolved caveat. Their source was not identified, and no confirmed attribution
+to H5P Themer is made. Successful functional checks do not establish a clean
+administrator console in those recorded runs.
+
+Deploying the learner HTML cache-header correction requires refreshing existing
+Backdrop page-cache entries; follow the
+[deployment cache procedure](installation.md#deployment-cache-refresh).
+Already-open browser pages are not automatically updated.
+
 ## Configuration-import restrictions
 
 Native create/update/delete imports of custom definitions and learner visibility
@@ -141,8 +161,10 @@ and are outside the supported publication workflow.
 
 ## Known limitations
 
-- Density, typography, spacing and per-content assignment are not applied.
-  Only supported theme color properties consumed by a library affect playback.
+- Density is stored and editable but does not yet affect runtime rendering.
+  Runtime density support is deferred to v0.3.0. Typography, spacing and
+  per-content assignment are not applied. Only supported theme color properties
+  consumed by a library affect playback.
 - Preview is representative HTML, not a running H5P activity or accessibility
   certification. One extra catalog property has no established Core 1.28 runtime
   support and is not emitted.
