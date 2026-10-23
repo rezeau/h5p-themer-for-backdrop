@@ -213,6 +213,7 @@ function reset_storage() {
 
 function current_path() { return isset($GLOBALS['learner_test_path']) ? $GLOBALS['learner_test_path'] : 'node/7'; }
 function path_is_admin($path) { return !empty($GLOBALS['learner_test_admin_path']); }
+function backdrop_add_http_header($name, $value, $append = FALSE) { $GLOBALS['learner_headers'][] = array($name, $value, $append); }
 function backdrop_add_js($data = NULL, $options = NULL) { $GLOBALS['learner_js'][] = array('data' => $data, 'options' => $options); }
 function backdrop_add_css($data = NULL, $options = NULL) { $GLOBALS['learner_css'][] = array('data' => $data, 'options' => $options); }
 

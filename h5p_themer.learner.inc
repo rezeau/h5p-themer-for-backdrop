@@ -31,6 +31,8 @@ function h5p_themer_learner_attach() {
   $asset = h5p_themer_learner_asset();
   if ($asset['errors'] || $asset['data'] === NULL) { return; }
   $module = backdrop_get_path('module', 'h5p_themer');
+  // Persist with cached HTML too: browser copies must revalidate the catalog.
+  backdrop_add_http_header('Cache-Control', 'no-cache, must-revalidate');
   // Atomic string prevents jQuery deep-merging deleted choices back into AJAX settings.
   backdrop_add_js(array('h5pThemerLearner' => array('payload' => backdrop_json_encode($settings))), 'setting');
   backdrop_add_js($module . '/js/h5p_themer.learner-picker.js');

@@ -10,6 +10,7 @@ function learner_reset($enabled = FALSE) {
   backdrop_static_reset('h5p_themer_learner_attach');
   $GLOBALS['learner_test_path'] = 'node/7'; $GLOBALS['learner_test_admin_path'] = FALSE;
   $GLOBALS['learner_js'] = array(); $GLOBALS['learner_css'] = array();
+  $GLOBALS['learner_headers'] = array();
 }
 $learner_storage_root = sys_get_temp_dir() . '/h5p-themer-learner-' . bin2hex(random_bytes(12));
 if (!mkdir($learner_storage_root, 0700)) { throw new RuntimeException('Cannot create private learner fixture.'); }
@@ -22,6 +23,7 @@ foreach (array(FALSE, TRUE) as $enabled) {
   $scripts = $original; h5p_themer_h5p_scripts_alter($scripts, array(), 'div');
   check($scripts === $original, 'Learner hook never modifies player script list');
   check(count($learner_js) === ($enabled ? 3 : 0) && count($learner_css) === ($enabled ? 3 : 0), 'Parent-only assets attached only when enabled');
+  check($learner_headers === ($enabled ? array(array('Cache-Control', 'no-cache, must-revalidate', FALSE)) : array()), 'Only HTML with learner settings requires browser revalidation');
   check(H5PThemerMemoryStorage::$raw === $bytes && H5PThemerMemoryStorage::$writes === $writes && $runtime_cache_invalidations === $invalidations, 'Attachment makes no storage/cache writes');
   $styles = array(); h5p_themer_h5p_styles_alter($styles, array(), 'div');
   check(count($styles) === ($enabled ? 1 : 0), 'Enabled Core uses conditional bundle; disabled Core adds no CSS');
@@ -29,6 +31,7 @@ foreach (array(FALSE, TRUE) as $enabled) {
 learner_reset(TRUE);
 foreach (array('div', 'iframe', 'div') as $mode) { $scripts = array(); h5p_themer_h5p_scripts_alter($scripts, array(), $mode); }
 check(count($learner_js) === 3 && count($learner_css) === 3, 'Multiple players/repeated modes attach settings and parent assets once');
+check($learner_headers === array(array('Cache-Control', 'no-cache, must-revalidate', FALSE)), 'Repeated players set only the HTML cache policy once, without replacing validators or asset headers');
 check($learner_js[0]['options'] === 'setting' && $learner_js[1]['data'] === 'modules/h5p_themer/js/h5p_themer.learner-picker.js' && $learner_js[2]['data'] === 'modules/h5p_themer/js/h5p_themer.learner.js', 'Native Backdrop settings and fixed JS path');
 check($learner_css[0]['data'] === 'modules/h5p_themer/css/h5p_themer.learner.css' && $learner_css[1]['data'] === 'modules/h5p_themer/css/h5p_themer.learner-picker.css', 'Fixed learner stylesheet path');
 $data = json_decode($learner_js[0]['data']['h5pThemerLearner']['payload'], TRUE);
@@ -39,12 +42,14 @@ check(array_keys($data['options'][0]) === array('value', 'label') && !isset($dat
 foreach (array('external', 'editor', 'preview', '', NULL, array()) as $mode) {
   learner_reset(TRUE); $scripts = array(); h5p_themer_h5p_scripts_alter($scripts, array(), $mode);
   check(!$learner_js && !$learner_css && !$scripts, 'Unsupported/editor/external mode excluded');
+  check(!$learner_headers, 'Excluded mode does not change HTTP cache policy');
 }
 learner_reset(TRUE); $scripts = NULL; h5p_themer_h5p_scripts_alter($scripts, array(), 'div');
 check(!$learner_js && !$learner_css && $scripts === NULL, 'Malformed hook collection ignored safely');
 foreach (array('admin', 'admin/config/content/h5p-themer/presets/mint/version', 'node/add/h5p_content', 'node/7/edit', 'node/7/delete', 'h5p/embed/7') as $path) {
   learner_reset(TRUE); $learner_test_path = $path; $scripts = array(); h5p_themer_h5p_scripts_alter($scripts, array(), 'div');
   check(!$learner_js && !$learner_css, 'Administrative/editor page excluded: ' . $path);
+  check(!$learner_headers, 'Excluded page does not change HTTP cache policy: ' . $path);
 }
 learner_reset(TRUE); $learner_test_admin_path = TRUE; h5p_themer_learner_attach();
 check(!$learner_js, 'Backdrop administrative classification also excludes custom admin paths');
@@ -60,6 +65,7 @@ learner_reset(FALSE); H5PThemerMemoryStorage::$failList = TRUE; h5p_themer_learn
 check(!$learner_js && h5p_themer_learner_ui_settings() === NULL, 'Disabled feature does not even enumerate themes');
 learner_reset(TRUE); H5PThemerMemoryStorage::$failList = TRUE; h5p_themer_learner_attach();
 check(!$learner_js && !$learner_css, 'Catalog failure adds no misleading or partial UI');
+check(!$learner_headers, 'Failed learner attachment does not change HTTP cache policy');
 learner_reset(TRUE);
 $legacy = fixture_theme('daylight'); $legacy['label'] = '<script>custom</script>'; $legacy['description'] = 'PRIVATE DESCRIPTION'; seed('h5p_themer.theme.daylight', $legacy);
 $pinned = fixture_pinned_theme('mint_copy', 'mint'); seed('h5p_themer.theme.mint_copy', $pinned);
