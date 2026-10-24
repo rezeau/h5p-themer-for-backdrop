@@ -259,6 +259,7 @@ require __DIR__ . '/visibility-admin.php';
 require __DIR__ . '/admin-form-requests.php';
 require __DIR__ . '/config-protection.php';
 require __DIR__ . '/native-theme-import.php';
+require __DIR__ . '/density.php';
 
 printf("PHP %s: %d passed, %d failed\n", PHP_VERSION, $passed, $failed);
 exit($failed ? 1 : 0);

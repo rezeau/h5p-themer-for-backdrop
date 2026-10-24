@@ -2,16 +2,16 @@
 .h5p-themer-saved-preview { margin-block: 1.5rem; min-width: 0; }
 .h5p-themer-preview-frame { background: white; border: 1px solid #767676; box-sizing: border-box; display: block; height: 40rem; max-width: 100%; width: 100%; }
 .h5p-themer-preview-document { margin: 0; }
-.h5p-themer-preview-sample { background: var(--h5p-theme-background); box-sizing: border-box; color: var(--h5p-theme-text-primary); font-family: system-ui, sans-serif; font-size: var(--h5p-theme-font-size-m); line-height: 1.5; padding: var(--h5p-theme-spacing-s); }
+.h5p-themer-preview-sample { background: var(--h5p-theme-background); box-sizing: border-box; color: var(--h5p-theme-text-primary); font-family: system-ui, sans-serif; font-size: var(--h5p-theme-font-size-m); line-height: 1.5; padding: var(--h5p-themer-preview-space-s, var(--h5p-theme-spacing-s)); }
 .h5p-themer-preview-sample * { box-sizing: border-box; }
 .h5p-themer-preview-sample h2 { color: var(--h5p-theme-text-primary); font-size: var(--h5p-theme-font-size-xxl); overflow-wrap: anywhere; }
 .h5p-themer-preview-sample h3 { color: var(--h5p-theme-text-primary); font-size: var(--h5p-theme-font-size-xl); }
-.h5p-themer-preview-grid { display: grid; gap: var(--h5p-theme-spacing-s); grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.h5p-themer-preview-surface { background: var(--h5p-theme-ui-base); border: 1px solid var(--h5p-theme-stroke-1); border-radius: var(--h5p-theme-border-radius-medium); min-width: 0; padding: var(--h5p-theme-spacing-s); }
+.h5p-themer-preview-grid { display: grid; gap: var(--h5p-themer-preview-space-s, var(--h5p-theme-spacing-s)); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.h5p-themer-preview-surface { background: var(--h5p-theme-ui-base); border: 1px solid var(--h5p-theme-stroke-1); border-radius: var(--h5p-theme-border-radius-medium); min-width: 0; padding: var(--h5p-themer-preview-space-s, var(--h5p-theme-spacing-s)); }
 .h5p-themer-preview-secondary-text { color: var(--h5p-theme-text-secondary); }
 .h5p-themer-preview-muted-text { color: var(--h5p-theme-text-third); }
-.h5p-themer-preview-selected { background: var(--h5p-theme-alternative-dark); border: 2px solid var(--h5p-theme-main-cta-base); border-radius: var(--h5p-theme-border-radius-medium); color: var(--h5p-theme-text-primary); padding: var(--h5p-theme-spacing-xs); }
-.h5p-themer-preview-actions { display: flex; flex-wrap: wrap; gap: var(--h5p-theme-spacing-xs); }
+.h5p-themer-preview-selected { background: var(--h5p-theme-alternative-dark); border: 2px solid var(--h5p-theme-main-cta-base); border-radius: var(--h5p-theme-border-radius-medium); color: var(--h5p-theme-text-primary); padding: var(--h5p-themer-preview-space-xs, var(--h5p-theme-spacing-xs)); }
+.h5p-themer-preview-actions { display: flex; flex-wrap: wrap; gap: var(--h5p-themer-preview-space-xs, var(--h5p-theme-spacing-xs)); }
 .h5p-themer-preview-actions button { border-style: solid; border-width: 3px; border-radius: var(--h5p-theme-border-radius-medium); font: inherit; font-weight: 600; line-height: 1.5; max-width: 100%; padding: var(--h5p-theme-spacing-xs) var(--h5p-theme-spacing-s); }
 .h5p-themer-preview-primary { background: var(--h5p-theme-main-cta-base); border-color: var(--h5p-theme-main-cta-base); color: var(--h5p-theme-contrast-cta); }
 .h5p-themer-preview-primary:hover { background: var(--h5p-theme-main-cta-light); border-color: var(--h5p-theme-main-cta-light); }
@@ -20,12 +20,21 @@
 .h5p-themer-preview-secondary:hover { background: var(--h5p-theme-secondary-cta-light); border-color: var(--h5p-theme-secondary-cta-light); }
 .h5p-themer-preview-secondary:active { background: var(--h5p-theme-secondary-cta-dark); border-color: var(--h5p-theme-secondary-cta-dark); }
 .h5p-themer-preview-actions button:focus-visible { outline: 2px ridge var(--h5p-theme-contrast-cta-white); outline-offset: 2px; }
-.h5p-themer-preview-correct, .h5p-themer-preview-incorrect { border: 2px solid; border-radius: var(--h5p-theme-border-radius-small); padding: var(--h5p-theme-spacing-xs); }
+.h5p-themer-preview-correct, .h5p-themer-preview-incorrect { border: 2px solid; border-radius: var(--h5p-theme-border-radius-small); padding: var(--h5p-themer-preview-space-xs, var(--h5p-theme-spacing-xs)); }
 .h5p-themer-preview-correct { background: var(--h5p-theme-feedback-correct-secondary); border-color: var(--h5p-theme-feedback-correct-third); color: var(--h5p-theme-feedback-correct-main); }
 .h5p-themer-preview-incorrect { background: var(--h5p-theme-feedback-incorrect-secondary); border-color: var(--h5p-theme-feedback-incorrect-third); color: var(--h5p-theme-feedback-incorrect-main); }
-.h5p-themer-preview-progress { background: var(--h5p-theme-contrast-cta-light); border-radius: var(--h5p-theme-border-radius-medium); color: var(--h5p-theme-contrast-cta-white); display: inline-block; font-weight: 700; padding: var(--h5p-theme-spacing-xxs) var(--h5p-theme-spacing-s); }
+.h5p-themer-preview-progress { background: var(--h5p-theme-contrast-cta-light); border-radius: var(--h5p-theme-border-radius-medium); color: var(--h5p-theme-contrast-cta-white); display: inline-block; font-weight: 700; padding: var(--h5p-themer-preview-space-xxs, var(--h5p-theme-spacing-xxs)) var(--h5p-themer-preview-space-s, var(--h5p-theme-spacing-s)); }
 .h5p-themer-preview-borders { list-style: none; padding: 0; }
-.h5p-themer-preview-borders li { border: 2px solid var(--h5p-theme-stroke-1); margin-block: var(--h5p-theme-spacing-xs); padding: var(--h5p-theme-spacing-xxs); }
+.h5p-themer-preview-borders li { border: 2px solid var(--h5p-theme-stroke-1); margin-block: var(--h5p-themer-preview-space-xs, var(--h5p-theme-spacing-xs)); padding: var(--h5p-themer-preview-space-xxs, var(--h5p-theme-spacing-xxs)); }
 .h5p-themer-preview-borders li:nth-child(2) { border-color: var(--h5p-theme-stroke-2); }
 .h5p-themer-preview-borders li:nth-child(3) { border-color: var(--h5p-theme-stroke-3); }
 @media (max-width: 40rem) { .h5p-themer-preview-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* The unclassified API-1.28 preview uses small spacing. Medium * 0.8
+ * preserves that baseline; Core/built-ins fall back to native aliases.
+ * These derived tokens have consumers only in this module-owned sample. */
+.h5p-themer-preview-sample {
+  --h5p-themer-preview-space-s: calc(var(--h5p-themer-density-space-s) * 0.8);
+  --h5p-themer-preview-space-xs: calc(var(--h5p-themer-density-space-xs) * 0.8);
+  --h5p-themer-preview-space-xxs: calc(var(--h5p-themer-density-space-xxs) * 0.8);
+}

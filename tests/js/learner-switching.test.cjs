@@ -2,6 +2,34 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {fixture,choices,contract}=require('./learner-fixture.cjs');
+
+// Controlled computed-gap collaborator, not a layout/browser emulator.
+function densityFixture() {
+ const f=fixture(), jobs=new Map(), calls=[]; let next=1;
+ for(const [name,digit] of [['small','1'],['medium','2']]) {f.metadata.keys['custom:'+name]='t'+digit.repeat(64);f.metadata.options.push({value:'custom:'+name,label:name});}
+ const factors={[f.metadata.keys['custom:small']]:0.8,[f.metadata.keys['custom:medium']]:1,[f.metadata.keys['custom:checkpoint_test']]:1.25};
+ function install(view) {
+  view.requestAnimationFrame=fn=>{const id=next++;jobs.set(id,fn);return id;};
+  view.cancelAnimationFrame=id=>jobs.delete(id);
+  const factor=doc=>{const key=doc.documentElement.getAttribute(attr);return key?(factors[key]||1):(f.globalFactor||1);};
+  view.getComputedStyle=el=>({getPropertyValue:property=>property==='--h5p-themer-density-evaluation-row-factor' ? String(factor(el.ownerDocument)) : el.ownerDocument.bundleReady?(el.ownerDocument.stylesheetBundle||f.metadata.bundle):'',get rowGap(){
+   const root=el.closest('.h5p-content');
+   return String(16*(root?.hasAttribute('data-h5p-themer-density-ready')?factor(el.ownerDocument):1))+'px';
+  }});
+ }
+ install(f.h.window);
+ function player(id='7',opts={}) {
+  const p=f.player(id,opts),view=opts.iframe?p.child.window:f.h.window;install(view);
+  if(!view.H5P)view.H5P={instances:[],trigger(instance,event){calls.push({instance,event});}};
+  else view.H5P.trigger=(instance,event)=>calls.push({instance,event});
+  p.container.className='h5p-container h5p-question h5p-theme h5p-true-false';
+  p.evaluation=p.content.ownerDocument.createElement('div');p.evaluation.className='h5p-question-evaluation-container evaluation-mode';p.container.appendChild(p.evaluation);
+  p.instance={contentId:Number(id),libraryInfo:{versionedName:'H5P.TrueFalse 1.8',majorVersion:'1',minorVersion:'8'},isRoot:()=>true,trigger(){},answers:['keep'],score:1};
+  view.H5P.instances.push(p.instance);p.view=view;return p;
+ }
+ const flush=()=>{const batch=[...jobs.values()];jobs.clear();batch.forEach(fn=>fn());};
+ return Object.assign(f,{densityPlayer:player,jobs,calls,flush});
+}
 const attr='data-h5p-themer-learner';
 const native=fs.readFileSync(path.join(process.env.BACKDROP_SOURCE_ROOT,'modules/h5p/library/styles/h5p-theme-variables.css'),'utf8');
 function declarations(css){return Object.fromEntries([...css.matchAll(/(--h5p-theme-[a-z0-9-]+):\s*([^;]+);/g)].map(m=>[m[1],m[2].trim()]));}
@@ -213,4 +241,170 @@ test('initial blank document is not themed until Core writes matching H5P identi
  const f=fixture(),p=f.player('7',{iframe:true,written:false});f.player('8');const initial=p.child.doc;f.attach();f.choose('builtin:dark');
  assert.equal(initial.URL,'about:blank');assert.equal(initial.querySelector('.h5p-content'),null);assert.equal(initial.documentElement.hasAttribute(attr),false);assert.equal(f.panel().querySelector('[role="status"]').textContent,f.metadata.partial);
  p.writeDocument();p.node.dispatchEvent(new f.h.Event('load'));assert.equal(p.child.doc.URL,f.doc.URL);assert.equal(p.child.doc.documentElement.getAttribute(attr),f.metadata.keys['builtin:dark']);assert.equal(p.node.getAttribute('src'),'about:blank');f.unchanged();
+});
+
+for(const [from,to] of [['custom:small','custom:checkpoint_test'],['custom:checkpoint_test','custom:small'],['core','custom:checkpoint_test'],['builtin:mint','custom:checkpoint_test'],['custom:checkpoint_test','core'],['custom:checkpoint_test','builtin:mint']])test('targeted Density resize per affected player: '+from+' -> '+to,()=>{
+ const f=densityFixture(),a=f.densityPlayer('7',{iframe:true}),b=f.densityPlayer('7',{iframe:true}),c=f.densityPlayer('9');
+ const unsupported=f.player('10');f.attach();f.flush();f.choose(from);f.flush();f.calls.length=0;
+ f.choose(to);assert.equal(f.jobs.size,3);f.flush();assert.deepEqual(f.calls.map(x=>x.instance),[a.instance,b.instance,c.instance]);
+ assert.ok(f.calls.every(x=>x.event==='resize'));assert.notEqual(a.instance,b.instance);assert.equal(unsupported.node.getAttribute('data-h5p-themer-density-ready'),null);
+ assert.equal(unsupported.node.hasAttribute('data-h5p-themer-eligible'),true);assert.equal(f.doc.documentElement.getAttribute(attr),f.metadata.keys[to]);
+ for(const p of [a,b,c]){assert.deepEqual(p.instance.answers,['keep']);assert.equal(p.instance.score,1);}
+});
+test('color-only, equal effective spacing, inactive layout and repeated attachment emit no resize',()=>{
+ const f=densityFixture(),p=f.densityPlayer('7',{iframe:true});f.attach();f.flush();f.calls.length=0;
+ f.choose('custom:medium');f.flush();f.choose('core');f.flush();f.attach();f.flush();assert.equal(f.calls.length,0);
+ p.evaluation.className='h5p-question-evaluation-container';f.choose('custom:checkpoint_test');f.flush();assert.equal(f.calls.length,0);
+});
+test('rapid choices coalesce, including a net-zero transition',()=>{
+ const f=densityFixture();f.densityPlayer('7',{iframe:true});f.attach();f.flush();f.choose('custom:small');f.flush();f.calls.length=0;
+ f.choose('custom:checkpoint_test');f.choose('custom:small');assert.equal(f.jobs.size,1);f.flush();assert.equal(f.calls.length,0);
+ f.choose('core');f.choose('custom:checkpoint_test');assert.equal(f.jobs.size,1);f.flush();assert.equal(f.calls.length,1);f.attach();f.flush();assert.equal(f.calls.length,1);
+});
+for(const failure of ['ambiguous','wrong-library','not-root','no-api','no-raf','duplicate-root'])test('unsafe Density owner fails closed but page-wide colors survive: '+failure,()=>{
+ const f=densityFixture(),p=f.densityPlayer('7',{iframe:true});
+ if(failure==='ambiguous')p.view.H5P.instances.push({...p.instance});
+ if(failure==='wrong-library')p.instance.libraryInfo.versionedName='H5P.Other 1.8';
+ if(failure==='not-root')p.instance.isRoot=()=>false;
+ if(failure==='no-api')delete p.view.H5P.trigger;
+ if(failure==='no-raf')delete p.view.requestAnimationFrame;
+ if(failure==='duplicate-root'){const extra=p.content.ownerDocument.createElement('div');extra.className='h5p-content';extra.setAttribute('data-content-id','7');p.content.appendChild(extra);}
+ f.attach();f.choose('custom:checkpoint_test');f.flush();assert.equal(p.content.hasAttribute('data-h5p-themer-density-ready'),false);assert.equal(f.calls.length,0);
+ assert.equal(p.child.doc.documentElement.getAttribute(attr),f.metadata.keys['custom:checkpoint_test']);assert.equal(p.content.hasAttribute('data-h5p-themer-eligible'),true);
+});
+for(const reason of ['removed','replaced','stopped','identity','not-ready'])test('cancel pending native resize: '+reason,()=>{
+ const f=densityFixture(),p=f.densityPlayer('7',{iframe:true});f.attach();f.flush();f.calls.length=0;f.choose('custom:checkpoint_test');assert.equal(f.jobs.size,1);
+ if(reason==='removed'){p.root.parentNode.removeChild(p.root);f.attach();}
+ if(reason==='replaced'){p.writeDocument();p.node.dispatchEvent(new f.h.Event('load'));}
+ if(reason==='stopped'){f.metadata.enabled=false;f.attach();}
+ if(reason==='identity')p.view.H5P.instances=[{...p.instance}];
+ if(reason==='not-ready')p.child.doc.bundleReady=false;
+ f.flush();assert.equal(f.calls.length,0);
+});
+test('session preference still restores all players and schedules only affected instances',()=>{
+ const a=densityFixture();a.densityPlayer('7',{iframe:true});a.attach();a.flush();a.choose('custom:checkpoint_test');a.flush();
+ const b=densityFixture();b.session.values.set('h5p_themer:learner-theme:v1:/','custom:checkpoint_test');const p=b.densityPlayer('8',{iframe:true}),q=b.densityPlayer('9');b.attach();b.flush();
+ assert.equal(b.select().value,'custom:checkpoint_test');assert.equal(p.child.doc.documentElement.getAttribute(attr),b.metadata.keys['custom:checkpoint_test']);assert.equal(b.doc.documentElement.getAttribute(attr),b.metadata.keys['custom:checkpoint_test']);assert.deepEqual(b.calls.map(x=>x.instance),[p.instance,q.instance]);
+});
+test('throwing native API disables geometry for that instance without retry loops or losing colors',()=>{
+ const f=densityFixture(),p=f.densityPlayer('7',{iframe:true});let attempts=0;
+ p.view.H5P.trigger=()=>{attempts++;throw Error('Native resize failed');};
+ f.attach();f.choose('custom:checkpoint_test');f.flush();
+ for(let i=0;i<3;i++){f.attach();f.flush();}
+ assert.equal(attempts,1);assert.equal(p.content.hasAttribute('data-h5p-themer-density-ready'),false);
+ assert.equal(p.child.doc.documentElement.getAttribute(attr),f.metadata.keys['custom:checkpoint_test']);
+});
+test('inaccessible cancellation cannot interrupt page-wide colors or deliver an orphaned callback',()=>{
+ const f=densityFixture(),p=f.densityPlayer('7',{iframe:true});f.player('8');f.attach();f.flush();f.calls.length=0;
+ f.choose('custom:checkpoint_test');p.view.cancelAnimationFrame=()=>{throw Error('Detached window');};p.root.parentNode.removeChild(p.root);
+ assert.doesNotThrow(()=>f.attach());f.flush();assert.equal(f.calls.length,0);
+ assert.equal(f.doc.documentElement.getAttribute(attr),f.metadata.keys['custom:checkpoint_test']);
+});
+test('content IDs normalize numeric and leading-zero DOM representations without assuming registry position',()=>{
+ const f=densityFixture(),p=f.densityPlayer('007',{iframe:true});p.view.H5P.instances.unshift({contentId:99});f.attach();f.choose('custom:checkpoint_test');f.flush();
+ assert.equal(p.content.hasAttribute('data-h5p-themer-density-ready'),true);assert.deepEqual(f.calls.map(x=>x.instance),[p.instance]);
+});
+
+function globalMode(f,factor=1) {
+ f.globalFactor=factor;
+ for(const key of Object.keys(f.metadata))delete f.metadata[key];
+ Object.assign(f.metadata,{version:2,enabled:false,mode:'global',bundle:'t'+'3'.repeat(64)});
+}
+for(const factor of [0.8,1,1.25])test('global-only Density activates without picker/storage: '+factor,()=>{
+ const f=densityFixture(),a=f.densityPlayer('7',{iframe:true}),b=f.densityPlayer('8');
+ f.session.values.set('h5p_themer:learner-theme:v1:/','custom:checkpoint_test');globalMode(f,factor);f.attach();f.flush();
+ assert.equal(f.panel(),null);assert.deepEqual(f.session.calls,[]);assert.equal(f.session.values.get('h5p_themer:learner-theme:v1:/'),'custom:checkpoint_test');
+ for(const p of [a,b]){assert.ok(p.content.hasAttribute('data-h5p-themer-density-ready'));assert.equal(p.view.getComputedStyle(p.evaluation).rowGap,16*factor+'px');assert.deepEqual(p.instance.answers,['keep']);assert.equal(p.instance.score,1);}
+ assert.equal(f.calls.length,factor===1?0:2);assert.equal(f.doc.documentElement.hasAttribute(attr),false);
+ f.pageshow();f.attach();f.flush();assert.deepEqual(f.session.calls,[]);
+});
+test('global/learner transitions preserve stored choice and target only effective changes',()=>{
+ const f=densityFixture(),a=f.densityPlayer('7',{iframe:true}),b=f.densityPlayer('8');const learner=structuredClone(f.metadata);
+ f.attach();f.choose('custom:checkpoint_test');f.flush();const reads=f.session.calls.length;f.calls.length=0;
+ globalMode(f,0.8);f.attach();f.flush();assert.equal(f.panel(),null);assert.equal(f.session.calls.length,reads);assert.equal(f.calls.length,2);
+ assert.equal(a.child.doc.documentElement.hasAttribute(attr),false);assert.equal(f.doc.documentElement.hasAttribute(attr),false);
+ Object.keys(f.metadata).forEach(key=>delete f.metadata[key]);Object.assign(f.metadata,learner);f.attach();f.flush();
+ assert.equal(f.select().value,'custom:checkpoint_test');assert.equal(f.calls.length,4);assert.equal(f.session.values.get('h5p_themer:learner-theme:v1:/'),'custom:checkpoint_test');
+ assert.deepEqual(f.calls.map(x=>x.instance),[a.instance,b.instance,a.instance,b.instance]);
+});
+test('global stylesheet replacement resizes for Density only, not colors or equal Medium/Core gap',()=>{
+ const f=densityFixture(),p=f.densityPlayer('7',{iframe:true});globalMode(f,0.8);f.attach();f.flush();f.calls.length=0;
+ f.globalFactor=1.25;f.metadata.bundle='t'+'4'.repeat(64);f.attach();f.flush();assert.equal(f.calls.length,1);
+ f.metadata.bundle='t'+'5'.repeat(64);f.attach();f.flush();assert.equal(f.calls.length,1);
+ f.globalFactor=1;f.metadata.bundle='t'+'6'.repeat(64);f.attach();f.flush();assert.equal(f.calls.length,2);
+ f.metadata.bundle='t'+'7'.repeat(64);f.attach();f.flush();assert.equal(f.calls.length,2);assert.equal(p.view.getComputedStyle(p.evaluation).rowGap,'16px');
+});
+test('mode transition cancels old pending work and coalesces to final geometry',()=>{
+ const f=densityFixture(),p=f.densityPlayer('7',{iframe:true});f.attach();f.flush();f.calls.length=0;
+ f.choose('custom:checkpoint_test');const orphan=[...f.jobs.values()][0];globalMode(f,0.8);f.attach();orphan();f.flush();
+ assert.deepEqual(f.calls.map(x=>x.instance),[p.instance]);assert.equal(p.view.getComputedStyle(p.evaluation).rowGap,'12.8px');
+});
+test('color-only bundle replacement preserves an already necessary pending resize',()=>{
+ const f=densityFixture(),p=f.densityPlayer('7',{iframe:true});f.attach();f.flush();f.calls.length=0;
+ f.choose('custom:checkpoint_test');f.metadata.bundle='t'+'4'.repeat(64);f.attach();f.flush();
+ assert.deepEqual(f.calls.map(x=>x.instance),[p.instance]);
+});
+test('global-only waits for both document fingerprints and rejects invalid transport',()=>{
+ const f=densityFixture(),p=f.densityPlayer('7',{iframe:true});globalMode(f,1.25);p.child.doc.bundleReady=false;f.attach();f.flush();
+ assert.equal(p.content.hasAttribute('data-h5p-themer-density-ready'),false);assert.equal(f.calls.length,0);
+ p.child.doc.bundleReady=true;p.node.dispatchEvent(new f.h.Event('load'));f.flush();assert.equal(f.calls.length,1);
+ f.metadata.keys={};f.attach();assert.equal(p.content.hasAttribute('data-h5p-themer-density-ready'),false);assert.deepEqual(f.session.calls,[]);
+});
+for(const choice of ['core','builtin:mint','custom:medium'])test('explicit native/Medium selection overrides a Small Global Default: '+choice,()=>{
+ const f=densityFixture(),p=f.densityPlayer('7',{iframe:true});f.globalFactor=0.8;f.attach();f.flush();f.calls.length=0;
+ assert.equal(p.view.getComputedStyle(p.evaluation).rowGap,'12.8px');f.choose(choice);f.flush();
+ assert.equal(p.view.getComputedStyle(p.evaluation).rowGap,'16px');assert.equal(f.calls.length,1);
+ f.choose('site_default');f.flush();assert.equal(p.view.getComputedStyle(p.evaluation).rowGap,'12.8px');assert.equal(f.calls.length,2);
+});
+for(const failure of ['ambiguous','wrong-library','removed','replaced','not-ready'])test('global-only ownership and cancellation: '+failure,()=>{
+ const f=densityFixture(),p=f.densityPlayer('7',{iframe:true});globalMode(f,1.25);
+ if(failure==='ambiguous')p.view.H5P.instances.push({...p.instance});
+ if(failure==='wrong-library')p.instance.libraryInfo.versionedName='H5P.Other 1.8';
+ f.attach();
+ if(failure==='removed'){p.root.parentNode.removeChild(p.root);f.attach();}
+ if(failure==='replaced'){p.writeDocument();p.node.dispatchEvent(new f.h.Event('load'));}
+ if(failure==='not-ready')p.child.doc.bundleReady=false;
+ f.flush();assert.equal(f.calls.length,0);assert.equal(p.content.hasAttribute('data-h5p-themer-density-ready'),false);assert.deepEqual(f.session.calls,[]);
+});
+
+function stylesheetHandoff(f,players,id) {
+ // Real load ordering: new CSS is visible before Backdrop settings arrive.
+ f.doc.stylesheetBundle=id;
+ for(const p of players)if(p.child)p.child.doc.stylesheetBundle=id;
+ const link=f.element('link');f.doc.dispatchEvent(new f.h.Event('load',{target:link}));
+ for(const p of players)assert.equal(p.content.hasAttribute('data-h5p-themer-density-ready'),false);
+}
+for(const kind of ['color-only','global-to-learner','learner-to-global'])for(const factor of [0.8,1,1.25])test('stylesheet readiness handoff preserves equal geometry: '+kind+'/'+factor,()=>{
+ const f=densityFixture(),learner=structuredClone(f.metadata),a=f.densityPlayer('7',{iframe:true}),b=f.densityPlayer('8');
+ f.globalFactor=factor;if(kind!=='learner-to-global')globalMode(f,factor);
+ f.attach();f.flush();f.calls.length=0;
+ const id='t'+'8'.repeat(64);stylesheetHandoff(f,[a,b],id);
+ if(kind==='global-to-learner'){Object.keys(f.metadata).forEach(k=>delete f.metadata[k]);Object.assign(f.metadata,learner);}
+ if(kind==='learner-to-global')globalMode(f,factor);
+ f.metadata.bundle=id;f.attach();f.flush();
+ assert.equal(f.calls.length,0);assert.equal(a.view.getComputedStyle(a.evaluation).rowGap,16*factor+'px');
+ assert.deepEqual(a.instance.answers,['keep']);assert.equal(a.instance.score,1);
+});
+for(const [from,to] of [[0.8,1.25],[1.25,0.8]])test('readiness handoff retains real geometry changes: '+from+' -> '+to,()=>{
+ const f=densityFixture(),a=f.densityPlayer('7',{iframe:true}),b=f.densityPlayer('8');globalMode(f,from);f.attach();f.flush();f.calls.length=0;
+ f.globalFactor=to;const id='t'+'9'.repeat(64);stylesheetHandoff(f,[a,b],id);f.metadata.bundle=id;f.attach();f.flush();
+ assert.deepEqual(f.calls.map(x=>x.instance),[a.instance,b.instance]);assert.equal(a.view.getComputedStyle(a.evaluation).rowGap,16*to+'px');
+});
+test('readiness handoff does not infer an equal gap on first activation',()=>{
+ const f=densityFixture(),p=f.densityPlayer('7',{iframe:true});globalMode(f,0.8);p.child.doc.bundleReady=false;f.attach();f.flush();assert.equal(f.calls.length,0);
+ p.child.doc.bundleReady=true;p.node.dispatchEvent(new f.h.Event('load'));f.flush();assert.deepEqual(f.calls.map(x=>x.instance),[p.instance]);
+});
+test('handoff measures a newly evaluated player rather than a stale inactive record',()=>{
+ const f=densityFixture(),p=f.densityPlayer('7',{iframe:true});globalMode(f,0.8);p.evaluation.className='h5p-question-evaluation-container';f.attach();f.flush();
+ p.evaluation.className+=' evaluation-mode';const id='t'+'8'.repeat(64);stylesheetHandoff(f,[p],id);f.metadata.bundle=id;f.attach();f.flush();assert.equal(f.calls.length,0);
+});
+test('handoff retains an already necessary resize while canceling its old callback',()=>{
+ const f=densityFixture(),p=f.densityPlayer('7',{iframe:true});f.attach();f.flush();f.calls.length=0;f.choose('custom:checkpoint_test');const orphan=[...f.jobs.values()][0];
+ const id='t'+'8'.repeat(64);stylesheetHandoff(f,[p],id);f.metadata.bundle=id;f.attach();orphan();f.flush();assert.deepEqual(f.calls.map(x=>x.instance),[p.instance]);
+});
+for(const reason of ['removed','replaced'])test('suspended handoff measurement cannot resize a '+reason+' owner',()=>{
+ const f=densityFixture(),p=f.densityPlayer('7',{iframe:true});globalMode(f,0.8);f.attach();f.flush();f.calls.length=0;
+ f.globalFactor=1.25;const id='t'+'8'.repeat(64);stylesheetHandoff(f,[p],id);
+ if(reason==='removed')p.root.parentNode.removeChild(p.root);else p.writeDocument();
+ f.metadata.bundle=id;f.attach();f.flush();assert.equal(f.calls.length,0);
 });

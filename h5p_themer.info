@@ -1,7 +1,7 @@
 type = module
 name = H5P Themer
-version = 0.2.1
-description = "Manage reusable H5P themes. Core API 1.28 only. Global color overrides for compatible playback; density is not applied."
+version = 0.3.0
+description = "Manage reusable H5P themes. Core API 1.28 only. Global color overrides for compatible playback; Density for theme previews and guarded top-level themed True/False evaluation rows."
 package = H5P
 backdrop = 1.x
 dependencies[] = h5p

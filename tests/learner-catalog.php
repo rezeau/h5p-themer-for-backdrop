@@ -184,6 +184,6 @@ foreach (array(FALSE, TRUE) as $enabled) {
     h5p_themer_h5p_styles_alter($styles, array(), $mode);
     check($styles === array(array('path' => 'existing-library.css')), 'Toggle keeps Core playback/editor asset attachment unchanged: ' . $mode);
   }
-  check($enabled || $runtime_wrapper_calls === $calls, 'Disabled Core never inspects public storage; enabled storage failure preserves legacy playback');
+  check($runtime_wrapper_calls > $calls, 'Both modes attempt readiness publication and retain native Core when storage is unavailable');
 }
 admin_reset();

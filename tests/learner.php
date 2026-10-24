@@ -22,11 +22,11 @@ foreach (array(FALSE, TRUE) as $enabled) {
   $original = array((object) array('path' => 'existing-player.js', 'version' => '?v=1'));
   $scripts = $original; h5p_themer_h5p_scripts_alter($scripts, array(), 'div');
   check($scripts === $original, 'Learner hook never modifies player script list');
-  check(count($learner_js) === ($enabled ? 3 : 0) && count($learner_css) === ($enabled ? 3 : 0), 'Parent-only assets attached only when enabled');
-  check($learner_headers === ($enabled ? array(array('Cache-Control', 'no-cache, must-revalidate', FALSE)) : array()), 'Only HTML with learner settings requires browser revalidation');
+  check(count($learner_js) === ($enabled ? 3 : 2) && count($learner_css) === ($enabled ? 3 : 1), 'Shared parent controller in both modes; picker assets only when enabled');
+  check($learner_headers === array(array('Cache-Control', 'no-cache, must-revalidate', FALSE)), 'Both runtime settings modes require browser revalidation');
   check(H5PThemerMemoryStorage::$raw === $bytes && H5PThemerMemoryStorage::$writes === $writes && $runtime_cache_invalidations === $invalidations, 'Attachment makes no storage/cache writes');
   $styles = array(); h5p_themer_h5p_styles_alter($styles, array(), 'div');
-  check(count($styles) === ($enabled ? 1 : 0), 'Enabled Core uses conditional bundle; disabled Core adds no CSS');
+  check(count($styles) === 1, 'Both modes supply matching stylesheet readiness even for Core');
 }
 learner_reset(TRUE);
 foreach (array('div', 'iframe', 'div') as $mode) { $scripts = array(); h5p_themer_h5p_scripts_alter($scripts, array(), $mode); }
@@ -46,10 +46,12 @@ foreach (array('external', 'editor', 'preview', '', NULL, array()) as $mode) {
 }
 learner_reset(TRUE); $scripts = NULL; h5p_themer_h5p_scripts_alter($scripts, array(), 'div');
 check(!$learner_js && !$learner_css && $scripts === NULL, 'Malformed hook collection ignored safely');
-foreach (array('admin', 'admin/config/content/h5p-themer/presets/mint/version', 'node/add/h5p_content', 'node/7/edit', 'node/7/delete', 'h5p/embed/7') as $path) {
-  learner_reset(TRUE); $learner_test_path = $path; $scripts = array(); h5p_themer_h5p_scripts_alter($scripts, array(), 'div');
-  check(!$learner_js && !$learner_css, 'Administrative/editor page excluded: ' . $path);
-  check(!$learner_headers, 'Excluded page does not change HTTP cache policy: ' . $path);
+foreach (array(FALSE, TRUE) as $enabled) {
+  foreach (array('admin', 'admin/config/content/h5p-themer/presets/mint/version', 'node/add/h5p_content', 'node/7/edit', 'node/7/delete', 'h5p/embed/7') as $path) {
+    learner_reset($enabled); $learner_test_path = $path; $scripts = array(); h5p_themer_h5p_scripts_alter($scripts, array(), 'div');
+    check(!$learner_js && !$learner_css, 'Administrative/editor page excluded in either playback mode: ' . $path);
+    check(!$learner_headers, 'Excluded page does not change HTTP cache policy: ' . $path);
+  }
 }
 learner_reset(TRUE); $learner_test_admin_path = TRUE; h5p_themer_learner_attach();
 check(!$learner_js, 'Backdrop administrative classification also excludes custom admin paths');
@@ -58,11 +60,11 @@ check(!$learner_js && !$learner_css, 'Incompatible integration receives no learn
 learner_reset(TRUE); H5PCore::$coreApi['minorVersion'] = 29; h5p_themer_learner_attach(); H5PCore::$coreApi['minorVersion'] = 28;
 check(!$learner_js, 'Unsupported API excluded');
 learner_reset(TRUE); $GLOBALS['config']['h5p_themer.settings'] = array('learner_selection_enabled' => FALSE); h5p_themer_learner_attach();
-check(!$learner_js, 'Effective false override prevents attachment');
+check(count($learner_js) === 2 && h5p_themer_playback_settings()['mode'] === 'global', 'Effective false override keeps shared playback without picker');
 learner_reset(FALSE); $GLOBALS['config']['h5p_themer.settings'] = array('learner_selection_enabled' => TRUE); h5p_themer_learner_attach();
 check(count($learner_js) === 3, 'Effective true override permits UI');
 learner_reset(FALSE); H5PThemerMemoryStorage::$failList = TRUE; h5p_themer_learner_attach();
-check(!$learner_js && h5p_themer_learner_ui_settings() === NULL, 'Disabled feature does not even enumerate themes');
+check(count($learner_js) === 2 && h5p_themer_learner_ui_settings() === NULL, 'Global playback does not enumerate themes even when catalog is unavailable');
 learner_reset(TRUE); H5PThemerMemoryStorage::$failList = TRUE; h5p_themer_learner_attach();
 check(!$learner_js && !$learner_css, 'Catalog failure adds no misleading or partial UI');
 check(!$learner_headers, 'Failed learner attachment does not change HTTP cache policy');

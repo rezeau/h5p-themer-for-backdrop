@@ -97,7 +97,14 @@ foreach (array(array('kind' => 'builtin', 'id' => 'mint', 'version' => 'moodle-4
   $catalog = h5p_themer_learner_catalog(); $data = h5p_themer_learner_bundle()['data'];
   $global_css = h5p_themer_runtime_css()['data'];
   $selector = 'html:not([data-h5p-themer-learner]) .h5p-content, html[data-h5p-themer-learner] .h5p-content:not([data-h5p-themer-eligible])';
-  check(strpos($data['css'], str_replace('.h5p-content', $selector, $global_css)) !== FALSE, 'Hidden global remains effective through conditional Site default CSS');
+  preg_match_all('/([^{}]+)\{([^{}]*)\}/', $global_css, $global_blocks, PREG_SET_ORDER);
+  $expected_global = '';
+  foreach ($global_blocks as $block) {
+    $branches = array();
+    foreach (explode(', ', $selector) as $root) { $branches[] = str_replace('.h5p-content', $root, trim($block[1])); }
+    $expected_global .= implode(', ', $branches) . ' {' . $block[2] . "}\n";
+  }
+  check(strpos($data['css'], $expected_global) !== FALSE, 'Hidden global remains effective through conditional Site default CSS');
   check(!isset($catalog['data'][$global['kind'] . ':' . $global['id']]), 'Hidden global has no explicit learner choice');
   $pair = h5p_themer_learner_icons()['site_default'];
   check($pair === array('#187571', '#EEDAAA'), 'Site default icon describes hidden global without publishing its explicit token');

@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * Parent-page learner control. Browser tab-session preference only; no endpoints.
+ * Shared parent playback attachment and optional tab-session learner picker.
  * SPDX-License-Identifier: GPL-2.0-or-later.
  */
 
@@ -23,27 +23,36 @@ function h5p_themer_learner_ui_settings() {
 
 /** Attach once through Backdrop; fixed external files, no additional inline code. */
 function h5p_themer_learner_attach() {
-  if (!h5p_themer_learner_context_allowed()) { return; }
+  if (!h5p_themer_playback_context_allowed()) { return; }
   $attached = &backdrop_static(__FUNCTION__, FALSE);
   if ($attached) { return; }
-  $settings = h5p_themer_learner_ui_settings();
+  $settings = h5p_themer_playback_settings();
   if ($settings === NULL) { return; }
-  $asset = h5p_themer_learner_asset();
+  $asset = h5p_themer_playback_asset();
   if ($asset['errors'] || $asset['data'] === NULL) { return; }
   $module = backdrop_get_path('module', 'h5p_themer');
   // Persist with cached HTML too: browser copies must revalidate the catalog.
   backdrop_add_http_header('Cache-Control', 'no-cache, must-revalidate');
   // Atomic string prevents jQuery deep-merging deleted choices back into AJAX settings.
   backdrop_add_js(array('h5pThemerLearner' => array('payload' => backdrop_json_encode($settings))), 'setting');
-  backdrop_add_js($module . '/js/h5p_themer.learner-picker.js');
+  if ($settings['enabled']) { backdrop_add_js($module . '/js/h5p_themer.learner-picker.js'); }
   backdrop_add_js($module . '/js/h5p_themer.learner.js');
-  backdrop_add_css($module . '/css/h5p_themer.learner.css');
-  backdrop_add_css($module . '/css/h5p_themer.learner-picker.css');
+  if ($settings['enabled']) {
+    backdrop_add_css($module . '/css/h5p_themer.learner.css');
+    backdrop_add_css($module . '/css/h5p_themer.learner-picker.css');
+  }
   backdrop_add_css($asset['data']->path);
   $attached = TRUE;
 }
 
-/** All enabled palettes affect the immutable bundle; disabled behavior is unchanged. */
+/** Global-only transport contains no catalog, picker strings or preferences. */
+function h5p_themer_playback_settings() {
+  if (h5p_themer_learner_selection_enabled()) { return h5p_themer_learner_ui_settings(); }
+  $bundle = h5p_themer_playback_bundle();
+  return $bundle['errors'] ? NULL : array('version' => 2, 'enabled' => FALSE, 'mode' => 'global', 'bundle' => $bundle['data']['id']);
+}
+
+/** Cache the effective playback mode/readiness plus any optional picker metadata. */
 function h5p_themer_learner_ui_cache_snapshot() {
-  return hash('sha256', serialize(h5p_themer_learner_ui_settings()));
+  return hash('sha256', serialize(h5p_themer_playback_settings()));
 }
