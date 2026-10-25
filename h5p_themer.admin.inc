@@ -59,7 +59,7 @@ function h5p_themer_overview($form = array(), &$form_state = NULL) {
   if (!$compatibility['compatible']) {
     $warnings[] = $compatibility['message'] . ' ' . t('Theme management is read-only until compatibility is restored.');
   }
-  $build['help'] = array('#markup' => '<p>' . t('Manage stored theme definitions and global colors for compatible H5P playback. Density affects preview spacing and experimentally changes only evaluation-row spacing in top-level themed True/False playback.') . '</p>');
+  $build['help'] = array('#markup' => '<p>' . t('Manage stored theme definitions and global colors for compatible H5P playback. Density is not applied.') . '</p>');
   if ($warnings) {
     $build['warnings'] = array('#markup' => '<p role="alert">' . implode(' ', array_unique($warnings)) . '</p>');
   }
@@ -464,11 +464,11 @@ function h5p_themer_theme_form($form, &$form_state, $operation = 'add', $id = NU
   $preset_copy = $context['operation'] === 'preset_duplicate';
   $inherited = $adding ? $context['add_snapshot']['preset'] : (isset($source['schema_version']) && $source['schema_version'] === 2
     ? h5p_themer_preset_load($source['base_preset']['id'], $source['base_preset']['version'])['data'] : NULL);
-  $form['help'] = array('#markup' => '<p>' . t('Blank color fields mean no override. Enter #RGB or #RRGGBB for an explicit color. Colors are independent: no derived palette or accessibility certification is generated. Global colors apply to compatible H5P playback. Density affects preview spacing and experimentally changes only evaluation-row spacing in top-level themed True/False playback.') . '</p>');
+  $form['help'] = array('#markup' => '<p>' . t('Blank color fields mean no override. Enter #RGB or #RRGGBB for an explicit color. Colors are independent: no derived palette or accessibility certification is generated. Global colors apply to compatible H5P playback. Density is stored but not applied.') . '</p>');
   if ($adding) {
     $form['help']['#markup'] = '<p><strong>' . t('Starting theme:') . '</strong> ' . check_plain($context['add_snapshot']['palette']['label']) . '. ' .
       ($context['add_snapshot']['fallback'] ? t('Daylight fallback is used because the global default is Core, unset, missing, invalid or unresolvable.') . ' ' : '') .
-      t('The new theme starts from these captured colors. Blank fields retain the starting colors. Enter #RGB or #RRGGBB, or use an available color picker, to override a color. Save creates an independent custom theme and does not modify its source or the global default. Later changes to the source custom theme do not affect this copy. Density affects preview spacing and experimentally changes only evaluation-row spacing in top-level themed True/False playback.') . '</p>';
+      t('The new theme starts from these captured colors. Blank fields retain the starting colors. Enter #RGB or #RRGGBB, or use an available color picker, to override a color. Save creates an independent custom theme and does not modify its source or the global default. Later changes to the source custom theme do not affect this copy. Density is stored but not applied.') . '</p>';
   }
   elseif ($editing) {
     $form['help']['#markup'] .= '<p>' . t('Fields contain saved overrides. Clearing an override restores the pinned preset color, or the Core fallback for a theme without a pinned preset. A previous custom copy source is not recorded; no live inheritance from another custom theme is implied.') . '</p>';
@@ -481,8 +481,8 @@ function h5p_themer_theme_form($form, &$form_state, $operation = 'add', $id = NU
     '#description' => t('Renaming this label preserves the machine ID and default reference.'));
   $form['description'] = array('#type' => 'textarea', '#title' => t('Description'), '#default_value' => isset($source['description']) ? $source['description'] : '', '#description' => t('Optional plain text, at most 4096 bytes.'));
   $form['density'] = array('#type' => 'select', '#title' => t('Density'), '#required' => TRUE,
-    '#description' => t('Controls preview spacing and experimental top-level True/False evaluation-row spacing. Other playback spacing is unchanged.'),
-    '#options' => array('large' => t('Large (spacious)'), 'medium' => t('Medium'), 'small' => t('Small (compact)')), '#default_value' => isset($source['density']) ? $source['density'] : 'large');
+    '#description' => t('Stored for future density support; runtime currently applies colors only.'),
+    '#options' => array('large' => t('Large (wide)'), 'medium' => t('Medium'), 'small' => t('Small (compact)')), '#default_value' => isset($source['density']) ? $source['density'] : 'large');
   $form['general'] = array('#type' => 'fieldset', '#title' => t('General settings'), '#tree' => FALSE, '#collapsible' => TRUE, '#collapsed' => FALSE);
   foreach (array('id', 'label', 'description', 'density') as $key) {
     // Group visually without changing the strict submitted field names.
@@ -763,7 +763,7 @@ function h5p_themer_default_form($form, &$form_state) {
     $form['collection_warning'] = array('#markup' => '<p role="alert">' . implode(' ', $choices['errors']) . '</p>');
   }
   $form['default_theme'] = array('#type' => 'select', '#title' => t('Global Default theme'), '#options' => $options, '#default_value' => $selected,
-    '#description' => t('Core, built-in and custom choices are distinct. The selected global colors apply to compatible H5P playback after reload. Density affects preview spacing and experimentally changes only evaluation-row spacing in top-level themed True/False playback.'));
+    '#description' => t('Core, built-in and custom choices are distinct. The selected global colors apply to compatible H5P playback after reload. Density is not applied.'));
   $form['learner_selection_enabled'] = array('#type' => 'checkbox',
     '#title' => t('Allow learners to select their H5P theme'),
     '#default_value' => isset($settings['learner_selection_enabled']) && $settings['learner_selection_enabled'] === TRUE ? 1 : 0,
@@ -865,7 +865,7 @@ function h5p_themer_default_form_submit($form, &$form_state) {
     $runtime_before = _h5p_themer_admin_cache_snapshot();
     $record->save();
     _h5p_themer_admin_cache_invalidate($runtime_before);
-    backdrop_set_message(t('The global settings were saved. Reload H5P playback to apply these settings. If learner selection is enabled, eligible activities offer session-scoped styling choices; learner answers and scoring are unchanged. Preferences are not saved to learner accounts. Density affects preview spacing and experimentally changes only evaluation-row spacing in top-level themed True/False playback.'));
+    backdrop_set_message(t('The global settings were saved. Reload H5P playback to apply these settings. If learner selection is enabled, eligible activities offer session-scoped styling choices; learner answers and scoring are unchanged. Preferences are not saved to learner accounts. Density is not applied.'));
     $form_state['redirect'] = 'admin/config/content/h5p-themer';
   }
   catch (ConfigException $e) {
@@ -1107,7 +1107,7 @@ function h5p_themer_preset_view($id, $version) {
     array(t('Attribution'), check_plain($data['provenance']['copyright'])),
     array(t('License'), check_plain($data['provenance']['license'])),
   ));
-  $build['help'] = array('#markup' => '<p>' . t('This built-in is immutable. Duplicate it to create an editable custom theme. Selected global colors apply to compatible H5P playback after reload; built-in palettes apply no Density override.') . '</p>');
+  $build['help'] = array('#markup' => '<p>' . t('This built-in is immutable. Duplicate it to create an editable custom theme. Selected global colors apply to compatible H5P playback after reload; density is not applied.') . '</p>');
   $build['saved_preview'] = h5p_themer_preview(array('kind' => 'builtin', 'id' => $id, 'version' => $version));
   $build['colors'] = _h5p_themer_admin_palette_table($data['colors']);
   $build['compatibility'] = array('#markup' => '<p><code>--h5p-theme-contrast-cta-dark</code>: ' . t('Preserved catalog data; runtime support in Core 1.28 is not established.') . '</p>');

@@ -245,7 +245,7 @@ function _h5p_themer_validate_default_reference(Config $candidate, $all_changes)
 function h5p_themer_h5p_styles_alter(&$styles, $libraries, $mode) {
   if (!is_array($styles) || !in_array($mode, array('div', 'iframe', 'external'), TRUE)) { return; }
   $asset = array('data' => NULL, 'errors' => array());
-  if ($mode !== 'external') { $asset = h5p_themer_playback_asset(); }
+  if ($mode !== 'external') { $asset = h5p_themer_learner_asset(); }
   // Catalog/storage failure keeps legacy global playback rather than partial UI.
   if ($asset['errors'] || $asset['data'] === NULL) {
     $css = h5p_themer_runtime_css();
@@ -260,7 +260,7 @@ function h5p_themer_h5p_styles_alter(&$styles, $libraries, $mode) {
 }
 
 /**
- * Implements hook_h5p_scripts_alter(). Shared playback runs in the parent only.
+ * Implements hook_h5p_scripts_alter(). Attach UI to the parent page only.
  *
  * Do not append to H5P's script list: iframe dependencies run inside the player.
  * Standalone external embeds bypass Backdrop's page/behavior bootstrap and are

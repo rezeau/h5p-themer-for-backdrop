@@ -28,18 +28,9 @@ function h5p_themer_preview($selection, $schema_version = 2, $original = FALSE, 
     return array('#markup' => '<p role="alert">' . t('Saved theme preview is unavailable: the theme reference or definition is invalid. No fallback was selected.') . '</p>');
   }
   $theme = $resolved['data'];
-  // Representative samples do not contain or emulate a playback activity.
-  $serialized = h5p_themer_runtime_serialize($theme, FALSE);
+  $serialized = h5p_themer_runtime_serialize($theme);
   if ($serialized['errors']) {
     return array('#markup' => '<p role="alert">' . t('Saved theme preview is unavailable: the theme colors could not be validated.') . '</p>');
-  }
-  // Live color rebuilding owns only the color block; keep density independent.
-  $density_declarations = _h5p_themer_density_declarations($theme);
-  $density_css = $density_declarations === '' ? '' : ".h5p-content {\n" . $density_declarations . "}\n";
-  $color_css = $serialized['data'];
-  if ($density_declarations !== '') {
-    $color_css = str_replace($density_declarations, '', $color_css);
-    if ($color_css === ".h5p-content {\n}\n") { $color_css = ''; }
   }
   $styles = _h5p_themer_preview_styles();
   if ($styles === NULL) {
@@ -58,8 +49,7 @@ function h5p_themer_preview($selection, $schema_version = 2, $original = FALSE, 
     '<title>' . check_plain($title) . '</title>' .
     '<style id="h5p-themer-preview-core">' . $styles['core'] . '</style>' .
     '<style id="h5p-themer-preview-sample">' . $styles['sample'] . '</style>' .
-    '<style id="h5p-themer-preview-overrides">' . $color_css . '</style>' .
-    '<style id="h5p-themer-preview-density">' . $density_css . '</style></head><body class="h5p-themer-preview-document">' .
+    '<style id="h5p-themer-preview-overrides">' . $serialized['data'] . '</style></head><body class="h5p-themer-preview-document">' .
     '<main class="h5p-content h5p-themer-preview-sample">' .
     '<h2>' . check_plain($theme['label']) . '</h2>' .
     _h5p_themer_preview_examples() . '</main></body></html>';
@@ -69,7 +59,7 @@ function h5p_themer_preview($selection, $schema_version = 2, $original = FALSE, 
     '#suffix' => '</section>',
     '#attached' => array('css' => array(backdrop_get_path('module', 'h5p_themer') . '/css/h5p_themer.preview.css')),
     'description' => array('#markup' => '<h3>' . t('Saved theme preview') . '</h3><p>' .
-      t('Preview-only examples, not an H5P activity. This preview does not change the global default. These samples show representative Density spacing. Playback changes are experimental and limited to top-level themed True/False evaluation rows. Unsaved form edits are not shown.') . '</p>'),
+      t('Preview-only examples, not an H5P activity. Libraries and authored styles may look different. This preview does not change the global default. Unsaved form edits are not shown. Density is not applied.') . '</p>'),
     'sample' => array('#markup' => '<iframe' . backdrop_attributes(array(
       'class' => array('h5p-themer-preview-frame'), 'title' => $title,
       'sandbox' => 'allow-same-origin', 'height' => 640, 'srcdoc' => $document,
@@ -93,14 +83,11 @@ function h5p_themer_preview($selection, $schema_version = 2, $original = FALSE, 
       }
       $properties = h5p_themer_color_properties();
       $metadata = array('properties' => $properties, 'saved' => (object) $definition['data']['colors'],
-        'inherited' => (object) array_intersect_key($inherited, array_flip($properties)),
-        'density' => $definition['data']['density'], 'density_values' => array(
-          'small' => h5p_themer_density_tokens('small'), 'medium' => h5p_themer_density_tokens('medium'),
-          'large' => h5p_themer_density_tokens('large')));
+        'inherited' => (object) array_intersect_key($inherited, array_flip($properties)));
       $build['#prefix'] = '<section' . backdrop_attributes(array('class' => array('h5p-themer-saved-preview', 'h5p-themer-live-preview'),
         'aria-label' => $title, 'data-h5p-themer-preview' => backdrop_json_encode($metadata))) . '>';
       $build['description']['#markup'] = '<h3 class="h5p-themer-preview-heading">' . t('Saved theme preview') . '</h3><p>' .
-        t('With JavaScript, valid color and Density edits update this preview immediately. Changes are not saved until Save is clicked. Without JavaScript, the saved preview remains available. Playback Density is experimental and limited to top-level themed True/False evaluation rows.') . '</p>';
+        t('With JavaScript, valid color edits update this preview immediately. Changes are not saved until Save is clicked. Without JavaScript, the saved preview remains available. Density is not applied.') . '</p>';
       $build['live_status'] = array('#markup' => '<p class="h5p-themer-preview-status" role="status" aria-live="polite" aria-atomic="true">' .
         t('Saved colors. Changes are not saved until Save is clicked.') . '</p>');
       $build['#attached']['js'][] = backdrop_get_path('module', 'h5p_themer') . '/js/h5p_themer.preview.js';

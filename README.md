@@ -3,28 +3,19 @@
 An independent Backdrop CMS module that applies administrator-selected colors to
 compatible H5P content. The implemented administration interface includes five
 immutable built-in themes, named custom themes, saved-theme previews, and live
-previews of unsaved color and Density edits.
+previews of unsaved color edits.
 
-This branch prepares the unpublished **v0.3.0 release candidate** on the published
-**v0.2.1** baseline, which includes native single-theme creation. See the
-[Density scope and upgrade guidance](docs/density-phase2a.md),
-[v0.3.0 candidate notes](docs/release-notes-v0.3.0.md),
-[v0.2.1 notes](docs/release-notes-v0.2.1.md),
+This code prepares the **v0.2.1 release candidate**, adding
+[native single-theme creation](docs/configuration.md#provisional-v021-single-schema-2-theme-creation)
+to the stable **v0.2.0** baseline. No v0.2.1 tag or release has been published;
+native import, JSON round trip, duplicate rejection, Edit colors and hidden
+visibility have passed manual testing on a disposable Backdrop site. Broader
+native safety checks remain outstanding. See the
+[v0.2.1 candidate notes](docs/release-notes-v0.2.1.md),
 [v0.2.0 release notes](docs/release-notes-v0.2.0.md) and the
 [installation and upgrade guide](docs/installation.md) before deployment.
 
 ## Requirements
-
-Development on `feature/density-v030` adds an unreleased
-[Density pipeline](docs/density-phase2a.md). Small, Medium and Large custom-theme
-settings affect representative previews and guarded top-level themed
-H5P.TrueFalse evaluation-row spacing. Global Default Density works without the
-optional learner switcher; learner-selected custom themes also apply their
-Density. Guarded playback Density requires JavaScript. Core, built-ins and
-unsupported, nested, external or ambiguously identified players retain native
-playback spacing. Existing imported Density values and both custom-theme schemas
-are preserved without migration. Existing Small/Large settings acquire functional
-spacing after upgrading; other playback spacing is unchanged.
 
 - Backdrop CMS **1.x** is declared in module metadata. Actual inspection and local
   verification used **Backdrop 1.35.2**; this is not a claim that every 1.x release
@@ -117,17 +108,15 @@ is enabled. See [administration](docs/administration.md) for the exact behavior.
 ## Global color runtime and limitations
 
 The existing H5P styles hook delivers global colors to div, iframe and external
-playback modes. Ordinary DIV/internal-iframe playback uses one shared controller,
-with global-only or learner-enabled settings. Global-only mode has no picker or
-preference-storage access. Both modes publish matching stylesheet readiness,
-including Core, which has no Density consumer. Themes resolve through validated effective configuration, and a fixed
+playback modes. With learner selection disabled, Core/null attaches no Themer
+CSS and does not inspect public storage. Enabled DIV/internal-iframe playback
+uses a separate immutable learner bundle, including when the global choice is Core. Themes resolve through validated effective configuration, and a fixed
 `.h5p-content` selector emits the 33 supported color properties. Exact trusted
 preset expressions are allowed; custom overrides remain strict hex. The catalog's
 additional `--h5p-theme-contrast-cta-dark` property is retained as data but is not
 emitted because Core 1.28 runtime support has not been established.
 
-Immutable `colors-v1-<sha256>.css` external/fallback assets, `global-v1-<sha256>.css`
-global-only bundles and enabled
+Immutable `colors-v1-<sha256>.css` global assets and enabled
 `learner-v1-<sha256>.css` bundles live under `public://h5p_themer/`.
 Verified bytes, a filesystem lock and rename coordinate publication; existing
 unexpected files are preserved and not attached. Resolution, compatibility or
@@ -138,14 +127,12 @@ Successful global-reference changes or selected-custom color changes invalidate
 native page/layout caches. The optional learner UI also invalidates these caches
 when its enable flag, displayed options or any selectable palette changes. One combined invalidation
 avoids duplicate flushes. Disabled UI retains the earlier unselected/metadata-only
-behavior for unselected themes; selected Density changes invalidate while no-op
-and rejected saves do not. Raw
+behavior; density-only, no-op and rejected saves do not invalidate. Raw
 programmatic configuration changes need caller-managed cache invalidation.
 
 Current limits:
 
-- Development Density affects module-owned previews and the guarded experimental
-  top-level True/False evaluation-row gap. Other playback spacing is unchanged.
+- **Density is stored but not applied**, in playback or preview.
 - Preview is representative HTML, **not a running H5P activity**. It does not
   guarantee a library's exact appearance, layout, feedback or interaction.
 - Not all H5P libraries consume these CSS variables. Authored or hardcoded styles
@@ -164,17 +151,18 @@ Current limits:
 
 ## Verification and developer tests
 
-The verified automated results for the v0.3.0 Density implementation are:
+The verified automated results for the v0.2.1 feature commit are:
 
 | Runtime | Passed | Failed |
 | --- | ---: | ---: |
-| PHP 7.4.33 | 3,852 | 0 |
-| PHP 8.3.18 | 3,852 | 0 |
-| PHP 8.4.22 | 3,852 | 0 |
-| Node.js 22.23.1 | 455 | 0 |
+| PHP 7.4.33 | 3,673 | 0 |
+| PHP 8.3.18 | 3,673 | 0 |
+| PHP 8.4.22 | 3,673 | 0 |
+| Node.js 22.23.1 | 387 | 0 |
 
 PHP totals include 325 separate-request administration lifecycle assertions.
-The final Node total includes the corrected stylesheet-readiness handoff tests.
+The JavaScript total includes the corrected compact-help/status and responsive
+help-target expectations; the three obsolete assertion failures are resolved.
 Earlier phase totals remain in their historical records. These complete suites
 ran outside the restricted sandbox so private temporary fixtures could perform
 atomic filesystem operations. Candidate preparation reuses this verification

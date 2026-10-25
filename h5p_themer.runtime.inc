@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * Color and reserved density tokens; no content changes or managed file records.
+ * Global color runtime; no density, content changes, or managed file records.
  * SPDX-License-Identifier: GPL-2.0-or-later.
  */
 
@@ -12,48 +12,21 @@ function h5p_themer_runtime_theme() {
     : array('data' => NULL, 'errors' => array($compatibility['message']));
 }
 
-/** Fixed module-owned spacing, independent of colors and native H5P aliases. */
-function h5p_themer_density_tokens($density) {
-  $values = array(
-    'small' => array('1.92rem', '1.28rem', '0.96rem', '0.64rem', '0.416rem', '0.32rem'),
-    'medium' => array('2.4rem', '1.6rem', '1.2rem', '0.8rem', '0.52rem', '0.4rem'),
-    'large' => array('3rem', '2rem', '1.5rem', '1rem', '0.65rem', '0.5rem'),
-  );
-  if (!is_string($density) || !isset($values[$density])) { return NULL; }
-  $tokens = array();
-  foreach (array('xl', 'l', 'm', 's', 'xs', 'xxs') as $i => $suffix) {
-    $tokens['--h5p-themer-density-space-' . $suffix] = $values[$density][$i];
-  }
-  return $tokens;
-}
-
-/** Trusted density declarations; Core/built-ins never acquire a profile. */
-function _h5p_themer_density_declarations(array $theme) {
-  if ($theme['kind'] !== 'custom') { return ''; }
-  $tokens = h5p_themer_density_tokens(isset($theme['density']) ? $theme['density'] : NULL);
-  if ($tokens === NULL) { return NULL; }
-  $css = '';
-  foreach ($tokens as $property => $value) { $css .= '  ' . $property . ': ' . $value . ";\n"; }
-  return $css;
-}
-
 /**
- * Compiles resolved data into trusted rules, never administrator-supplied CSS.
+ * Serializes resolved data, never arbitrary CSS, selectors, or catalog metadata.
  *
- * Empty rules mean no overrides. Catalog-only properties are omitted only
+ * Empty CSS means no color overrides. Catalog-only properties are omitted only
  * when their exact provenance is established. Custom input stays hex-only.
  */
-function h5p_themer_runtime_rules(array $theme, $playback = TRUE) {
+function h5p_themer_runtime_serialize(array $theme) {
   $invalid = array('data' => NULL, 'errors' => array(t('Invalid runtime theme colors.')));
   if (!isset($theme['kind'], $theme['colors']) || !is_array($theme['colors']) ||
       !in_array($theme['kind'], array('core', 'builtin', 'custom'), TRUE)) {
     return $invalid;
   }
   if ($theme['kind'] === 'core') {
-    return $theme['colors'] === array() ? array('data' => array(), 'errors' => array()) : $invalid;
+    return $theme['colors'] === array() ? array('data' => '', 'errors' => array()) : $invalid;
   }
-  $density = _h5p_themer_density_declarations($theme);
-  if ($density === NULL) { return $invalid; }
   $preset = NULL;
   if ($theme['kind'] === 'builtin') {
     $loaded = h5p_themer_preset_load(isset($theme['id']) ? $theme['id'] : NULL, isset($theme['version']) ? $theme['version'] : NULL);
@@ -88,64 +61,7 @@ function h5p_themer_runtime_rules(array $theme, $playback = TRUE) {
       $declarations .= '  ' . $property . ': ' . $theme['colors'][$property] . ";\n";
     }
   }
-  $declarations .= $density;
-  $rules = array();
-  if ($playback && $theme['kind'] === 'custom') {
-    // A unitless, fixed profile lets the consumer read its own native baseline.
-    // Resetting this property also neutralizes a stale global consumer rule.
-    $factors = array('small' => '0.8', 'medium' => '1', 'large' => '1.25');
-    $declarations .= '  --h5p-themer-density-evaluation-row-factor: ' . $factors[$theme['density']] . ";\n";
-  }
-  if ($declarations !== '') { $rules[] = array('paths' => array(array()), 'declarations' => $declarations); }
-  if ($playback && $theme['kind'] === 'custom') {
-    $rules[] = array('density_gate' => TRUE, 'paths' => array(array('.h5p-container.h5p-question.h5p-theme.h5p-true-false', '.h5p-question-evaluation-container.evaluation-mode')),
-      'declarations' => "  row-gap: calc(var(--h5p-theme-spacing-s) * var(--h5p-themer-density-evaluation-row-factor, 1));\n");
-  }
-  return array('data' => $rules, 'errors' => array());
-}
-
-/**
- * Renders module-owned rules against explicit trusted roots, never parsed CSS.
- *
- * Each path is a chain of direct-child compound class selectors. Empty paths
- * target the root. Every branch is rooted separately; sibling combinators,
- * selector lists and arbitrary ancestor selectors cannot escape that root.
- * Roots and declarations are internal compiled data, never configuration input.
- * Descendant consumers are fixed module-owned paths, not configurable selectors.
- */
-function _h5p_themer_runtime_render_rules(array $rules, array $roots) {
-  if (!$roots) { return NULL; }
-  foreach ($roots as $root) {
-    if (!is_string($root) || $root === '' || preg_match('/[,{};\r\n]/', $root)) { return NULL; }
-  }
-  $css = '';
-  foreach ($rules as $rule) {
-    if (!isset($rule['paths'], $rule['declarations']) || !is_array($rule['paths']) || !$rule['paths'] ||
-        !is_string($rule['declarations']) || preg_match('/[{}]/', $rule['declarations'])) { return NULL; }
-    $selectors = array();
-    foreach ($roots as $root) {
-      foreach ($rule['paths'] as $path) {
-        if (!is_array($path)) { return NULL; }
-        if (isset($rule['density_gate']) && $rule['density_gate'] !== TRUE) { return NULL; }
-        $selector = $root . (!empty($rule['density_gate']) ? '[data-h5p-themer-density-ready]' : '');
-        foreach ($path as $component) {
-          if (!is_string($component) || !preg_match('/\A(?:\.[a-zA-Z_][a-zA-Z0-9_-]*)+\z/', $component)) { return NULL; }
-          $selector .= ' > ' . $component;
-        }
-        $selectors[] = $selector;
-      }
-    }
-    if ($rule['declarations'] !== '') { $css .= implode(', ', $selectors) . " {\n" . $rule['declarations'] . "}\n"; }
-  }
-  return $css;
-}
-
-/** Canonical global CSS uses the same structured rules as learner scopes. */
-function h5p_themer_runtime_serialize(array $theme, $playback = TRUE) {
-  $rules = h5p_themer_runtime_rules($theme, $playback);
-  if ($rules['errors']) { return $rules; }
-  $css = _h5p_themer_runtime_render_rules($rules['data'], array('.h5p-content'));
-  return $css === NULL ? array('data' => NULL, 'errors' => array(t('Invalid runtime rules.'))) : array('data' => $css, 'errors' => array());
+  return array('data' => $declarations === '' ? '' : ".h5p-content {\n" . $declarations . "}\n", 'errors' => array());
 }
 
 /** Produces CSS without file, cache, or configuration writes. */
@@ -178,7 +94,7 @@ function _h5p_themer_runtime_existing($path, $css) {
  * Temporary bytes are verified before rename; existing bad files are not repaired.
  */
 function h5p_themer_runtime_asset($css, $format = 'colors-v1') {
-  if (!in_array($format, array('colors-v1', 'learner-v1', 'global-v1'), TRUE)) {
+  if (!in_array($format, array('colors-v1', 'learner-v1'), TRUE)) {
     return array('data' => NULL, 'errors' => array(t('Unsupported theme asset format.')));
   }
   if ($css === '') { return array('data' => NULL, 'errors' => array()); }
@@ -242,7 +158,7 @@ function h5p_themer_runtime_asset($css, $format = 'colors-v1') {
   }
 }
 
-/** Captures runtime identity and generated color/density output, excluding labels. */
+/** Captures only runtime identity/colors; density/labels do not affect output. */
 function h5p_themer_runtime_cache_snapshot() {
   $selection = h5p_themer_runtime_theme();
   if ($selection['errors']) { return 'invalid'; }

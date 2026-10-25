@@ -10,13 +10,11 @@ const properties = [...configSource.match(/function h5p_themer_color_properties\
 const mint = JSON.parse(fs.readFileSync(path.join(__dirname, '../fixtures/moodle-presets-478fed30d2a4.json'), 'utf8')).themes.mint.values;
 const cta = '--h5p-theme-main-cta-base', bg = '--h5p-theme-background', mix = '--h5p-theme-contrast-cta-light';
 function serialize(inherited, values) { const rows = properties.filter(k => values[k] || inherited[k]).map(k => '  ' + k + ': ' + (values[k] || inherited[k]) + ';\n').join(''); return rows ? '.h5p-content {\n' + rows + '}\n' : ''; }
-const densityValues = Object.fromEntries(Object.entries({small:[1.92,1.28,0.96,0.64,0.416,0.32],medium:[2.4,1.6,1.2,0.8,0.52,0.4],large:[3,2,1.5,1,0.65,0.5]}).map(([density, values]) => [density, Object.fromEntries(['xl','l','m','s','xs','xxs'].map((s,i) => ['--h5p-themer-density-space-'+s,values[i]+'rem']))]));
-function fixture({ density = 'medium', legacy = false, saved = { [cta]: '#3366CC' }, draft = {}, ready = true, disabled = false } = {}) {
+function fixture({ legacy = false, saved = { [cta]: '#3366CC' }, draft = {}, ready = true, disabled = false } = {}) {
   const h = createHarness(); h.loadModule('h5p_themer.preview.js');
   const form = h.doc.createElement('form'); h.doc.body.appendChild(form);
   const inherited = legacy ? {} : Object.fromEntries(properties.map(k => [k, mint[k]]));
-  const data = { properties, saved: { ...saved }, inherited, density, density_values: structuredClone(densityValues) };
-  const densityField = h.doc.createElement('select'); densityField.setAttribute('name','density'); densityField.value = density; densityField.defaultValue = density; form.appendChild(densityField);
+  const data = { properties, saved: { ...saved }, inherited };
   const fields = {};
   for (const [index, key] of properties.entries()) {
     const label = h.doc.createElement('label'), input = h.doc.createElement('input'); input.id = 'edit-color-' + index;
@@ -30,7 +28,6 @@ function fixture({ density = 'medium', legacy = false, saved = { [cta]: '#3366CC
   const heading = h.doc.createElement('h3'); heading.className = 'h5p-themer-preview-heading'; heading.textContent = 'Saved theme preview'; panel.appendChild(heading);
   const frame = h.doc.createElement('iframe'); frame.className = 'h5p-themer-preview-frame'; frame.setAttribute('sandbox', 'allow-same-origin'); frame.setAttribute('title', 'Saved theme preview: Copy of Mint'); frame.setAttribute('srcdoc', 'immutable original document'); panel.appendChild(frame);
   const inner = createHarness().doc, main = inner.createElement('main'), style = inner.createElement('style'); main.className = 'h5p-themer-preview-sample h5p-content'; style.id = 'h5p-themer-preview-overrides'; style.textContent = serialize(inherited, saved); inner.body.appendChild(style); inner.body.appendChild(main);
-  const densityStyle = inner.createElement('style'); densityStyle.id = 'h5p-themer-preview-density'; inner.body.appendChild(densityStyle);
   const coreStyle = inner.createElement('style'); coreStyle.id = 'h5p-themer-preview-core'; coreStyle.textContent = 'immutable Core CSS'; inner.body.appendChild(coreStyle);
   const sampleStyle = inner.createElement('style'); sampleStyle.id = 'h5p-themer-preview-sample'; sampleStyle.textContent = 'immutable sample CSS'; inner.body.appendChild(sampleStyle);
   frame.contentDocument = ready ? inner : null;
@@ -39,46 +36,10 @@ function fixture({ density = 'medium', legacy = false, saved = { [cta]: '#3366CC
   const savedJSON = JSON.stringify(saved); let submits = 0; form.submit = form.requestSubmit = () => { submits++; throw Error('Forbidden automatic save'); };
   function attach(context = h.doc) { h.Backdrop.behaviors.h5pThemerLivePreview.attach(context); }
   function edit(key, value, event = 'input') { fields[key].value = value; fields[key].dispatchEvent(new h.Event(event)); }
-  function reset() { form.dispatchEvent(new h.Event('reset')); for (const input of Object.values(fields)) input.value = input.defaultValue; densityField.value = densityField.defaultValue; h.flushTimers(); }
+  function reset() { form.dispatchEvent(new h.Event('reset')); for (const input of Object.values(fields)) input.value = input.defaultValue; h.flushTimers(); }
   function unchanged() { assert.equal(JSON.stringify(saved), savedJSON); assert.equal(submits, 0); assert.equal(frame.getAttribute('srcdoc'), 'immutable original document'); assert.equal(frame.getAttribute('sandbox'), 'allow-same-origin'); assert.equal(coreStyle.textContent, 'immutable Core CSS'); assert.equal(sampleStyle.textContent, 'immutable sample CSS'); assert.deepEqual(comparison.contentDocument, { untouched: true }); }
-  return { densityField, densityStyle, h, form, fields, panel, heading, frame, inner, style, status, data, inherited, attach, edit, reset, unchanged };
+  return { h, form, fields, panel, heading, frame, inner, style, status, data, inherited, attach, edit, reset, unchanged };
 }
-
-for (const density of ['small', 'medium', 'large']) {
-  test('live Density ' + density + ' survives later color edits without protected declarations', () => {
-    const f = fixture(); f.attach();
-    f.densityField.value = density; f.densityField.dispatchEvent(new f.h.Event('change'));
-    const css = f.densityStyle.textContent;
-    for (const [property, value] of Object.entries(densityValues[density])) assert.ok(css.includes(property + ': ' + value + ';'));
-    assert.equal((css.match(/^  --h5p-themer-density-space-/gm) || []).length, 6);
-    assert.doesNotMatch(css, /(?:font|padding|width|height|transform|zoom|scaling|--h5p-theme-spacing)\s*:/);
-    f.edit(cta, '#AbC'); assert.equal(f.densityStyle.textContent, css);
-    assert.ok(f.style.textContent.includes('#AbC')); assert.doesNotMatch(f.style.textContent, /density-space/);
-    assert.equal(f.data.density, 'medium'); f.unchanged();
-  });
-  test('saved Density ' + density + ' and native reset preserve the saved profile', () => {
-    const f = fixture({ density }); f.attach(); const saved = f.densityStyle.textContent;
-    f.densityField.value = density === 'small' ? 'large' : 'small'; f.densityField.dispatchEvent(new f.h.Event('change'));
-    assert.notEqual(f.densityStyle.textContent, saved); f.edit(cta, '#abc'); f.reset();
-    assert.equal(f.densityStyle.textContent, saved); assert.equal(f.densityField.value, density); assert.match(f.heading.textContent, /^Saved/); f.unchanged();
-  });
-}
-test('invalid Density retains its last valid profile across valid color edits', () => {
-  const f = fixture(); f.attach(); f.densityField.value = 'small'; f.densityField.dispatchEvent(new f.h.Event('change'));
-  const valid = f.densityStyle.textContent;
-  f.densityField.value = 'wide; transform:scale(2)'; f.densityField.dispatchEvent(new f.h.Event('change')); f.edit(cta, '#abc');
-  assert.equal(f.densityStyle.textContent, valid); assert.match(f.status.textContent, /Invalid/); f.unchanged();
-});
-test('disabled Density does not preview a tampered selection', () => {
-  const f = fixture(); f.attach(); const saved = f.densityStyle.textContent;
-  f.densityField.disabled = true; f.densityField.value = 'large'; f.densityField.dispatchEvent(new f.h.Event('change')); f.edit(cta, '#abc');
-  assert.equal(f.densityStyle.textContent, saved); f.unchanged();
-});
-for (const value of ['3rem; font-size:2rem', '99rem', '0rem', 'calc(1rem)', '1px']) test('unsafe Density metadata is refused: ' + value, () => {
-  const f = fixture(); f.data.density_values.small['--h5p-themer-density-space-s'] = value;
-  f.panel.setAttribute('data-h5p-themer-preview', JSON.stringify(f.data)); f.attach();
-  assert.equal(f.fields[cta].listeners.input, undefined); assert.equal(f.densityStyle.textContent, '');
-});
 test('initial Copy of Mint is saved #3366CC with no input writes', () => {
   const f = fixture(); const original = f.style.textContent; f.attach(); assert.equal(f.style.textContent, original); assert.match(original, /#3366CC/); assert.match(f.heading.textContent, /^Saved/); assert.ok(Object.values(f.fields).every(i => i.valueWrites === 0)); f.unchanged();
 });

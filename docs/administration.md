@@ -3,10 +3,8 @@
 SPDX-License-Identifier: GPL-2.0-or-later.
 
 The implemented module provides immutable built-ins, both custom-theme schemas,
-native picker companions, global colors and saved/live theme previews.
-Custom-theme Density affects representative preview spacing and guarded top-level
-themed H5P.TrueFalse evaluation-row spacing. See [Density scope](density-phase2a.md),
-[installation and upgrades](installation.md)
+native picker companions, global color runtime and saved/unsaved theme previews.
+Stored density is not applied. See [installation and upgrades](installation.md)
 and the [v0.2.0 release notes](release-notes-v0.2.0.md).
 
 ## Routes and access
@@ -474,9 +472,9 @@ checkpoint-specific totals and pending-test statements.
 ## Global runtime colors
 
 Choosing a global theme makes its supported colors available to compatible H5P
-playback after reload. Core/null means no Themer color or Density overrides;
-ordinary playback can still load shared runtime assets. Learner switching is
-optional. Built-ins use exact catalog values; schema-1
+playback after reload. With learner selection disabled, Core/null means no
+Themer overrides, generated asset or public-directory creation. Enabled supported
+playback loads the immutable learner bundle even when global Core is selected. Built-ins use exact catalog values; schema-1
 customs use stored sparse overrides; schema-2 customs use the pinned base and
 sparse overrides. Unresolvable global references or incompatible APIs add no
 overrides. If learner preparation fails, the existing global path remains available
@@ -494,25 +492,12 @@ caches need context-specific qualification.
 Generated public CSS is immutable derived cache data named with serializer
 version and CSS hash. Verified files are reused; lock contention may leave a
 request temporarily unthemed. Successful global-reference or selected-custom
-color or Density changes invalidate native page/layout caches. The enabled learner UI also
+color changes invalidate native page/layout caches. The enabled learner UI also
 invalidates for its toggle, displayed catalog and any selectable palette changes.
 No-op and rejected saves do not. Open pages retain their server-rendered global/catalog snapshot until refresh;
 cache invalidation does not subscribe them to administrator changes. Existing imports
 retain native cache handling; direct programmatic changes require caller-managed
-invalidation.
-
-Custom themes offer **Small**, **Medium** and **Large** Density. Small makes the
-supported spacing compact; Medium preserves the native baseline; Large makes it
-more spacious. Playback changes only the vertical gap between evaluation rows
-in guarded top-level themed H5P.TrueFalse content. It works with a Global Default
-custom theme whether learner switching is enabled or disabled, and with an
-explicit learner-selected custom theme. Learner choices remain page-wide.
-
-Core and built-in palette selections preserve native playback spacing.
-Unsupported, nested, external or ambiguously identified players also retain
-native spacing. Guarded playback Density requires JavaScript; without it, colors
-remain available and playback spacing stays native. This is not universal
-Density support across H5P libraries. See [Density scope and qualification](density-phase2a.md).
+invalidation. Stored density remains editable but is not applied.
 
 Code deployments that change the fixed-path learner JavaScript require the
 [targeted JS/output cache procedure](installation.md#deployment-cache-refresh).
@@ -532,22 +517,18 @@ emitted. No actual H5P activity is created or edited by this sample.
 
 The frame embeds trusted fixed Core/sample CSS, not remote fonts or activity
 assets, with a restrictive CSP and no `allow-scripts`. Rendering does not write
-configuration, content, caches or runtime CSS files. Custom-theme Density changes
-representative sample padding, margins and gaps; Core and built-in previews retain
-their native spacing. Preview button padding and typography are unchanged.
+configuration, content, caches or runtime CSS files. Density is not applied.
 The appearance is representative and cannot certify every library's rendering,
 contrast, keyboard behavior or accessibility.
 
 ## Live Preview of unsaved custom colors
 
 Custom Edit starts from the saved theme. Parent-side JavaScript updates only
-the color preview as valid authoritative hex fields change.
+the dedicated override style block as valid authoritative hex fields change.
 Native picker changes synchronize through those same textfields. Multiple valid
 overrides combine; labels distinguish saved colors from an unsaved draft.
 The iframe document, Core/sample styles, Core comparison, CSP and sandbox do not
-change for a keystroke. Selecting Small, Medium or Large updates preview spacing
-independently, so later color edits preserve the selected Density. Neither change
-is saved until the normal Save action succeeds.
+change for a keystroke.
 
 Blank restores exact pinned inheritance for schema 2, including trusted
 expressions; schema-1 blank removes the declaration for the actual Core cascade.
@@ -555,7 +536,7 @@ Invalid/incomplete input is left in its textfield, retains the field's last vali
 preview color and displays an explanatory message. Server validation still
 rejects invalid values on Save.
 
-Reverting colors/Density or native form reset restores the corresponding form defaults.
+Reverting colors or native form reset restores the corresponding form defaults.
 Reset is observed; the module does not add a separate reset button. A cancelled
 reset remains cancelled. Preview updates do not submit, save, fetch or publish
 runtime CSS. Only the normal explicit **Save** action can persist validated edits.
@@ -575,8 +556,7 @@ confirms theme compatibility and stylesheet readiness. The controller recognizes
 the existing library-owned `.h5p-theme` class on that player's own direct
 `.h5p-container`; a class in nested content or an unrelated activity does not
 qualify it. Legacy/unmarked libraries may remain unrecognized even if they can
-consume some theme variables. Color eligibility has no library-version allowlist;
-playback Density has the narrower True/False scope described above.
+consume some theme variables. There is no library-version allowlist.
 
 One control themes eligible DIV and validated internal-iframe players. Ineligible
 DIV siblings and iframe documents retain normal administrator-global styling.

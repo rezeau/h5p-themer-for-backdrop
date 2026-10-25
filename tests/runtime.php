@@ -28,12 +28,6 @@ function runtime_fixture_css(array $colors) {
 function runtime_fixture_select($id) {
   seed('h5p_themer.settings', fixture_typed_settings(array('kind' => 'builtin', 'id' => $id, 'version' => 'moodle-478fed30d2a4')));
 }
-function runtime_fixture_custom_css($color_css, $density) {
-  $factor = array('small' => '0.8', 'medium' => '1', 'large' => '1.25');
-  return str_replace("}\n", _h5p_themer_density_declarations(array('kind' => 'custom', 'density' => $density)) .
-    '  --h5p-themer-density-evaluation-row-factor: ' . $factor[$density] . ";\n}\n", $color_css) .
-    ".h5p-content[data-h5p-themer-density-ready] > .h5p-container.h5p-question.h5p-theme.h5p-true-false > .h5p-question-evaluation-container.evaluation-mode {\n  row-gap: calc(var(--h5p-theme-spacing-s) * var(--h5p-themer-density-evaluation-row-factor, 1));\n}\n";
-}
 function runtime_fixture_remove($directory, $root) {
   $real = realpath($directory);
   if ($real === FALSE || strpos(str_replace('\\', '/', $real) . '/', str_replace('\\', '/', $root) . '/') !== 0 || is_link($directory)) {
@@ -66,13 +60,13 @@ try {
   $writes = H5PThemerMemoryStorage::$writes; $bytes = H5PThemerMemoryStorage::$raw; $invalidations = $runtime_cache_invalidations;
   foreach (array('div', 'iframe', 'external') as $mode) {
     $styles = array(); h5p_themer_h5p_styles_alter($styles, array(), $mode);
-    check($mode === 'external' ? $styles === array() : count($styles) === 1 && strpos(h5p_themer_playback_bundle()['data']['css'], 'row-gap:') === FALSE, 'Core has readiness only internally, no Density consumer: ' . $mode);
+    check($styles === array(), 'Core adds no stylesheet: ' . $mode);
   }
-  check($runtime_wrapper_calls > 0 && is_dir($runtime_public_root . '/h5p_themer'), 'Internal Core publishes shared lifecycle readiness without configuration changes');
+  check($runtime_wrapper_calls === 0 && !file_exists($runtime_public_root . '/h5p_themer'), 'Core does not even inspect public storage or create a directory');
   check(H5PThemerMemoryStorage::$raw === $bytes && H5PThemerMemoryStorage::$writes === $writes && $runtime_cache_invalidations === $invalidations, 'Core playback makes no configuration or cache writes');
   $empty = fixture_theme('empty'); $empty['colors'] = array(); seed('h5p_themer.theme.empty', $empty); seed('h5p_themer.settings', fixture_settings('empty'));
   $styles = array(); h5p_themer_h5p_styles_alter($styles, array(), 'iframe');
-  check(count($styles) === 1 && $runtime_wrapper_calls > 0, 'Schema 1 empty colors still publish reserved density tokens');
+  check($styles === array() && $runtime_wrapper_calls === 0, 'Schema 1 empty sparse colors generate no file (density is ignored)');
 
   $mint_css = NULL;
   foreach (array('daylight', 'lavender', 'mint', 'sunset', 'dark') as $id) {
@@ -92,7 +86,6 @@ try {
   $legacy['colors'] = array('--h5p-theme-background' => '#aBc', '--h5p-theme-main-cta-base' => '#Aa00fF');
   seed('h5p_themer.theme.legacy_runtime', $legacy); seed('h5p_themer.settings', fixture_settings('legacy_runtime'));
   $legacy_css = ".h5p-content {\n  --h5p-theme-main-cta-base: #Aa00fF;\n  --h5p-theme-background: #aBc;\n}\n";
-  $legacy_css = runtime_fixture_custom_css($legacy_css, 'large');
   check(h5p_themer_runtime_css()['data'] === $legacy_css, 'Schema 1 emits only exact sparse hex strings in allowlist order');
   $resolved = h5p_themer_default_selection_load()['data']; $resolved['colors'] = array_reverse($resolved['colors'], TRUE);
   check(h5p_themer_runtime_serialize($resolved)['data'] === $legacy_css, 'Input map ordering does not affect serialization');
@@ -112,7 +105,7 @@ try {
   $pinned = fixture_pinned_theme('pinned_runtime', 'mint'); $pinned['colors'] = array('--h5p-theme-main-cta-base' => '#AbC');
   seed('h5p_themer.theme.pinned_runtime', $pinned); seed('h5p_themer.settings', fixture_settings('pinned_runtime'));
   $expected_colors = array_replace($fixture['themes']['mint']['values'], $pinned['colors']);
-  check(h5p_themer_runtime_css()['data'] === runtime_fixture_custom_css(runtime_fixture_css($expected_colors), $pinned['density']), 'Schema 2 emits exact inherited values plus sparse override');
+  check(h5p_themer_runtime_css()['data'] === runtime_fixture_css($expected_colors), 'Schema 2 emits exact inherited values plus sparse override');
   check(h5p_themer_theme_load('pinned_runtime')['data'] === $pinned, 'Runtime never flattens or migrates stored schema 2 colors');
   $bad = h5p_themer_default_selection_load()['data']; $bad['colors']['--h5p-theme-contrast-cta-light'] = 'rgba(1,2,3,.5)';
   check((bool) h5p_themer_runtime_serialize($bad)['errors'], 'Noncatalog inherited expression rejected even with a valid base');
@@ -135,14 +128,12 @@ try {
   }
   $writes = H5PThemerMemoryStorage::$writes; $bytes = H5PThemerMemoryStorage::$raw; $invalidations = $runtime_cache_invalidations;
   foreach (array('div', 'iframe', 'external') as $mode) {
-    $expected_css = $mode === 'external' ? $mint_css : h5p_themer_playback_bundle()['data']['css'];
-    $format = $mode === 'external' ? 'colors-v1' : 'global-v1';
     $original = (object) array('path' => 'existing.css', 'version' => '?ver=1');
     $styles = array($original); h5p_themer_h5p_styles_alter($styles, array('H5P.GuessIt' => array('majorVersion' => 1, 'minorVersion' => 9)), $mode);
     check(count($styles) === 2 && $styles[0] === $original && $styles[1]->version === '', 'Appends one local stylesheet without altering dependencies: ' . $mode);
-    check($styles[1]->path === 'files/h5p_themer/' . $format . '-' . hash('sha256', $expected_css) . '.css', 'Serializer version/hash in the real path: ' . $mode);
+    check($styles[1]->path === 'files/h5p_themer/colors-v1-' . hash('sha256', $mint_css) . '.css', 'Serializer version/hash in the real path: ' . $mode);
     $target = $runtime_public_root . '/h5p_themer/' . basename($styles[1]->path);
-    check(file_get_contents($target) === $expected_css && !is_link($target), 'Real private fixture file has exact CSS: ' . $mode);
+    check(file_get_contents($target) === $mint_css && !is_link($target), 'Real private fixture file has exact CSS: ' . $mode);
     touch($target, 946684800); clearstatcache(TRUE, $target);
     $mtime = filemtime($target);
     h5p_themer_h5p_styles_alter($styles, array(), $mode); clearstatcache(TRUE, $target);
@@ -162,7 +153,7 @@ try {
 
   // Existing invalid bytes are never overwritten or attached.
   file_put_contents($target, 'unexpected');
-  $styles = array(); h5p_themer_h5p_styles_alter($styles, array(), 'external');
+  $styles = array(); h5p_themer_h5p_styles_alter($styles, array(), 'iframe');
   check($styles === array() && file_get_contents($target) === 'unexpected', 'Corrupt existing CSS fails closed and is preserved');
   file_put_contents($target, $mint_css);
   $css2 = str_replace('#187571', '#aBc', $mint_css);
@@ -261,27 +252,27 @@ try {
   check(!$result['errors'] && $runtime_cache_invalidations === 3, 'Selecting a custom theme invalidates cached pages');
   $input = array_replace($selected, array('label' => 'Changed metadata', 'density' => 'small')); unset($input['schema_version']);
   $result = admin_post(admin_form('theme', 'edit', 'cache_selected'), $input);
-  check(!$result['errors'] && $runtime_cache_invalidations === 4, 'Density-only edit invalidates selected output');
+  check(!$result['errors'] && $runtime_cache_invalidations === 3, 'Metadata/density-only edit does not invalidate colors-only output');
   $input['colors']['--h5p-theme-main-cta-base'] = '#aBc';
   $result = admin_post(admin_form('theme', 'edit', 'cache_selected'), $input);
-  check(!$result['errors'] && $runtime_cache_invalidations === 5, 'Selected custom color edit invalidates cached pages');
+  check(!$result['errors'] && $runtime_cache_invalidations === 4, 'Selected custom color edit invalidates cached pages');
   $other_input = $input; $other_input['id'] = 'cache_other';
   $result = admin_post(admin_form('theme', 'edit', 'cache_other'), $other_input);
-  check(!$result['errors'] && $runtime_cache_invalidations === 5, 'Unselected custom edit does not invalidate playback caches');
+  check(!$result['errors'] && $runtime_cache_invalidations === 4, 'Unselected custom edit does not invalidate playback caches');
   $copy = $input; $copy['id'] = 'cache_copy';
   $result = admin_post(admin_form('theme', 'duplicate', 'cache_selected'), $copy);
-  check(!$result['errors'] && $runtime_cache_invalidations === 5, 'Custom duplication does not invalidate the selected source');
+  check(!$result['errors'] && $runtime_cache_invalidations === 4, 'Custom duplication does not invalidate the selected source');
   $bad_input = $input; $bad_input['colors']['--h5p-theme-main-cta-base'] = 'red';
   $bytes = H5PThemerMemoryStorage::$raw;
   $result = admin_post(admin_form('theme', 'edit', 'cache_selected'), $bad_input);
-  check((bool) $result['errors'] && $runtime_cache_invalidations === 5 && H5PThemerMemoryStorage::$raw === $bytes, 'Rejected edits do not invalidate caches or write configuration');
+  check((bool) $result['errors'] && $runtime_cache_invalidations === 4 && H5PThemerMemoryStorage::$raw === $bytes, 'Rejected edits do not invalidate caches or write configuration');
   H5PThemerMemoryStorage::$failWrite = TRUE; $input['colors']['--h5p-theme-main-cta-base'] = '#123456';
   $result = admin_post(admin_form('theme', 'edit', 'cache_selected'), $input);
-  check((bool) $result['errors'] && $runtime_cache_invalidations === 5 && H5PThemerMemoryStorage::$raw === $bytes, 'Storage-failed saves do not invalidate caches');
+  check((bool) $result['errors'] && $runtime_cache_invalidations === 4 && H5PThemerMemoryStorage::$raw === $bytes, 'Storage-failed saves do not invalidate caches');
   H5PThemerMemoryStorage::$failWrite = FALSE;
   $write_locked = TRUE;
   $result = admin_post(admin_form('default'), array('default_theme' => 'builtin:dark'));
-  check((bool) $result['errors'] && $runtime_cache_invalidations === 5 && H5PThemerMemoryStorage::$raw === $bytes, 'Lock-rejected default save does not invalidate caches');
+  check((bool) $result['errors'] && $runtime_cache_invalidations === 4 && H5PThemerMemoryStorage::$raw === $bytes, 'Lock-rejected default save does not invalidate caches');
   $write_locked = FALSE;
   check(h5p_themer_presets($version)['data'] === $catalog_before, 'Every runtime attempt preserves all exact catalog data');
   check(count(h5p_themer_menu()) === 9 && function_exists('h5p_themer_h5p_scripts_alter'), 'Existing administration routes preserve parent-only learner hook');

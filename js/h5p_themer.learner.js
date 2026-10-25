@@ -1,11 +1,10 @@
-/** Tab-session themes and bounded native layout notifications. GPL-3.0-or-later. */
+/** Tab-session learner switching; no H5P lifecycle or server preference APIs. GPL-3.0-or-later. */
 (function (Backdrop, document, window) {
   'use strict';
   var panel = null, observer = null, options = null, selected = 'site_default';
   var frames = [], owned = [], listening = false, pageShowListening = false;
   var preferenceInitialized = false, storageKey = null, storageUnavailable = false;
   var attribute = 'data-h5p-themer-learner', eligibility = 'data-h5p-themer-eligible';
-  var densityGate = 'data-h5p-themer-density-ready';
   var preferenceSettings = null, restorePending = false;
   var players = '.h5p-content[data-content-id], iframe.h5p-iframe[data-content-id]';
   var editors = '.h5peditor, .h5p-editor, #h5p-editor, form[id^="h5p-content-node-form"], form.node-h5p-content-form';
@@ -51,7 +50,7 @@
     } catch (e) { storageUnavailable = true; }
   }
   function pageRestored(event) {
-    if (!event.persisted || !options || !options.enabled) { return; }
+    if (!event.persisted || !options) { return; }
     // Defer even invalid-preference cleanup until this page can use a theme.
     restorePending = true;
     refresh();
@@ -71,123 +70,7 @@
     if (supported) { if (!root.hasAttribute(eligibility)) { root.setAttribute(eligibility, ''); } }
     else { root.removeAttribute(eligibility); }
   }
-  function cancelResize(frame) {
-    frame.resizeEpoch = (frame.resizeEpoch || 0) + 1;
-    try {
-      if (frame.resizeJob != null && frame.resizeView) { frame.resizeView.cancelAnimationFrame(frame.resizeJob); }
-    } catch (e) { /* A navigated/detached window may no longer be accessible. */ }
-    frame.resizeJob = null; frame.resizeView = null; frame.beforeGap = null;
-  }
-  // Registry lookup is realm-local; IDs alone never identify another iframe.
-  function densityOwner(frame) {
-    if (frame.state !== 'SUPPORTED' || !ready(document) || !ready(frame.doc)) { return null; }
-    return densityIdentity(frame);
-  }
-  // Identity can be checked while CSS is pending only to retain a measurement.
-  // Activation and every native request still require densityOwner readiness.
-  function densityIdentity(frame) {
-    try {
-      if (!frame.content || !frame.container ||
-          frame.content.ownerDocument !== frame.doc || frame.container.parentNode !== frame.content ||
-          (!frame.framed && (frame.doc !== document || frame.content !== frame.node)) ||
-          !document.documentElement.contains(frame.node) ||
-          !frame.container.matches('.h5p-container.h5p-question.h5p-theme.h5p-true-false')) { return null; }
-      if (frame.framed && !internalDocument(frame.node, frame.doc)) { return null; }
-      var view = frame.doc.defaultView, api = view.H5P;
-      var id = frame.content.getAttribute('data-content-id');
-      var normalize = function (value) {
-        if (typeof value !== 'string' && typeof value !== 'number') { return null; }
-        return /^[0-9]+$/.test(String(value)) ? String(value).replace(/^0+(?=[0-9])/, '') : null;
-      };
-      id = normalize(id);
-      if (!id || !api || !Array.isArray(api.instances) || typeof api.trigger !== 'function' ||
-          typeof view.requestAnimationFrame !== 'function' || typeof view.cancelAnimationFrame !== 'function') { return null; }
-      var roots = frame.doc.querySelectorAll('.h5p-content[data-content-id]');
-      if (Array.prototype.filter.call(roots, function (root) { return normalize(root.getAttribute('data-content-id')) === id; }).length !== 1) { return null; }
-      var matches = api.instances.filter(function (instance) { return instance && normalize(instance.contentId) === id; });
-      if (matches.length !== 1) { return null; }
-      var instance = matches[0], info = instance.libraryInfo;
-      if (instance === frame.densityFailed || !info || info.versionedName !== 'H5P.TrueFalse 1.8' ||
-          (info.machineName !== undefined && info.machineName !== 'H5P.TrueFalse') ||
-          (info.majorVersion !== '1' && info.majorVersion !== 1) || (info.minorVersion !== '8' && info.minorVersion !== 8) ||
-          typeof instance.isRoot !== 'function' || instance.isRoot() !== true || typeof instance.trigger !== 'function') { return null; }
-      return { view: view, api: api, instance: instance, doc: frame.doc, content: frame.content, container: frame.container };
-    } catch (e) { return null; }
-  }
-  function evaluationGap(frame) {
-    try {
-      var nodes = Array.prototype.filter.call(frame.container.children, function (node) {
-        return node.matches('.h5p-question-evaluation-container.evaluation-mode');
-      });
-      return nodes.length === 1 ? frame.doc.defaultView.getComputedStyle(nodes[0]).rowGap : 'inactive';
-    } catch (e) { return null; }
-  }
-  function densityProfile(frame) {
-    var value = frame.doc.defaultView.getComputedStyle(frame.content)
-      .getPropertyValue('--h5p-themer-density-evaluation-row-factor').trim();
-    return value === '0.8' || value === '1.25' ? value : '1';
-  }
-  function prepareDensity(frame) {
-    var owner = densityOwner(frame);
-    if (!owner) {
-      var applied = frame.densityApplied;
-      var identity = frame.state === 'PENDING' ? densityIdentity(frame) : null;
-      if (identity && applied && sameDensityOwner(identity, applied.owner)) {
-        if (!frame.densityTransition && frame.content.hasAttribute(densityGate)) {
-          // Capture before removing the gate. New CSS can precede its settings;
-          // the temporary native gap is not the player's previous geometry.
-          var profile = densityProfile(frame), pending = frame.resizeJob != null;
-          frame.densityTransition = { owner: identity, before: pending ? frame.beforeGap :
-            profile !== applied.profile ? applied.gap : evaluationGap(frame), suspended: true };
-        }
-      }
-      else { frame.densityTransition = null; frame.densityApplied = null; }
-      cancelResize(frame);
-      if (frame.content) { frame.content.removeAttribute(densityGate); }
-      return null;
-    }
-    var before = evaluationGap(frame), transition = frame.densityTransition;
-    if (transition && sameDensityOwner(transition.owner, owner) &&
-        (transition.suspended || transition.pending || transition.profile !== densityProfile(frame))) { before = transition.before; }
-    frame.densityTransition = null;
-    frame.content.setAttribute(densityGate, '');
-    return { owner: owner, before: before };
-  }
-  function sameDensityOwner(a, b) {
-    return a.instance === b.instance && a.view === b.view && a.doc === b.doc &&
-      a.content === b.content && a.container === b.container;
-  }
-  function finishDensity(frame, change) {
-    if (!change) { return; }
-    var after = evaluationGap(frame);
-    frame.densityApplied = { owner: change.owner, gap: after, profile: densityProfile(frame) };
-    if (after === null || after === change.before || after === 'inactive') { return; }
-    if (frame.resizeJob != null) { return; } // Keep earliest baseline, use latest CSS at delivery.
-    frame.beforeGap = change.before;
-    frame.resizeView = change.owner.view;
-    var epoch = frame.resizeEpoch || 0;
-    frame.resizeJob = change.owner.view.requestAnimationFrame(function () {
-      if (epoch !== (frame.resizeEpoch || 0)) { return; }
-      var before = frame.beforeGap;
-      frame.resizeJob = null; frame.resizeView = null; frame.beforeGap = null;
-      var owner = densityOwner(frame);
-      if (!owner || owner.instance !== change.owner.instance || owner.doc !== change.owner.doc ||
-          owner.content !== change.owner.content || owner.container !== change.owner.container) {
-        if (frame.content) { frame.content.removeAttribute(densityGate); }
-        return;
-      }
-      var gap = evaluationGap(frame);
-      if (gap === null || gap === 'inactive' || gap === before) { return; }
-      // No recreation, user-data, global dispatcher or iframe-height operations.
-      try { owner.api.trigger(owner.instance, 'resize'); } catch (e) {
-        frame.densityFailed = owner.instance;
-        frame.content.removeAttribute(densityGate);
-      }
-    });
-  }
   function disconnectView(frame) {
-    cancelResize(frame);
-    if (frame.content) { frame.content.removeAttribute(densityGate); }
     eligibilityFor(frame.content, false);
     if (frame.rootObserver) { frame.rootObserver.disconnect(); }
     if (frame.containerObserver) { frame.containerObserver.disconnect(); }
@@ -197,8 +80,6 @@
       forget(frame.doc);
     }
     frame.doc = null; frame.content = null; frame.container = null;
-    frame.densityFailed = null;
-    frame.densityApplied = null; frame.densityTransition = null;
     frame.rootObserver = null; frame.containerObserver = null;
   }
   function release(frame) {
@@ -245,8 +126,6 @@
       frame.state = !container.matches('.h5p-theme') ? 'UNSUPPORTED' :
         ready(document) && ready(doc) ? 'SUPPORTED' : 'PENDING';
     }
-    // Capture before eligibility changes can switch global/learner CSS branches.
-    frame.densityChange = prepareDensity(frame);
     eligibilityFor(content, frame.state === 'SUPPORTED');
   }
   function stop() {
@@ -267,7 +146,7 @@
   function apply(doc) {
     if (!ready(doc)) { clear(doc); return false; }
     if (owned.indexOf(doc) === -1) { owned.push(doc); }
-    if (!options.enabled || selected === 'site_default') { clear(doc); }
+    if (selected === 'site_default') { clear(doc); }
     else { doc.documentElement.setAttribute(attribute, options.keys[selected]); }
     return true;
   }
@@ -376,27 +255,22 @@
       return;
     }
     var restoredNote = '';
-    if (options.enabled) {
-      if (!preferenceInitialized) { restoredNote = initializePreference(preferenceSettings); restorePending = false; }
-      else if (restorePending) { restoredNote = restorePreference(); restorePending = false; }
-      if (!panel) { panel = buildPanel(); }
-      var root = supported[0].root;
-      if ((panel.nextSibling !== root || panel.parentNode !== root.parentNode) &&
-          !(panel.parentNode && document.activeElement && document.activeElement.closest('.h5p-themer-learner-controls') === panel)) { root.parentNode.insertBefore(panel, root); }
-      var select = panel.querySelector('select');
-      select.disabled = false;
-      if (select.value !== selected) { select.value = selected; }
-      if (Backdrop.h5pThemerLearnerPicker) { Backdrop.h5pThemerLearnerPicker.sync(select, options); }
-    }
-    else { removePanel(); }
+    if (!preferenceInitialized) { restoredNote = initializePreference(preferenceSettings); restorePending = false; }
+    else if (restorePending) { restoredNote = restorePreference(); restorePending = false; }
+    if (!panel) { panel = buildPanel(); }
+    var root = supported[0].root;
+    if ((panel.nextSibling !== root || panel.parentNode !== root.parentNode) &&
+        !(panel.parentNode && document.activeElement && document.activeElement.closest('.h5p-themer-learner-controls') === panel)) { root.parentNode.insertBefore(panel, root); }
+    var select = panel.querySelector('select');
+    select.disabled = false;
+    if (select.value !== selected) { select.value = selected; }
+    if (Backdrop.h5pThemerLearnerPicker) { Backdrop.h5pThemerLearnerPicker.sync(select, options); }
     apply(document);
     frames.forEach(function (frame) {
       if (!frame.framed || !frame.doc) { return; }
       if (frame.state === 'SUPPORTED') { apply(frame.doc); }
       else { forget(frame.doc); }
     });
-    frames.forEach(function (frame) { finishDensity(frame, frame.densityChange); frame.densityChange = null; });
-    if (!options.enabled) { return; }
     var partial = supported.length !== frames.length;
     var status = panel.querySelector('[role="status"]');
     var text = note || restoredNote || (partial ? options.partial : '');
@@ -411,8 +285,6 @@
     try {
       var envelope = (settings || Backdrop.settings || {}).h5pThemerLearner;
       var data = JSON.parse(envelope.payload);
-      if (data.version === 2 && data.enabled === false && data.mode === 'global' && validKey(data.bundle) &&
-          Object.keys(data).every(function (key) { return ['version', 'enabled', 'mode', 'bundle'].indexOf(key) !== -1; })) { return data; }
       if (data.version !== 2 || data.enabled !== true || !validKey(data.bundle) || !data.keys || typeof data.keys !== 'object' || Array.isArray(data.keys)) { return null; }
       if (!['label', 'message', 'applied', 'partial', 'unavailable', 'fallback'].every(function (key) { return typeof data[key] === 'string'; })) { return null; }
       if (!Array.isArray(data.options) || data.options.length < 3 || data.options[0].value !== 'site_default') { return null; }
@@ -432,23 +304,9 @@
       if (!data || window.self !== window.top || !document.body || document.querySelector(editors) ||
           document.body.matches('.h5p-themer-preview-document')) { stop(); return; }
       var previous = options;
-      if (previous && (previous.enabled !== data.enabled || previous.bundle !== data.bundle)) {
-        frames.forEach(function (frame) {
-          var applied = frame.densityApplied;
-          // Retain the last applied geometry across a stylesheet-readiness gap,
-          // but never carry a resize job or owner across the mode boundary.
-          if (applied && !frame.densityTransition) { frame.densityTransition = { owner: applied.owner, before: frame.resizeJob != null ? frame.beforeGap : applied.gap, profile: applied.profile, pending: frame.resizeJob != null }; }
-          cancelResize(frame);
-        });
-      }
-      if (!data.enabled || (previous && previous.enabled !== data.enabled)) {
-        selected = 'site_default'; removePanel();
-        preferenceInitialized = false; storageKey = null; storageUnavailable = false; restorePending = false;
-        // Attributes are cleared in refresh, after capturing each old gap.
-      }
       options = data;
       preferenceSettings = settings;
-      var stale = data.enabled && selected !== 'site_default' && !Object.prototype.hasOwnProperty.call(data.keys, selected);
+      var stale = selected !== 'site_default' && !Object.prototype.hasOwnProperty.call(data.keys, selected);
       if (stale) { selected = 'site_default'; }
       if (panel && JSON.stringify(previous) !== JSON.stringify(data)) {
         // Keep the focused native select; update only our own text/options.
@@ -459,8 +317,7 @@
       refresh(stale ? data.fallback : '');
       if (!options) { return; }
       if (!listening) { document.addEventListener('load', resourceLoaded, true); listening = true; }
-      if (!data.enabled && pageShowListening) { window.removeEventListener('pageshow', pageRestored); pageShowListening = false; }
-      if (data.enabled && !pageShowListening) { window.addEventListener('pageshow', pageRestored); pageShowListening = true; }
+      if (!pageShowListening) { window.addEventListener('pageshow', pageRestored); pageShowListening = true; }
       if (options && !observer && typeof window.MutationObserver === 'function') {
         observer = new window.MutationObserver(function (records) {
           if (records.some(function (record) {

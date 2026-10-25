@@ -2,10 +2,8 @@
 
 SPDX-License-Identifier: GPL-2.0-or-later.
 
-This guide includes the unpublished v0.3.0 Density candidate on the v0.2.1 baseline.
-Read the [v0.3.0 candidate notes](release-notes-v0.3.0.md),
-[Density scope and compatibility](density-phase2a.md), the
-[v0.2.1 notes](release-notes-v0.2.1.md) and
+This guide covers the v0.2.0 baseline and the local v0.2.1 release candidate.
+Read the [candidate notes](release-notes-v0.2.1.md) and
 [v0.2.0 release notes](release-notes-v0.2.0.md) before upgrading. Historical phase/checkpoint
 records preserve development evidence; they are not installation instructions.
 
@@ -13,8 +11,8 @@ records preserve development evidence; they are not installation instructions.
 
 Backdrop **1.x** is the metadata declaration. Actual source inspection and local
 verification used **Backdrop 1.35.2**, H5P Core API **1.28**, and PHP **7.4.33**,
-**8.3.18** and **8.4.22**. The v0.3.0 Density PHP suite passed 3,852 checks on each version;
-the JavaScript suite passed 455 tests on Node.js **22.23.1**. These are isolated
+**8.3.18** and **8.4.22**. The v0.2.1 feature PHP suite passed 3,673 assertions on each version;
+the JavaScript suite passed 387 tests on Node.js **22.23.1**. These are isolated
 automated tests, not database-backed installation or universal browser
 certification. Other Backdrop/PHP versions and arbitrary H5P integration releases
 are not established as compatible by this evidence.
@@ -114,20 +112,6 @@ Opening a page does not repair or initialize it. Investigate the diagnostics and
 installed update numbers to force a retry. Do not assume older code is a safe
 rollback: releases without visibility enforcement can expose hidden themes.
 
-### Density when upgrading from v0.2.1
-
-No configuration migration or schema change is required for Density. Existing
-schema-1 and schema-2 custom themes, including imported themes, retain their
-saved Density values. Schema-2 preset pins and sparse color inheritance are
-unchanged, as are Global Default, learner visibility and saved theme preferences.
-
-Small and Large values that were previously stored without runtime effect now
-change supported preview and playback spacing. Existing Large themes can
-therefore appear more spacious after upgrading. Medium preserves the native
-playback baseline and the qualified preview baseline. Check representative
-activities on a disposable copy before deploying. This development branch is
-not yet a published v0.3.0 release.
-
 ## 3. Grant administration access
 
 At `admin/people/permissions`, grant **Administer H5P themes** only to trusted
@@ -153,15 +137,7 @@ Reload existing activity pages after saving. Only libraries that consume the
 relevant variables will visibly change. Embedded playback served by this site
 can receive the selected global colors through its integration; unrelated remote
 providers, existing open frames and independently cached host pages are outside
-that guarantee.
-
-A custom Global Default also applies its Small, Medium or Large Density to
-guarded top-level themed H5P.TrueFalse evaluation rows. Learner switching is
-optional and is not required for Global Default Density. When enabled, an explicit
-learner custom-theme choice supplies its own Density. Core and built-in choices
-preserve native playback spacing. Unsupported, nested, external or ambiguously
-identified players retain native spacing too. JavaScript is required for guarded
-playback Density; other H5P libraries gain no spacing support. See [Density scope](density-phase2a.md).
+that guarantee. Density is not applied.
 
 ## 5. Create or edit a custom theme
 
@@ -209,9 +185,8 @@ as the stored or effective Global Default is protected against deletion.
 Built-in **View** and custom **Edit** pages show saved representative samples and a
 separate Core comparison. This HTML is not an actual running H5P activity.
 
-On custom Edit, valid unsaved colors and Small/Medium/Large Density selections
-update the preview immediately when JavaScript is available. Later color edits
-preserve the selected Density. Multiple edits combine. Invalid or incomplete strings show a message
+On custom Edit, valid unsaved colors update the preview immediately when JavaScript
+is available. Multiple edits combine. Invalid or incomplete strings show a message
 and retain the last valid preview color; blank restores inheritance.
 Reverting or native form reset restores the corresponding defaults. Only explicit
 **Save**, after server validation, changes persistent configuration. Leaving or

@@ -1,4 +1,4 @@
-/** Parent-only unsaved color/spacing preview. SPDX-License-Identifier: GPL-2.0-or-later. */
+/** Parent-only unsaved color preview. SPDX-License-Identifier: GPL-2.0-or-later. */
 (function ($) {
   'use strict';
 
@@ -36,19 +36,6 @@
         });
         if (!valid || !Object.keys(data.saved).every(function (key) { return allowed[key] && hex(data.saved[key]); }) ||
             !Object.keys(data.inherited).every(function (key) { return allowed[key] && inheritedValue(data.inherited[key]); })) { return; }
-        var densities = ['small', 'medium', 'large'];
-        var densityProperties = ['xl', 'l', 'm', 's', 'xs', 'xxs'].map(function (suffix) { return '--h5p-themer-density-space-' + suffix; });
-        var densityFields = form.querySelectorAll('select[name="density"]');
-        if (densityFields.length !== 1 || densities.indexOf(data.density) === -1 || !data.density_values ||
-            Object.keys(data.density_values).length !== 3 || !densities.every(function (density) {
-              var values = data.density_values[density];
-              return values && typeof values === 'object' && !Array.isArray(values) && Object.keys(values).length === 6 &&
-                densityProperties.every(function (key) {
-                  return typeof values[key] === 'string' && /^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?rem$/.test(values[key]) &&
-                    parseFloat(values[key]) > 0 && parseFloat(values[key]) <= 3;
-                });
-            })) { return; }
-        var densityField = densityFields[0], lastDensity = data.density;
         var fields = Object.create(null);
         var last = Object.create(null);
         Array.prototype.forEach.call(form.querySelectorAll('input.h5p-themer-color-input'), function (input) {
@@ -73,7 +60,6 @@
           notes[key] = note;
         });
         var css = '';
-        var densityCss = '';
         var dirty = false;
         var invalid = false;
         var savedTitle = frame.getAttribute('title');
@@ -82,18 +68,16 @@
           try {
             var doc = frame.contentDocument;
             var block = doc && doc.getElementById('h5p-themer-preview-overrides');
-            var densityBlock = doc && doc.getElementById('h5p-themer-preview-density');
-            if (!block || block.tagName.toLowerCase() !== 'style' || !densityBlock || densityBlock.tagName.toLowerCase() !== 'style' || !doc.querySelector('main.h5p-themer-preview-sample')) {
+            if (!block || block.tagName.toLowerCase() !== 'style' || !doc.querySelector('main.h5p-themer-preview-sample')) {
               status.textContent = Backdrop.t('Waiting for the preview. Your changes remain unsaved.');
               return;
             }
             if (block.textContent !== css) { block.textContent = css; }
-            if (densityBlock.textContent !== densityCss) { densityBlock.textContent = densityCss; }
-            heading.textContent = dirty ? Backdrop.t('Live preview — unsaved colors or Density') : Backdrop.t('Saved theme preview');
-            frame.setAttribute('title', dirty ? Backdrop.t('Live preview — unsaved colors or Density') : savedTitle);
+            heading.textContent = dirty ? Backdrop.t('Live preview — unsaved colors') : Backdrop.t('Saved theme preview');
+            frame.setAttribute('title', dirty ? Backdrop.t('Live preview — unsaved colors') : savedTitle);
             status.textContent = invalid
-              ? Backdrop.t('Invalid or incomplete colors or Density were not previewed; their last valid values are retained. Other valid edits are shown. Changes are not saved until Save is clicked.')
-              : dirty ? Backdrop.t('Unsaved colors or Density are shown. Changes are not saved until Save is clicked.')
+              ? Backdrop.t('Invalid or incomplete colors were not previewed; their last valid colors are retained. Other valid edits are shown. Changes are not saved until Save is clicked.')
+              : dirty ? Backdrop.t('Unsaved colors are shown. Changes are not saved until Save is clicked.')
                 : Backdrop.t('Saved colors. Changes are not saved until Save is clicked.');
           }
           catch (error) {
@@ -117,13 +101,6 @@
             var color = last[key] || data.inherited[key];
             if (color) { declarations += '  ' + key + ': ' + color + ';\n'; }
           });
-          var density = densityField.disabled || densityField.matches(':disabled') ? data.density : densityField.value;
-          if (densities.indexOf(density) !== -1) { lastDensity = density; }
-          else { invalid = true; }
-          if (density !== data.density) { dirty = true; }
-          densityCss = '.h5p-content {\n' + densityProperties.map(function (key) {
-            return '  ' + key + ': ' + data.density_values[lastDensity][key] + ';\n';
-          }).join('') + '}\n';
           css = declarations ? '.h5p-content {\n' + declarations + '}\n' : '';
           apply();
         }
@@ -131,13 +108,11 @@
           fields[key].addEventListener('input', update);
           fields[key].addEventListener('change', update);
         });
-        densityField.addEventListener('change', update);
         frame.addEventListener('load', apply);
         form.addEventListener('reset', function (event) {
           setTimeout(function () {
             if (event.defaultPrevented) { return; }
             data.properties.forEach(function (key) { last[key] = data.saved[key] || ''; });
-            lastDensity = data.density;
             update();
           }, 0);
         });

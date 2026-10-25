@@ -24,9 +24,7 @@ foreach (h5p_themer_theme_catalog()['data'] as $token => $entry) {
   check(preg_match('/\At[a-f0-9]{64}\z/', $data['keys'][$token]) === 1 && ($canonical === '' || strpos($data['css'], $expected) !== FALSE), 'Exact canonical palette with fixed safe selector: ' . $token);
 }
 $legacy_selector = 'html[data-h5p-themer-learner="' . $data['keys']['custom:legacy'] . '"] .h5p-content[data-h5p-themer-eligible]';
-preg_match('/' . preg_quote($legacy_selector, '/') . ' \{\n([^}]+)\}/', $data['css'], $legacy_rule);
-$legacy_declarations = preg_replace('/^  --h5p-themer-density-(?:space-[a-z]+|evaluation-row-factor): [0-9.]+(?:rem)?;\n/m', '', $legacy_rule[1]);
-check($legacy_declarations === "  --h5p-theme-main-cta-base: #ABC;\n", 'Schema1 preserves only its authored color alongside reserved density');
+check(strpos($data['css'], $legacy_selector . " {\n  --h5p-theme-main-cta-base: #ABC;\n}\n") !== FALSE, 'Schema1 emits only authored sparse override, no global colors');
 check(strpos($data['css'], '--h5p-theme-contrast-cta-dark') === FALSE && strpos($data['css'], 'url(') === FALSE, 'Unsupported property/URLs excluded from all palettes');
 check(H5PThemerMemoryStorage::$raw === $bytes && H5PThemerMemoryStorage::$writes === $writes && $runtime_cache_invalidations === $n, 'Pure bundle makes no storage/cache writes or migrations');
 $settings = h5p_themer_learner_ui_settings();
@@ -47,13 +45,7 @@ H5PThemerMemoryStorage::$failList = FALSE;
 foreach (array(NULL, array('kind' => 'builtin', 'id' => 'dark', 'version' => 'moodle-478fed30d2a4'), array('kind' => 'custom', 'id' => 'checkpoint_test')) as $global) {
   config('h5p_themer.settings')->set('default_theme', $global)->save();
   $global_css = h5p_themer_runtime_css()['data']; $next_bundle = h5p_themer_learner_bundle()['data'];
-  $expected_global = '';
-  preg_match_all('/([^{}]+)\{([^{}]*)\}/', $global_css, $global_blocks, PREG_SET_ORDER);
-  foreach ($global_blocks as $match) {
-    $selectors = array();
-    foreach (explode(', ', $global_selector) as $root) { $selectors[] = str_replace('.h5p-content', $root, trim($match[1])); }
-    $expected_global .= implode(', ', $selectors) . ' {' . $match[2] . "}\n";
-  }
+  $expected_global = str_replace('.h5p-content', $global_selector, $global_css);
   check($expected_global === '' || strpos($next_bundle['css'], $expected_global) !== FALSE, 'Site default uses exact effective global for Core/builtin/custom');
   check($next_bundle['keys']['core'] === $data['keys']['core'], 'Explicit Core identity does not depend on administrator palette');
 }
@@ -83,33 +75,9 @@ try {
   check((bool) h5p_themer_runtime_asset($data['css'], '../unsafe')['errors'], 'Publisher namespace is a strict enum');
   config('h5p_themer.settings')->set('learner_selection_enabled', FALSE)->save();
   $styles = array(); h5p_themer_h5p_styles_alter($styles, array(), 'div');
-  $global_bundle = h5p_themer_playback_bundle()['data'];
-  check(count($styles) === 1 && file_get_contents($root . '/h5p_themer/' . basename($styles[0]->path)) === $global_bundle['css'] && strpos($styles[0]->path, 'global-v1-') !== FALSE, 'Disabled picker publishes global-only readiness and canonical rules');
+  $legacy_css = h5p_themer_runtime_css()['data'];
+  check(count($styles) === 1 && file_get_contents($root . '/h5p_themer/' . basename($styles[0]->path)) === $legacy_css && strpos($legacy_css, '.h5p-content {') === 0, 'Disabled feature retains canonical pre-selector global CSS');
   config('h5p_themer.settings')->set('default_theme', NULL)->save();
   $calls = $runtime_wrapper_calls; $styles = array(); h5p_themer_h5p_styles_alter($styles, array(), 'div');
-  check(count($styles) === 1 && strpos(h5p_themer_playback_bundle()['data']['css'], 'row-gap:') === FALSE, 'Global Core publishes readiness/reset only, without a Density consumer');
-  foreach (array(1, 2) as $schema) {
-    $theme = $schema === 1 ? fixture_theme('global_density') : fixture_pinned_theme('global_density');
-    seed('h5p_themer.theme.global_density', $theme);
-    config('h5p_themer.settings')->set('default_theme', array('kind' => 'custom', 'id' => 'global_density'))->save();
-    $ids = array();
-    foreach (array('small' => '0.8', 'medium' => '1', 'large' => '1.25') as $density => $factor) {
-      config('h5p_themer.theme.global_density')->set('density', $density)->save();
-      $snapshot = h5p_themer_playback_bundle()['data']; $ids[] = $snapshot['id'];
-      check(strpos($snapshot['css'], '--h5p-themer-learner-bundle: ' . $snapshot['id']) !== FALSE && h5p_themer_playback_settings()['bundle'] === $snapshot['id'], 'Global settings and stylesheet share readiness: ' . $schema . '/' . $density);
-      check(strpos($snapshot['css'], '--h5p-themer-density-evaluation-row-factor: ' . $factor . ';') !== FALSE, 'Both schemas retain exact global Density factor');
-      $styles = array(); h5p_themer_h5p_styles_alter($styles, array(), 'iframe');
-      check($styles[0]->path === h5p_themer_playback_asset()['data']->path, 'Parent and iframe use identical global asset');
-    }
-    check(count(array_unique($ids)) === 3, 'Density alone rotates each schema global readiness');
-    $snapshot = h5p_themer_learner_ui_cache_snapshot();
-    config('h5p_themer.theme.global_density')->set('colors', array('--h5p-theme-background' => '#aBc'))->save();
-    check(h5p_themer_learner_ui_cache_snapshot() !== $snapshot, 'Global-only color changes rotate page readiness/cache snapshot');
-    $before = h5p_themer_playback_bundle()['data'];
-    config('h5p_themer.theme.global_density')->set('label', 'Renamed only')->save();
-    check(h5p_themer_playback_bundle()['data'] === $before, 'Global label changes do not rotate CSS');
-  }
-  $global_id = h5p_themer_playback_bundle()['data']['id'];
-  config('h5p_themer.settings')->set('learner_selection_enabled', TRUE)->save();
-  check(h5p_themer_playback_bundle()['data']['id'] !== $global_id && h5p_themer_playback_settings()['enabled'] === TRUE, 'Toggle rotates mode readiness and restores learner settings');
+  check(!$styles && $runtime_wrapper_calls === $calls, 'Disabled Core still does not access public storage');
 } finally { runtime_fixture_remove($root, $root); admin_reset(); }
