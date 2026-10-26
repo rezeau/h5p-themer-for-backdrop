@@ -35,7 +35,7 @@ check(h5p_themer_native_density_settings()['global'] === 'small' && h5p_themer_n
 config('h5p_themer.settings')->set('default_theme', NULL)->save();
 $before = h5p_themer_native_density_cache_snapshot();
 config('h5p_themer.theme.checkpoint_test')->set('density', 'large')->save();
-check(h5p_themer_native_density_settings() === NULL && h5p_themer_native_density_cache_snapshot() === $before, 'Hidden unselected Density does not invalidate delivered metadata');
+check(h5p_themer_native_density_settings()['global'] === NULL && h5p_themer_native_density_cache_snapshot() === $before, 'Hidden unselected Density does not invalidate learner capability metadata');
 config('h5p_themer.settings')->set('learner_selection_enabled', FALSE)->save();
 config('h5p_themer.settings')->set('default_theme', array('kind' => 'custom', 'id' => 'checkpoint_test'))->save();
 H5PThemerMemoryStorage::$failList = TRUE;
@@ -113,6 +113,71 @@ config('h5p_themer.settings')->set('learner_selection_enabled', FALSE)->set('def
 check(h5p_themer_native_density_settings() === NULL, 'No global or selectable override needs no controller');
 config('h5p_themer.settings')->set('learner_selection_enabled', TRUE)->save();
 check(h5p_themer_native_density_settings() !== NULL, 'Core initial selection retains selectable custom activation');
+// v0.4.1 Checkpoint 2A: delivery only, including catalogs without saved profiles.
+learner_switch_fixture(); native_density_fixture();
+config('h5p_themer.theme.legacy')->delete();
+config('h5p_themer.theme.checkpoint_test')->delete();
+$node = (object) array('type' => 'h5p_content', 'nid' => 6, 'vid' => 6);
+$learner_test_path = 'node/6';
+$saved = H5PThemerMemoryStorage::$raw; $writes = H5PThemerMemoryStorage::$writes;
+$colors = h5p_themer_runtime_css(); $bundle = h5p_themer_learner_bundle();
+$data = h5p_themer_native_density_settings();
+check($data !== NULL && $data['version'] === 2 && $data['learner'] === TRUE && $data['global'] === NULL
+  && $data['bundle'] === $bundle['data']['id'] && count((array) $data['profiles']) > 0
+  && count(array_filter((array) $data['profiles'], function ($value) { return $value !== NULL; })) === 0,
+  'Core/built-in-only catalog delivers existing version-2 learner capability with all-null profiles');
+check(H5PThemerMemoryStorage::$raw === $saved && H5PThemerMemoryStorage::$writes === $writes
+  && h5p_themer_runtime_css() === $colors && h5p_themer_learner_bundle() === $bundle,
+  'All-null capability leaves saved schema/configuration and color bundle unchanged');
+$before = h5p_themer_native_density_cache_snapshot();
+check(h5p_themer_native_density_cache_snapshot() === $before, 'All-null capability cache snapshot is stable');
+foreach (array(FALSE, TRUE) as $enabled) {
+  $GLOBALS['native_density_test_enabled'] = $enabled;
+  backdrop_static('h5p_themer_native_density_attach', array(), TRUE);
+  $learner_js = array(); $learner_headers = array();
+  $reads = H5PBackdrop::$reads;
+  h5p_themer_node_view($node); h5p_themer_node_view($node);
+  check(count($learner_js) === ($enabled ? 3 : 0) && count($learner_headers) === ($enabled ? 1 : 0),
+    'All-null learner capability attaches once only with strict gate ON: ' . (int) $enabled);
+  if ($enabled) {
+    $delivered = json_decode($learner_js[0]['data']['h5pThemerNativeDensity']['payload'], TRUE);
+    check($delivered['learner'] === TRUE && $delivered['global'] === NULL
+      && $learner_js[1]['data'] === 'modules/h5p_themer/js/h5p_themer.native-density.js'
+      && $learner_js[2]['data']['h5pThemerNativeDensity']['players']['cid-6']['patch'] === 24,
+      'All-null delivery contains only existing payload, parent controller and exact qualified player metadata');
+  }
+  else {
+    check(h5p_themer_native_density_settings() === NULL && H5PBackdrop::$reads === $reads
+      && h5p_themer_native_density_cache_snapshot() !== $before, 'Gate OFF suppresses all-null metadata/API reads and changes cache dependency');
+  }
+}
+config('h5p_themer.settings')->set('learner_selection_enabled', FALSE)->save();
+backdrop_static('h5p_themer_native_density_attach', array(), TRUE); $learner_js = array();
+h5p_themer_node_view($node);
+check(h5p_themer_native_density_settings() === NULL && !$learner_js
+  && h5p_themer_native_density_cache_snapshot() !== $before, 'Disabled learner selection preserves all-null suppression and changes cache dependency');
+config('h5p_themer.settings')->set('learner_selection_enabled', TRUE)->save();
+H5PThemerMemoryStorage::$failList = TRUE;
+backdrop_static('h5p_themer_native_density_attach', array(), TRUE); $learner_js = array();
+h5p_themer_node_view($node);
+check(h5p_themer_native_density_settings() === NULL && !$learner_js, 'Unavailable learner catalog fails closed without capability assets');
+H5PThemerMemoryStorage::$failList = FALSE;
+foreach (array('library', 'patch', 'api', 'div', 'development') as $unsupported) {
+  native_density_fixture(); $api_before = H5PCore::$coreApi;
+  if ($unsupported === 'library') { H5PBackdrop::$contents[6]['libraryName'] = 'H5P.MultiChoice'; }
+  if ($unsupported === 'patch') { H5PBackdrop::$libraries['H5P.TrueFalse']['patchVersion'] = 25; }
+  if ($unsupported === 'api') { H5PCore::$coreApi = array('majorVersion' => 1, 'minorVersion' => 29); }
+  if ($unsupported === 'div') { H5PBackdrop::$contents[6]['libraryEmbedTypes'] = 'div'; }
+  if ($unsupported === 'development') { config('h5p.settings')->set('h5p_library_development', TRUE)->save(); }
+  backdrop_static('h5p_themer_native_density_attach', array(), TRUE); $learner_js = array(); $learner_headers = array();
+  h5p_themer_node_view($node);
+  check(!$learner_js && !$learner_headers && h5p_themer_native_density_player($node) === NULL,
+    'All-null capability does not bypass qualification: ' . $unsupported);
+  H5PCore::$coreApi = $api_before;
+  config('h5p.settings')->set('h5p_library_development', FALSE)->save();
+}
+native_density_fixture();
+check(h5p_themer_native_density_cache_snapshot() === $before, 'Restored qualification/learner policy restores all-null cache identity');
 unset($GLOBALS['native_density_test_enabled']); $learner_test_path = 'node/7';
 backdrop_static('h5p_themer_native_density_attach', array(), TRUE);
 printf("Native Density metadata/cache: %d passed\n", $passed - $native_density_start);

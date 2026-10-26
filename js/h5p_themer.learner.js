@@ -6,6 +6,7 @@
   var preferenceInitialized = false, storageKey = null, storageUnavailable = false;
   var attribute = 'data-h5p-themer-learner', eligibility = 'data-h5p-themer-eligible';
   var preferenceSettings = null, restorePending = false;
+  var densityView = null;
   var players = '.h5p-content[data-content-id], iframe.h5p-iframe[data-content-id]';
   var editors = '.h5peditor, .h5p-editor, #h5p-editor, form[id^="h5p-content-node-form"], form.node-h5p-content-form';
   var excluded = editors + ', form, .h5p-themer-preview-document, .h5p-themer-saved-preview, .h5p-themer-preview-sample, .h5p-themer-live-preview';
@@ -61,6 +62,8 @@
   function forget(doc) { clear(doc); owned = owned.filter(function (entry) { return entry !== doc; }); }
   function resetDocuments() { owned.forEach(clear); owned = []; }
   function removePanel() {
+    if (densityView && densityView.unsubscribe) { densityView.unsubscribe(); }
+    densityView = null;
     if (panel && Backdrop.h5pThemerLearnerPicker) { Backdrop.h5pThemerLearnerPicker.destroy(panel.querySelector('select')); }
     if (panel && panel.parentNode) { panel.parentNode.removeChild(panel); }
     panel = null;
@@ -198,6 +201,77 @@
     });
     select.value = selected;
   }
+  function buildDensity(box, select) {
+    var view;
+    function node(tag, className, text) {
+      var element = document.createElement(tag); element.className = className;
+      if (text !== undefined) { element.textContent = text; }
+      return element;
+    }
+    var group = node('div', 'h5p-themer-density'), label = node('span', 'h5p-themer-density-label', Backdrop.t('Density'));
+    var actions = node('div', 'h5p-themer-density-actions'), mode = node('p', 'h5p-themer-density-mode');
+    var note = node('p', 'h5p-themer-density-note', Backdrop.t('Density applies to qualified activities only.'));
+    var status = node('p', 'h5p-themer-density-status');
+    label.id = uniqueId(select.id + '-density-label'); mode.id = uniqueId(select.id + '-density-mode');
+    note.id = uniqueId(select.id + '-density-note');
+    group.setAttribute('role', 'group'); group.setAttribute('aria-labelledby', label.id);
+    group.setAttribute('aria-describedby', mode.id + ' ' + note.id); group.setAttribute('hidden', '');
+    status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite'); status.setAttribute('aria-atomic', 'true');
+    var entries = [
+      { value: 'small', name: Backdrop.t('Small Density'), mode: Backdrop.t('Learner Density: Small') },
+      { value: 'medium', name: Backdrop.t('Medium Density'), mode: Backdrop.t('Learner Density: Medium') },
+      { value: 'large', name: Backdrop.t('Large Density'), mode: Backdrop.t('Learner Density: Large') }
+    ];
+    entries.forEach(function (entry) {
+      var button = node('button', 'h5p-themer-density-size'), glyph = node('span', 'h5p-themer-density-glyph', 'T');
+      button.setAttribute('type', 'button'); button.setAttribute('aria-label', entry.name); button.setAttribute('title', entry.name);
+      button.setAttribute('data-density', entry.value); button.setAttribute('aria-pressed', 'false');
+      glyph.setAttribute('aria-hidden', 'true'); button.appendChild(glyph); actions.appendChild(button); entry.button = button;
+      button.addEventListener('click', function () {
+        if (densityView === view && view.controller) { view.controller.setOverride(entry.value); syncDensity(); }
+      });
+    });
+    var reset = node('button', 'h5p-themer-density-reset', Backdrop.t('Use theme Density'));
+    reset.setAttribute('type', 'button');
+    reset.addEventListener('click', function () {
+      if (densityView === view && view.controller) { view.controller.resetOverride(); syncDensity(); }
+    });
+    actions.appendChild(reset); group.appendChild(label); group.appendChild(actions); group.appendChild(mode);
+    group.appendChild(note); group.appendChild(status); box.appendChild(group);
+    view = { controller: null, unsubscribe: null, render: function (snapshot) {
+      var visible = snapshot && snapshot.enabled === true && snapshot.available === true && snapshot.readyPlayers > 0 &&
+        (snapshot.override === null || entries.some(function (entry) { return entry.value === snapshot.override; }));
+      if (!visible) {
+        if (document.activeElement && document.activeElement.closest('.h5p-themer-density') === group) {
+          var target = box.querySelector('[role="combobox"]') || select;
+          if (typeof target.focus === 'function') { target.focus(); }
+        }
+        group.setAttribute('hidden', ''); box.removeAttribute('data-density-visible'); status.textContent = ''; return;
+      }
+      var text = Backdrop.t('Using theme Density');
+      entries.forEach(function (entry) {
+        var pressed = entry.value === snapshot.override;
+        entry.button.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+        if (pressed) { text = entry.mode; }
+      });
+      if (!group.hasAttribute('hidden') && mode.textContent !== text) { status.textContent = text; }
+      if (mode.textContent !== text) { mode.textContent = text; }
+      group.removeAttribute('hidden'); box.setAttribute('data-density-visible', '');
+    } };
+    return view;
+  }
+  function syncDensity() {
+    if (!densityView) { return; }
+    var controller = Backdrop.h5pThemerNativeDensity;
+    if (!controller || !['getSnapshot', 'subscribe', 'setOverride', 'resetOverride'].every(function (name) { return typeof controller[name] === 'function'; })) { controller = null; }
+    if (densityView.controller !== controller) {
+      if (densityView.unsubscribe) { densityView.unsubscribe(); }
+      densityView.controller = controller;
+      densityView.unsubscribe = controller ? controller.subscribe(densityView.render) : null;
+    }
+    // Subscribe first, then read: either behavior may initialize first.
+    densityView.render(controller ? controller.getSnapshot() : null);
+  }
   function buildPanel() {
     var box = document.createElement('div'), label = document.createElement('label');
     var select = document.createElement('select'), description = document.createElement('p'), status = document.createElement('p');
@@ -227,6 +301,7 @@
       savePreference();
     });
     box.appendChild(label); box.appendChild(select); box.appendChild(help); box.appendChild(description); box.appendChild(status);
+    densityView = buildDensity(box, select);
     return box;
   }
   function resourceLoaded(event) {
@@ -277,6 +352,7 @@
     if (status.textContent !== text) { status.textContent = text; }
     if (text) { status.removeAttribute('hidden'); }
     else { status.setAttribute('hidden', ''); }
+    syncDensity();
   }
   function relevant(node) {
     return node.nodeType === 1 && (node.matches(players + ', .h5p-iframe-wrapper, ' + editors) || node.querySelector(players + ', .h5p-iframe-wrapper, ' + editors));
@@ -326,6 +402,14 @@
           })) { refresh(); }
         });
         observer.observe(document.body, { childList: true, subtree: true });
+      }
+    },
+    detach: function (context, settings, trigger) {
+      if (trigger !== undefined && trigger !== 'unload' && trigger !== 'move') { return; }
+      if (context === document) { stop(); return; }
+      // A removed/moved panel must not remain subscribed while detached.
+      for (var node = panel; node; node = node.parentNode) {
+        if (node === context) { removePanel(); return; }
       }
     }
   };

@@ -1,0 +1,9 @@
+{
+  "baseline_commit": "af26fe38bfe9c6097c64f45d701e59cabe8b2ff5",
+  "intentional_runtime_lf_sha256": {
+    "h5p_themer.native-density.inc": "820ab8f7cd0c3b37c4cf8c9c2b392762cf1ba194c58037e0810c2760dd942c79",
+    "js/h5p_themer.native-density.js": "804729ebf5a560ce6d9e2b98ab4795b8c92ecd6b920a35fe3dfd46cb21f80e14",
+    "js/h5p_themer.learner.js": "9676be5752be82956202d70df3c2f71b7a99475f81664d13f868f2e7744a715c",
+    "css/h5p_themer.learner.css": "ff2c6010130851d808a797887633176196d025ead602027a2016e58de2f51da3"
+  }
+}

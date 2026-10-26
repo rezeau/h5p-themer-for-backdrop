@@ -4,7 +4,8 @@ Manage reusable color themes for compatible H5P activities in Backdrop CMS,
 with optional native Density for a narrowly qualified player type.
 This independent project does not modify authored H5P content or H5P libraries.
 
-**H5P Themer v0.4.0**
+**H5P Themer v0.4.1 development**
+Published baseline: v0.4.0. No v0.4.1 release or publication is claimed.
 v0.2.1 is the earlier stable baseline; v0.3.0 was withdrawn.
 
 ## Main features
@@ -16,9 +17,11 @@ v0.2.1 is the earlier stable baseline; v0.3.0 was withdrawn.
   storage is available; theme changes preserve current answers and feedback.
 - Saved-theme previews and live previews of unsaved color edits.
 - Optional native Small, Medium and Large Density using saved custom themes.
+- Independent learner Density buttons beside the theme picker, with a
+  **Use theme Density** reset, on qualified players when learner selection is enabled.
 
-Previews remain representative color-only samples. Independent learner Density
-buttons are deferred to v0.4.1; Live Density Preview is deferred.
+Previews remain representative color-only samples. Learner Density controls are
+implemented; **Live Density Preview remains deferred**.
 Themer does not save H5P answers across navigation or reload.
 
 ## Requirements and compatibility
@@ -64,18 +67,40 @@ Only boolean `TRUE` enables it. Refresh the intended site's caches and reload
 playback as described in the [activation guide](docs/installation.md#v021-to-v040-development-upgrade-and-rollback).
 Open pages keep their supplied settings until reload.
 
-On qualified players, custom themes apply saved Density; Core and built-ins
+While following theme Density, custom themes apply saved Density; Core and built-ins
 restore the player's original profile. Site default follows effective Global
 Default, including a hidden custom default. Small is compact, Medium intermediate
 and Large spacious; these profiles do not set container width.
+
+With learner theme selection enabled, the labelled Density group offers three
+progressively sized **T** buttons: Small, Medium and Large. One shared choice
+applies to all ready, qualified players on the page, independently of colors.
+Precedence is **learner override > current theme's saved Density > each player's
+original native Density**. An override survives theme changes, including Core and
+built-ins. **Use theme Density** removes it and resolves the current theme again.
+
+The separate sessionStorage preference follows the same installation and browser
+tab across reload/navigation; storage failures leave current-page controls usable.
+It saves no answers or account preference. Unsupported content is untouched by
+Density, and unsupported-only pages retain their existing color picker behavior.
+
+Buttons have accessible names, pressed states, visible focus and native keyboard
+activation. Mode/scope text and polite state announcements are visually hidden for
+a compact toolbar. User-reported Firefox acceptance passed 11 tests, including
+keyboard, 200% zoom and narrow layout. Windows forced colors and screen reader
+were not tested; no broader accessibility certification is claimed. See
+[v0.4.1 readiness](docs/v0.4.1-readiness.md).
 
 ## Documentation
 
 - [Installation, activation, disable and recovery](docs/installation.md)
 - [Theme administration and learner visibility](docs/administration.md)
 - [Configuration contracts and import rules](docs/configuration.md)
-- [v0.4.0 release notes](docs/release-notes-v0.4.0.md) and [changelog](CHANGELOG.md)
-- [Readiness, accepted evidence and developer test commands](docs/v0.4.0-readiness.md)
+- [Prepared v0.4.1 release notes](docs/release-notes-v0.4.1.md) and [changelog](CHANGELOG.md)
+- [Historical v0.4.0 release notes](docs/release-notes-v0.4.0.md)
+- [Planned disposable v0.4.0 upgrade rehearsal](docs/v0.4.1-upgrade-rehearsal.md)
+- [v0.4.1 readiness and developer tests](docs/v0.4.1-readiness.md)
+- [Historical v0.4.0 readiness and evidence](docs/v0.4.0-readiness.md)
 - [Development roadmap](docs/roadmap.md)
 
 Maintained by [rezeau](https://github.com/rezeau).

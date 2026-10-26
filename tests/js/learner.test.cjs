@@ -57,6 +57,16 @@ test('responsive CSS is scoped and shrinkable with a 24px minimum help target',(
    // Permit only this exact minimum; other fixed pixel widths remain forbidden.
    layout=body.replace(/(^|;)\s*min-width:\s*24px\s*(?=;)/,'$1');
   }
+  // v0.4.1 adds equal native button targets and a visually clipped live region.
+  // Keep every other fixed-width restriction, including the existing help rule.
+  if(selector==='.h5p-themer-learner-controls .h5p-themer-density-actions .h5p-themer-density-size'){
+   assert.match(body,/(?:^|;)\s*width:\s*44px\s*;/);assert.match(body,/(?:^|;)\s*height:\s*44px\s*;/);
+   layout=body.replace(/(^|;)\s*width:\s*44px\s*(?=;)/,'$1');
+  }
+  if(selector.split(',').every(value=>['mode','note','status'].some(name=>value.trim()==='.h5p-themer-learner-controls .h5p-themer-density-'+name))){
+   assert.match(body,/clip-path:\s*inset\(50%\)/);
+   layout=body.replace(/(^|;)\s*width:\s*1px\s*(?=;)/,'$1');
+  }
   assert.doesNotMatch(layout,/(?:min-|max-)?width:\s*[1-9][0-9]*px/);
  }
  assert.match(rules.find(rule=>rule.selector==='.h5p-themer-learner-controls').body,/grid-template-columns:\s*minmax\(0,\s*1fr\) auto/);

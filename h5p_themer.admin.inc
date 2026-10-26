@@ -763,11 +763,11 @@ function h5p_themer_default_form($form, &$form_state) {
     $form['collection_warning'] = array('#markup' => '<p role="alert">' . implode(' ', $choices['errors']) . '</p>');
   }
   $form['default_theme'] = array('#type' => 'select', '#title' => t('Global Default theme'), '#options' => $options, '#default_value' => $selected,
-    '#description' => t('Core, built-in and custom choices are distinct. Reload playback after saving. With native Density enabled, Site default uses the effective custom Global Default Density even when that theme is hidden. Core and built-ins restore each qualified player\'s original profile; a default without an override also restores it.'));
+    '#description' => t('Core, built-in and custom choices are distinct. Reload playback after saving. With native Density enabled, Site default uses the effective custom Global Default Density even when that theme is hidden. Without a learner Density override, Core and built-ins restore each qualified player\'s original profile; a default without a saved profile also restores it. Use theme Density clears the learner override and follows the current theme.'));
   $form['learner_selection_enabled'] = array('#type' => 'checkbox',
     '#title' => t('Allow learners to select their H5P theme'),
     '#default_value' => isset($settings['learner_selection_enabled']) && $settings['learner_selection_enabled'] === TRUE ? 1 : 0,
-    '#description' => t('Optional: when enabled, eligible H5P activities display one learner theme selector per page. Unsupported activities do not trigger a selector. Choices change styling without changing learner answers or scoring. Where browser session storage is available, the preference follows the current tab session and is not saved to a learner account.'));
+    '#description' => t('Optional: when enabled, eligible H5P activities display one learner theme selector per page. With native Density enabled, ready qualified TrueFalse players also offer independent Small, Medium and Large Density buttons and Use theme Density reset. Unsupported activities do not trigger a selector. Choices change styling without changing learner answers or scoring. Where browser session storage is available, theme and Density preferences independently follow the current tab session and are not saved to a learner account.'));
   $form['#validate'] = array('h5p_themer_default_form_validate');
   $form['#submit'] = array('h5p_themer_default_form_submit');
   return _h5p_themer_admin_actions($form, t('Save global settings'), _h5p_themer_admin_check_original('h5p_themer.settings', $settings));
@@ -865,7 +865,7 @@ function h5p_themer_default_form_submit($form, &$form_state) {
     $runtime_before = _h5p_themer_admin_cache_snapshot();
     $record->save();
     _h5p_themer_admin_cache_invalidate($runtime_before);
-    backdrop_set_message(t('The global settings were saved. Reload H5P playback to apply these settings. If learner selection is enabled, eligible activities offer session-scoped styling choices; learner answers and scoring are unchanged. Preferences are not saved to learner accounts. When native Density is enabled, qualified players follow the saved custom profile or restore their original profile for Core and built-ins. Site default follows the effective Global Default, including hidden custom defaults. Refresh relevant caches and reload after installation-level activation changes; already-open pages are not remotely updated.'));
+    backdrop_set_message(t('The global settings were saved. Reload H5P playback to apply these settings. If learner selection is enabled, eligible activities offer session-scoped styling choices; learner answers and scoring are unchanged. Preferences are not saved to learner accounts. When native Density is enabled, a learner Density override takes precedence over saved profiles and survives theme changes. Use theme Density resets it; qualified players then follow the saved custom profile or restore their original profile for Core and built-ins. Site default follows the effective Global Default, including hidden custom defaults. Refresh relevant caches and reload after installation-level activation changes; already-open pages are not remotely updated.'));
     $form_state['redirect'] = 'admin/config/content/h5p-themer';
   }
   catch (ConfigException $e) {
@@ -1107,7 +1107,7 @@ function h5p_themer_preset_view($id, $version) {
     array(t('Attribution'), check_plain($data['provenance']['copyright'])),
     array(t('License'), check_plain($data['provenance']['license'])),
   ));
-  $build['help'] = array('#markup' => '<p>' . t('This built-in is immutable. Duplicate it to create an editable custom theme. Selected global colors apply to compatible H5P playback after reload. This built-in supplies no Density override: qualified players restore their original native profile. Duplicate it to save a custom Density profile; application requires installation-level activation.') . '</p>');
+  $build['help'] = array('#markup' => '<p>' . t('This built-in is immutable. Duplicate it to create an editable custom theme. Selected global colors apply to compatible H5P playback after reload. This built-in supplies no saved Density profile: qualified players restore their original native profile unless a learner Density override is active. Use theme Density clears that override. Duplicate this built-in to save a custom Density profile; application requires installation-level activation.') . '</p>');
   $build['saved_preview'] = h5p_themer_preview(array('kind' => 'builtin', 'id' => $id, 'version' => $version));
   $build['colors'] = _h5p_themer_admin_palette_table($data['colors']);
   $build['compatibility'] = array('#markup' => '<p><code>--h5p-theme-contrast-cta-dark</code>: ' . t('Preserved catalog data; runtime support in Core 1.28 is not established.') . '</p>');

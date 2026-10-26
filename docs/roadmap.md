@@ -4,7 +4,19 @@ SPDX-License-Identifier: GPL-2.0-or-later.
 
 <a id="current-v040-development-status--not-yet-released"></a>
 
-## Current v0.4.0 status
+## Current v0.4.1 development status
+
+Independent learner Density controls are implemented and accepted in Checkpoint 2D:
+11 user-reported Firefox tests passed. The compact toolbar offers Small / Medium /
+Large and Use theme Density. Independent session persistence and learner-over-theme
+precedence preserve the strict gate and qualified TrueFalse scope. Forced colors
+and screen reader remain untested. Live Density Preview is still deferred.
+Checkpoint 3A completed readiness and documentation consolidation. Checkpoint 3B
+Stage 1 prepares metadata, release notes, package checks and an
+[upgrade rehearsal plan](v0.4.1-upgrade-rehearsal.md); no ZIP or rehearsal is executed
+at that stage. Publication remains separate. See [v0.4.1 readiness](v0.4.1-readiness.md).
+
+## Historical v0.4.0 status
 
 v0.4.0 builds on the v0.2.1 stable baseline; v0.3.0 was withdrawn. Checkpoint 3B
 native Density is implemented and user-confirmed Firefox PASS: qualified top-level
@@ -18,7 +30,8 @@ saved configuration hashes. Full code rollback was not rehearsed. The complete
 automated baseline remains 3,793 PHP assertions on each of PHP 7.4.33, 8.3.18 and
 8.4.22, plus 470 Node.js 22.23.1 tests.
 
-Independent learner Density buttons are deferred to v0.4.1. Live Density Preview
+Independent learner Density buttons were outside v0.4.0 and are now implemented in
+v0.4.1 development. Live Density Preview
 (Checkpoint 3D) is deferred unless separately authorized; today's preview is
 representative and color-only. Neither enhancement is part of v0.4.0. See
 [readiness/evidence](v0.4.0-readiness.md) and [upgrade instructions](installation.md#v021-to-v040-development-upgrade-and-rollback).

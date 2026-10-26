@@ -260,7 +260,7 @@ require __DIR__ . '/admin-form-requests.php';
 require __DIR__ . '/config-protection.php';
 require __DIR__ . '/native-theme-import.php';
 require __DIR__ . '/native-density.php';
-require __DIR__ . '/readiness.php';
+require __DIR__ . '/readiness-v041.php';
 
 printf("PHP %s: %d passed, %d failed\n", PHP_VERSION, $passed, $failed);
 exit($failed ? 1 : 0);

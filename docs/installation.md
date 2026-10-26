@@ -3,6 +3,12 @@
 SPDX-License-Identifier: GPL-2.0-or-later.
 
 This guide covers the v0.2.1 baseline and **v0.4.0**. v0.3.0 was withdrawn.
+For uncommitted v0.4.1 learner Density development, see
+[current readiness and testing](v0.4.1-readiness.md). The existing activation and
+cache guidance still applies; no new schema migration or automatic deployment is
+introduced. v0.4.1 package/upgrade acceptance remains a separate checkpoint.
+The [v0.4.0 to v0.4.1 disposable rehearsal procedure](v0.4.1-upgrade-rehearsal.md)
+is a plan only; do not treat prepared metadata as authorization to deploy.
 Historical phase/checkpoint records preserve their
 original evidence; they are not current installation instructions. See the
 [v0.4.0 readiness note](v0.4.0-readiness.md) for accepted evidence, remaining release preparation and qualification limits.

@@ -6,12 +6,12 @@ The schema-1 contract remains supported. The implemented schema-2 extensions
 add pinned bases and typed references without forcing migration of schema-1
 themes. Both schemas are supported by native forms, previews and global colors.
 See [administration](administration.md), [installation and upgrades](installation.md)
-and the [v0.4.0 release notes](release-notes-v0.4.0.md). The
+and the [prepared v0.4.1 release notes](release-notes-v0.4.1.md). The
 [schema-2/read-API record](phase-1c-step-2a.md) preserves historical design evidence.
 
 <a id="native-density-activation-v040-development"></a>
 
-## Native Density activation (v0.4.0)
+## Native Density activation (v0.4.0 and v0.4.1)
 
 The existing `density` values `small`, `medium` and `large` and serialized schema-1/2
 objects are unchanged. Density is independent of a pinned preset's color inheritance.
@@ -20,11 +20,21 @@ Saved Density alone does not enable runtime changes. The site-level setting
 not a new theme/schema field and must not be added to exported theme JSON.
 
 Only qualified top-level H5P.TrueFalse 1.8.24 iframe players on Core API 1.28 currently
-apply custom saved profiles. Core/built-ins restore original; Site default follows
+apply custom saved profiles in theme mode. Core/built-ins restore original; Site default follows
 effective Global Default, including hidden custom defaults, or restores original.
 Unsupported players retain native Density; existing color/learner behavior remains
 independent. No migration is required. See [upgrade/cache/rollback](installation.md#v021-to-v040-development-upgrade-and-rollback)
-and [current readiness](v0.4.0-readiness.md); preview remains color-only.
+and [current readiness](v0.4.1-readiness.md); preview remains color-only and
+Live Density Preview remains deferred.
+
+v0.4.1 adds independent learner Density controls only when learner theme selection
+is enabled and qualified players are ready. Small / Medium / Large T buttons
+request native profiles without changing colors or saved configuration. Precedence:
+learner override, then current theme's saved Density, then each player's original
+H5P profile. Core/built-in theme changes preserve an explicit learner override.
+**Use theme Density** clears it and resolves the current theme again. All-null
+theme catalogs still deliver learner capability; disabled learner selection keeps
+the existing global-only suppression when there is no saved Density.
 
 ## Stored objects
 
@@ -418,6 +428,28 @@ persistence is added. Session behavior is implemented and covered by the
 user-confirmed Firefox acceptance results; see [the historical Step 5 record](phase-2c-step-5.md)
 for its original scope. Browser session restoration can retain a preference;
 there is no guarantee that every newly opened or restored tab starts empty.
+
+### Independent learner Density preference
+
+The native Density controller owns `null | small | medium | large`; null is theme
+mode. Its independent sessionStorage key is
+`h5p_themer:learner-density:v1:<validated basePath>`. Origin and validated basePath
+isolate installations; no user, player, theme or bundle identifier is stored.
+One shared choice applies across the same installation/tab, with distinct originals
+per qualified player. Only the three enum strings are stored; missing/invalid data
+uses theme mode. Reset removes only this key. Temporary player absence does not
+clear it. Reads wait for usable qualification/readiness, including persisted
+pageshow restoration. Disabled/excluded contexts do not access this preference.
+
+Storage exceptions preserve in-memory operation; a failed write/removal can leave
+an older preference for later navigation. Standard opener-copy and browser session
+restore semantics apply. Saved-theme schemas and browser theme-selection tokens
+are unchanged. The UI uses immutable controller snapshots, subscribes before reading
+the snapshot, and unsubscribes on teardown. It never writes Density classes or
+requests its own resize. Accessible names, pressed state, focus and polite hidden
+announcements remain; visible mode/scope lines were removed by accepted refinement.
+Firefox keyboard/zoom/narrow tests passed; forced colors and screen reader are
+not tested. See [v0.4.1 readiness](v0.4.1-readiness.md).
 
 ## Compatibility and styling scope
 

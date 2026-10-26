@@ -2,6 +2,22 @@
 
 SPDX-License-Identifier: GPL-3.0-or-later.
 
+## v0.4.1 — development, not published
+
+Adds independent learner Small / Medium / Large Density buttons beside the theme
+picker, with Use theme Density reset and a separate installation/tab-session
+preference. Learner overrides survive theme/color switches and take precedence over
+saved theme Density. Strict opt-in and qualified top-level TrueFalse 1.8.24 iframe
+scope remain unchanged. No saved schema, H5P content or library changes.
+
+Checkpoint 2D's 11 user-reported Firefox tests passed, including the accepted compact
+toolbar refinement. Forced colors and screen reader were not tested. Live Density
+Preview remains deferred. See [v0.4.1 readiness](docs/v0.4.1-readiness.md).
+Prepared [v0.4.1 release notes](docs/release-notes-v0.4.1.md) describe the release
+scope; package construction and upgrade rehearsal remain unexecuted.
+
+The v0.4.0 entry below is historical; its deferral statements describe that release.
+
 <a id="v040--unreleased"></a>
 
 ## v0.4.0

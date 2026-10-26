@@ -89,7 +89,9 @@ function h5p_themer_native_density_settings() {
     ksort($profiles);
   }
   $profile = _h5p_themer_native_density_profile($global['data']);
-  if ($profile === NULL && !array_filter($profiles, function ($value) { return $value !== NULL; })) { return NULL; }
+  // Learner capability must also be available for Core/built-in-only catalogs.
+  // Global-only mode still needs an actual saved profile before attaching.
+  if (!$learner && $profile === NULL) { return NULL; }
   return array('version' => 2, 'learner' => $learner, 'global' => $profile, 'bundle' => $bundle_id, 'profiles' => (object) $profiles);
 }
 

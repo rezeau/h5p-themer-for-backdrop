@@ -5,7 +5,7 @@ SPDX-License-Identifier: GPL-2.0-or-later.
 The implemented module provides immutable built-ins, both custom-theme schemas,
 native picker companions, global color runtime and saved/unsaved theme previews.
 Native Density is optional and disabled by default; see [Optional native Density](#optional-native-density). See [installation and upgrades](installation.md)
-and the [v0.4.0 release notes](release-notes-v0.4.0.md).
+and the [prepared v0.4.1 release notes](release-notes-v0.4.1.md).
 
 ## Optional native Density
 
@@ -14,13 +14,14 @@ using native classes on the verified `.h5p-content` root. Large does not promise
 increased container width. Only **qualified top-level H5P.TrueFalse 1.8.24 iframe
 players** are supported initially. Other types/versions, nested, DIV, external and
 ambiguous players retain original Density. Colors and the existing learner picker
-continue under their separate compatibility rules; there is no second selector.
+continue under their separate compatibility rules. Learner Density is a button
+group beside the existing theme picker, not another theme selector.
 
 Activation requires the site setting `h5p_themer_native_density_enabled` to be
 boolean TRUE. Absent/false/invalid values keep the feature OFF without changing stored
 theme Density. Follow [activation, cache refresh and rollback](installation.md#v021-to-v040-development-upgrade-and-rollback).
 
-| Existing selection | Native Density when enabled and qualified |
+| Existing selection | Native Density in theme mode, when enabled and qualified |
 |---|---|
 |Custom theme|Saved profile|
 |H5P Core defaults|Restore that player's original native profile|
@@ -31,7 +32,36 @@ Reload after server configuration changes. Open pages retain their metadata; no
 live remote switch is provided. No theme-schema/database migration is required.
 Additional libraries need real browser qualification. Administration preview still
 shows colors only; Live Density Preview is deferred unless separately authorized.
-Independent learner Density buttons are deferred to v0.4.1.
+
+### Independent learner Density (v0.4.1)
+
+With learner theme selection enabled, Small / Medium / Large native buttons display
+progressively sized T glyphs. An explicit learner Density override takes precedence
+over the current theme's saved Density, then each player's original native Density.
+Theme and color switching, including Core and immutable built-ins, keeps that
+override. **Use theme Density** resets it against the currently selected theme.
+There is one shared preference for the installation and browser tab; each qualified
+player retains its own original profile. Saved theme definitions are not modified.
+
+The controls appear only when the native controller reports usable, ready, qualified
+TrueFalse players. Mixed pages change only qualified players; unsupported-only pages
+hide Density controls while preserving the existing theme picker's behavior.
+An all-null Core/built-in catalog still permits learner Density choices. With learner
+selection disabled, saved-theme Density continues under the v0.4.0 rules above.
+
+The independent sessionStorage preference survives same-tab reload/navigation.
+Reset removes only the Density key. Invalid values fall back to theme mode;
+storage failures leave current-page choices usable and may retain older stored
+data. This is not H5P answer saving, account storage or cross-device persistence.
+
+Native buttons expose Small Density / Medium Density / Large Density names and
+aria-pressed. In theme mode all three are unpressed; reset remains available.
+Visible focus and double-border/underline selection cues do not rely on color.
+Mode and scope descriptions and a dedicated polite announcement region are visually
+hidden. Keyboard, 200% zoom and narrow layout passed user-reported Firefox testing;
+Windows forced colors and screen reader were not tested. Native Small and Medium
+can share text sizes while their spacing/scaling differs. Broader qualification
+is not implied. See [current readiness](v0.4.1-readiness.md).
 
 ## Routes and access
 

@@ -6,7 +6,66 @@
   var nativeClasses = ['h5p-small', 'h5p-medium', 'h5p-large'];
   var excluded = 'form, .h5peditor, .h5p-editor, #h5p-editor, .h5p-themer-saved-preview, .h5p-themer-preview-sample';
   var own = function (object, key) { return Object.prototype.hasOwnProperty.call(object, key); };
+  var override = null, preferenceInitialized = false, storageKey = null, storageUnavailable = false;
+  var preferenceSettings = null, restorePending = false, subscribers = [];
+  var snapshot = Object.freeze({ enabled: false, override: null, available: false, readyPlayers: 0 });
   function profile(value) { return value === null || ['small', 'medium', 'large'].indexOf(value) !== -1; }
+  function usable(item) {
+    return options && options.learner && !item.failed && same(item, identity(item.target)) &&
+      item.root.hasAttribute('data-h5p-themer-eligible') && ready(item) && selected(item) !== undefined;
+  }
+  function publish() {
+    var count = records.filter(usable).length;
+    var enabled = !!(options && options.learner);
+    if (snapshot.enabled === enabled && snapshot.override === override && snapshot.readyPlayers === count) { return; }
+    snapshot = Object.freeze({ enabled: enabled, override: override, available: count > 0, readyPlayers: count });
+    var next = snapshot;
+    subscribers.slice().forEach(function (entry) {
+      // A listener may synchronously request another state; never deliver the old one afterward.
+      if (snapshot === next && subscribers.indexOf(entry) !== -1) {
+        try { entry.listener(next); } catch (e) { /* A consumer cannot interrupt playback or other subscribers. */ }
+      }
+    });
+  }
+  function storage() {
+    if (!storageKey || storageUnavailable) { return null; }
+    try { return window.sessionStorage; }
+    catch (e) { storageUnavailable = true; return null; }
+  }
+  function restorePreference() {
+    var store = storage(), value;
+    if (!store) { return; }
+    try { value = store.getItem(storageKey); }
+    catch (e) { storageUnavailable = true; return; }
+    override = value !== null && profile(value) ? value : null;
+    if (value !== null && override === null) {
+      try { store.removeItem(storageKey); } catch (e) { storageUnavailable = true; }
+    }
+  }
+  function initializePreference() {
+    preferenceInitialized = true;
+    var base = preferenceSettings && preferenceSettings.basePath;
+    if (base === undefined) { base = (Backdrop.settings || {}).basePath; }
+    if (typeof base !== 'string' || base.length > 2048 || !/^\/(?:[^?#\\\x00-\x20\x7f]*\/)?$/.test(base) ||
+        base.indexOf('//') !== -1 || base.split('/').some(function (part) { return part === '.' || part === '..'; })) { return; }
+    storageKey = 'h5p_themer:learner-density:v1:' + base;
+    restorePreference();
+  }
+  function savePreference() {
+    var store = storage();
+    if (!store) { return; }
+    try {
+      if (override === null) { store.removeItem(storageKey); }
+      else { store.setItem(storageKey, override); }
+    } catch (e) { storageUnavailable = true; }
+  }
+  function clearPreference() {
+    override = null; preferenceInitialized = false; storageKey = null; storageUnavailable = false; restorePending = false;
+  }
+  function pageRestored(event) {
+    if (event.persisted && options && options.learner) { restorePending = true; }
+    refresh();
+  }
   function key(value) { return typeof value === 'string' && /^t[a-f0-9]{64}$/.test(value); }
   function decode(settings) {
     try {
@@ -143,6 +202,7 @@
         catch (e) {
           item.failed = true;
           if (effective(item.root) === item.last) { replace(item.root, item.original); }
+          publish();
         }
       });
     }
@@ -184,10 +244,16 @@
       try {
         var value = selected(item);
         if (!ready(item) || value === undefined) { cancel(item); return; }
+        if (usable(item)) {
+          if (!preferenceInitialized) { initializePreference(); restorePending = false; }
+          else if (restorePending) { restorePreference(); restorePending = false; }
+          if (override !== null) { value = override; }
+        }
         apply(item, value);
       } catch (e) { restore(item); item.failed = true; }
     });
     watchTree();
+    publish();
   }
   // Direct children of the known frame ancestor chains only; never a body subtree.
   // Late initialization also emits the existing native initialized/load events.
@@ -209,7 +275,7 @@
   function install() {
     if (listening) { return; }
     document.addEventListener('load', refresh, true);
-    window.addEventListener('pageshow', refresh);
+    window.addEventListener('pageshow', pageRestored);
     if (typeof window.MutationObserver === 'function') {
       parentObserver = new window.MutationObserver(refresh);
       parentObserver.observe(document.documentElement, { attributes: true, attributeFilter: [attribute] });
@@ -222,11 +288,12 @@
   }
   function stop() {
     records.slice().forEach(release); options = null;
-    document.removeEventListener('load', refresh, true); window.removeEventListener('pageshow', refresh);
+    document.removeEventListener('load', refresh, true); window.removeEventListener('pageshow', pageRestored);
     if (dispatcher) { dispatcher.off('initialized', refresh); dispatcher = null; }
     if (treeObserver) { treeObserver.disconnect(); treeObserver = null; }
     if (parentObserver) { parentObserver.disconnect(); parentObserver = null; }
     listening = false;
+    clearPreference(); preferenceSettings = null; publish();
   }
   function within(context, node) {
     if (context === document) { return node.ownerDocument === document; }
@@ -239,13 +306,42 @@
     Array.prototype.forEach.call(document.querySelectorAll('iframe.h5p-iframe'), function (frame) {
       if (within(context, frame)) { suspended.delete(frame); }
     });
+    if (!data.learner) { clearPreference(); }
+    preferenceSettings = settings;
     options = data; install(); refresh();
   }, detach: function (context, settings, trigger) {
     if (trigger !== undefined && trigger !== 'unload' && trigger !== 'move') { return; }
-    if (context === document) { stop(); return; }
+    if (context === document) { stop(); subscribers = []; return; }
     records.slice().forEach(function (item) {
       if (within(context, item.frame)) { suspended.add(item.frame); release(item); }
     });
     watchTree();
+    publish();
   } };
+  // Present as soon as this script loads; consumers may subscribe before attach.
+  // subscribe is change-only: read getSnapshot immediately after subscribing.
+  // Requests return false unless a current learner-qualified player is usable.
+  // Unsubscribe on consumer removal; document detach also releases all subscriptions.
+  Backdrop.h5pThemerNativeDensity = Object.freeze({
+    getSnapshot: function () { return snapshot; },
+    subscribe: function (listener) {
+      if (typeof listener !== 'function') { return function () {}; }
+      var entry = { listener: listener };
+      subscribers.push(entry);
+      return function () { subscribers = subscribers.filter(function (current) { return current !== entry; }); };
+    },
+    setOverride: function (value) {
+      if (value === null || !profile(value)) { return false; }
+      refresh();
+      if (!snapshot.available) { return false; }
+      if (override !== value) { override = value; savePreference(); refresh(); }
+      return true;
+    },
+    resetOverride: function () {
+      refresh();
+      if (!snapshot.available) { return false; }
+      override = null; savePreference(); refresh();
+      return true;
+    }
+  });
 })(Backdrop, document, window);
