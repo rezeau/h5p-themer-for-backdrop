@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Native Density — Checkpoint 1</title>
+  <style>
+    body { margin: 24px auto; padding: 0 20px; max-width: 900px; font: 16px/1.5 system-ui, sans-serif; color: #182333; background: #f5f6f8; }
+    h1 { font-size: 1.6rem; } h2 { font-size: 1.2rem; }
+    section { background: white; border: 1px solid #ccd1da; padding: 16px; margin: 20px 0; }
+    .controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    select, button { font: inherit; padding: 6px 10px; }
+    iframe { width: 100%; border: 0; display: block; }
+    table { border-collapse: collapse; width: 100%; font-size: 14px; }
+    th, td { text-align: left; border-bottom: 1px solid #ddd; padding: 6px; }
+    #status { min-height: 1.5em; } code { overflow-wrap: anywhere; }
+  </style>
+  <!-- RUNTIME -->
+  <script src="controller.js"></script>
+  <script src="harness.js" defer></script>
+</head>
+<body>
+  <h1>Native Density — Checkpoint 1</h1>
+  <p>Disposable, local H5P Core API 1.28 runtime. No Backdrop bootstrap, accounts, database, or saved answers.</p>
+  <div class="controls">
+    <label for="density">Target Density</label>
+    <select id="density" disabled>
+      <option value="small">Small / Compact</option>
+      <option value="medium">Medium</option>
+      <option value="large" selected>Large / Wide</option>
+    </select>
+    <button id="restore" type="button" disabled>Restore original profile</button>
+    <button id="measure" type="button">Refresh measurements</button>
+  </div>
+  <p id="status" role="status">Loading the two native players…</p>
+  <section>
+    <h2>Target player — Density changes here</h2>
+    <div class="h5p-iframe-wrapper"><iframe id="density-target" class="h5p-iframe" data-content-id="101" src="about:blank" title="Target True/False activity" style="height:1px" scrolling="no"></iframe></div>
+  </section>
+  <section>
+    <h2>Control player — always original Large</h2>
+    <p>This is a separate True/False instance. Target Density changes must leave it unchanged.</p>
+    <div class="h5p-iframe-wrapper"><iframe id="density-control" class="h5p-iframe" data-content-id="102" src="about:blank" title="Unchanged control True/False activity" style="height:1px" scrolling="no"></iframe></div>
+  </section>
+  <section>
+    <h2>Read-only measurements</h2>
+    <p>After changing Density or displaying feedback, click <strong>Refresh measurements</strong> once the layout settles. These are snapshots, not a live monitor.</p>
+    <p>Core intentionally gives Small and Medium the same font sizes. Compare spacing and dimensions too; no artificial size differences are added.</p>
+    <table><thead><tr><th>Measurement</th><th>Target</th><th>Control</th></tr></thead><tbody id="measurements"></tbody></table>
+  </section>
+</body>
+</html>

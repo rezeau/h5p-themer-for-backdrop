@@ -2,6 +2,19 @@
 
 SPDX-License-Identifier: GPL-2.0-or-later.
 
+## Current status annotation
+
+v0.4.0 is unreleased development; v0.2.1 remains latest stable and v0.3.0 was
+withdrawn. Accepted Checkpoint 3B adds opt-in native Density only for qualified
+top-level TrueFalse 1.8.24 iframe players on Core API 1.28. Built-ins themselves
+still supply no Density override. Density is disabled by default and requires
+explicit boolean TRUE opt-in. Unsupported players retain original Density.
+Checkpoint 3C Lite and separate module lifecycle verification are accepted.
+Independent learner Density buttons are deferred to v0.4.1; Live Density Preview
+(Checkpoint 3D) is deferred unless separately authorized.
+This historical source record does not imply support for other libraries; see
+[current readiness](v0.4.0-readiness.md).
+
 ## Status
 
 This historical requirements/source record was created for Phase 1C. The catalog,
@@ -129,7 +142,7 @@ integration or every H5P content type meets an accessibility standard.
 | --- | --- | --- |
 | 1B | Native administration and safeguards. | Implemented and verified; historical generated-data exception documented. |
 | 1C | Exact immutable presets, named customs, inheritance, pickers and field groups. | Implemented. |
-| 2A | Global color application through existing API-1.28 assets. | Implemented; density remains unapplied and library/embed coverage is bounded. |
+| 2A | Global color application through existing API-1.28 assets. | Historical global-color phase implemented. Opt-in native Density is now implemented for qualified TrueFalse 1.8.24 iframe playback; see current roadmap. |
 | 2B | Saved-theme and unsaved custom-color previews. | Implemented; user-confirmed local Firefox results are in the README. |
 | 2C | Learner-controlled site-wide selection. | Implemented: administrator toggle, shared catalog, live switching, session persistence and compatibility-based visibility; Firefox Step 5E 10/10 and Step 6E 9/9 PASS. Broader qualification remains limited; see the current roadmap. |
 | 2D | Accessibility-oriented themes. | PLANNED, not implemented. |

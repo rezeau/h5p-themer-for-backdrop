@@ -10,6 +10,7 @@ require_once __DIR__ . '/h5p_themer.visibility.inc';
 require_once __DIR__ . '/h5p_themer.runtime.inc';
 require_once __DIR__ . '/h5p_themer.learner-runtime.inc';
 require_once __DIR__ . '/h5p_themer.learner.inc';
+require_once __DIR__ . '/h5p_themer.native-density.inc';
 require_once __DIR__ . '/h5p_themer.import.inc';
 
 /**
@@ -148,7 +149,7 @@ function h5p_themer_compatibility() {
   $result['compatible'] = $api['majorVersion'] === 1 && $api['minorVersion'] === 28;
   $result['code'] = $result['compatible'] ? 'compatible' : 'api_incompatible';
   $result['message'] = $result['compatible']
-    ? t('H5P Core API 1.28 is available. Global color overrides are supported for compatible playback; density is not applied.')
+    ? t('H5P Core API 1.28 is available. Global colors apply where supported. Optional native Density is disabled by default and supports only qualified top-level H5P.TrueFalse 1.8.24 iframe players; installation-level activation is separate from API compatibility.')
     : t('H5P Themer requires exactly H5P Core API 1.28; detected @version.', array('@version' => $result['version']));
   return $result;
 }
@@ -269,6 +270,11 @@ function h5p_themer_h5p_styles_alter(&$styles, $libraries, $mode) {
 function h5p_themer_h5p_scripts_alter(&$scripts, $libraries, $mode) {
   if (!is_array($scripts) || !in_array($mode, array('div', 'iframe'), TRUE)) { return; }
   h5p_themer_learner_attach();
+}
+
+/** Implements hook_node_view(). Qualify the actual main content, not dependencies. */
+function h5p_themer_node_view($node, $view_mode = 'full', $langcode = NULL) {
+  h5p_themer_native_density_attach($node);
 }
 
 /**

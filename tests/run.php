@@ -11,7 +11,7 @@ $info = parse_ini_file($root . '/h5p_themer.info', FALSE, INI_SCANNER_RAW);
 check($info['type'] === 'module', 'Module metadata type');
 check($info['backdrop'] === '1.x', 'Backdrop API declaration');
 check($info['dependencies'] === array('h5p'), 'H5P dependency declaration');
-check(strpos($info['description'], 'Global color overrides') !== FALSE, 'Complete metadata description');
+check(strpos($info['description'], 'Core API 1.28') !== FALSE, 'Complete metadata description');
 check($info['configure'] === 'admin/config/content/h5p-themer', 'Administration configure route advertised');
 check(function_exists('h5p_themer_menu') && function_exists('h5p_themer_h5p_scripts_alter') && function_exists('h5p_themer_h5p_styles_alter'), 'Administration, global colors and parent-only learner UI attachment hooks exist');
 $definitions = h5p_themer_config_info();
@@ -259,6 +259,8 @@ require __DIR__ . '/visibility-admin.php';
 require __DIR__ . '/admin-form-requests.php';
 require __DIR__ . '/config-protection.php';
 require __DIR__ . '/native-theme-import.php';
+require __DIR__ . '/native-density.php';
+require __DIR__ . '/readiness.php';
 
 printf("PHP %s: %d passed, %d failed\n", PHP_VERSION, $passed, $failed);
 exit($failed ? 1 : 0);

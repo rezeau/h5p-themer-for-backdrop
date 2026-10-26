@@ -4,8 +4,34 @@ SPDX-License-Identifier: GPL-2.0-or-later.
 
 The implemented module provides immutable built-ins, both custom-theme schemas,
 native picker companions, global color runtime and saved/unsaved theme previews.
-Stored density is not applied. See [installation and upgrades](installation.md)
-and the [v0.2.0 release notes](release-notes-v0.2.0.md).
+Native Density is optional and disabled by default; see [Optional native Density](#optional-native-density). See [installation and upgrades](installation.md)
+and the [v0.4.0 release notes](release-notes-v0.4.0.md).
+
+## Optional native Density
+
+H5P Core API 1.28 provides Small (compact), Medium (intermediate) and Large (spacious),
+using native classes on the verified `.h5p-content` root. Large does not promise
+increased container width. Only **qualified top-level H5P.TrueFalse 1.8.24 iframe
+players** are supported initially. Other types/versions, nested, DIV, external and
+ambiguous players retain original Density. Colors and the existing learner picker
+continue under their separate compatibility rules; there is no second selector.
+
+Activation requires the site setting `h5p_themer_native_density_enabled` to be
+boolean TRUE. Absent/false/invalid values keep the feature OFF without changing stored
+theme Density. Follow [activation, cache refresh and rollback](installation.md#v021-to-v040-development-upgrade-and-rollback).
+
+| Existing selection | Native Density when enabled and qualified |
+|---|---|
+|Custom theme|Saved profile|
+|H5P Core defaults|Restore that player's original native profile|
+|Built-in theme|Restore original; current built-ins supply no override|
+|Site default|Follow effective Global Default Density, even a hidden custom default; restore original if no override|
+
+Reload after server configuration changes. Open pages retain their metadata; no
+live remote switch is provided. No theme-schema/database migration is required.
+Additional libraries need real browser qualification. Administration preview still
+shows colors only; Live Density Preview is deferred unless separately authorized.
+Independent learner Density buttons are deferred to v0.4.1.
 
 ## Routes and access
 
@@ -446,10 +472,15 @@ selected-theme deletion protection and storage/lock failures.
 
 Node tests exercise the production picker and preview behaviors with DOM/event
 doubles and installed Backdrop once/collapse scripts. They are not a browser
-emulator. Set `BACKDROP_SOURCE_ROOT` and `PHP_EXECUTABLE` as described in the [README](../README.md).
-The latest verified totals are **3,519 passed, 0 failed** on each of PHP
-**7.4.33**, **8.3.18** and **8.4.22**, and **387 passed, 0 failed** on Node.js
-**22.23.1**. PHP includes 325 separate-request administration lifecycle assertions.
+emulator. Set `BACKDROP_SOURCE_ROOT` and `PHP_EXECUTABLE` as described in the
+[developer source-only checks](v0.4.0-readiness.md#developer-source-only-checks).
+The accepted complete Checkpoint 3C Stage 1 baseline is **3,793 passed, 0 failed**
+on each of PHP **7.4.33**, **8.3.18** and **8.4.22**, and **470 passed, 0 failed**
+on Node.js **22.23.1**. PHP includes 325 separate-request administration lifecycle
+assertions and 54 readiness assertions. Later Checkpoint 3C Lite passed 46 focused
+assertions and all seven manual Firefox acceptance tests. A separate actual
+Backdrop module disable/re-enable passed 85 focused checks without uninstalling;
+this is distinct from Density-setting OFF/ON. See [current evidence](v0.4.0-readiness.md).
 Learner tests use the actual
 PHP-produced palette contract and check frame readiness, fallback, cascade and
 activity identity. The user confirmed Firefox Step 5E **10/10 PASS** and Step 6E
@@ -461,7 +492,8 @@ The user separately confirmed manual Firefox PASS results for saved previews,
 unsaved live edits, invalid input handling, inheritance/reset, multiple overrides,
 native picker synchronization and JavaScript-disabled fallback. A 375px viewport
 was usable but cramped in administration/preview. That does not qualify the
-learner selector's narrow/mobile layout. Keyboard-only operation, screen-reader
+learner selector's full narrow/mobile layout. Checkpoint 3B later covered narrow
+windows and 200% zoom for its qualified Firefox fixture. Keyboard-only operation, screen-reader
 announcements, control-removal focus, RTL/long translated labels, Chromium, Safari,
 restricted-storage environments and broader libraries remain incompletely qualified.
 This is local functional evidence, not WCAG certification or universal browser
@@ -497,7 +529,7 @@ invalidates for its toggle, displayed catalog and any selectable palette changes
 No-op and rejected saves do not. Open pages retain their server-rendered global/catalog snapshot until refresh;
 cache invalidation does not subscribe them to administrator changes. Existing imports
 retain native cache handling; direct programmatic changes require caller-managed
-invalidation. Stored density remains editable but is not applied.
+invalidation. With native Density enabled, effective Density-only changes invalidate its metadata separately, without changing color CSS hashes.
 
 Code deployments that change the fixed-path learner JavaScript require the
 [targeted JS/output cache procedure](installation.md#deployment-cache-refresh).
@@ -517,7 +549,7 @@ emitted. No actual H5P activity is created or edited by this sample.
 
 The frame embeds trusted fixed Core/sample CSS, not remote fonts or activity
 assets, with a restrictive CSP and no `allow-scripts`. Rendering does not write
-configuration, content, caches or runtime CSS files. Density is not applied.
+configuration, content, caches or runtime CSS files. Native Density is not applied in this representative color-only preview; live Density preview is deferred to Checkpoint 3D.
 The appearance is representative and cannot certify every library's rendering,
 contrast, keyboard behavior or accessibility.
 

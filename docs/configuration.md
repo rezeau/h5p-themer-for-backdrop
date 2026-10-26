@@ -6,8 +6,23 @@ The schema-1 contract remains supported. The implemented schema-2 extensions
 add pinned bases and typed references without forcing migration of schema-1
 themes. Both schemas are supported by native forms, previews and global colors.
 See [administration](administration.md), [installation and upgrades](installation.md)
-and the [v0.2.0 release notes](release-notes-v0.2.0.md). The
+and the [v0.4.0 release notes](release-notes-v0.4.0.md). The
 [schema-2/read-API record](phase-1c-step-2a.md) preserves historical design evidence.
+
+## Native Density activation (v0.4.0 development)
+
+The existing `density` values `small`, `medium` and `large` and serialized schema-1/2
+objects are unchanged. Density is independent of a pinned preset's color inheritance.
+Saved Density alone does not enable runtime changes. The site-level setting
+`$settings['h5p_themer_native_density_enabled'] = TRUE;` must be boolean TRUE; it is
+not a new theme/schema field and must not be added to exported theme JSON.
+
+Only qualified top-level H5P.TrueFalse 1.8.24 iframe players on Core API 1.28 currently
+apply custom saved profiles. Core/built-ins restore original; Site default follows
+effective Global Default, including hidden custom defaults, or restores original.
+Unsupported players retain native Density; existing color/learner behavior remains
+independent. No migration is required. See [upgrade/cache/rollback](installation.md#v021-to-v040-development-upgrade-and-rollback)
+and [current readiness](v0.4.0-readiness.md); preview remains color-only.
 
 ## Stored objects
 
@@ -222,7 +237,9 @@ behavior. Bulk theme import, existing-theme updates, theme deletions and all
 visibility-policy imports remain unsupported. Backdrop sync is not a multi-file
 database transaction.
 
-### Provisional v0.2.1: single schema-2 theme creation
+<a id="provisional-v021-single-schema-2-theme-creation"></a>
+
+### v0.2.1 single schema-2 theme creation (unchanged in v0.4.0)
 
 The module alters Backdrop's existing `config_import_single_form` at
 Configuration manager → Single import/export → Import. Paste one exported JSON
@@ -446,16 +463,22 @@ attachments; a learner's explicit Core choice does not disable the feature.
 
 ## Qualification status
 
-The latest verified release-code totals are **3,519 passed, 0 failed** on each of
-PHP **7.4.33**, **8.3.18** and **8.4.22**, and **387 passed, 0 failed** on Node.js
-**22.23.1**, using Backdrop **1.35.2** source definitions and H5P Core API **1.28**.
-The PHP suite includes 325 separate-request administration lifecycle assertions.
-The suites use isolated collaborators and private files; these results do not
-establish database-backed upgrades, every Backdrop 1.x release or other H5P APIs.
+The accepted complete Checkpoint 3C Stage 1 baseline is **3,793 passed, 0 failed**
+on each of PHP **7.4.33**, **8.3.18** and **8.4.22**, and **470 passed, 0 failed**
+on Node.js **22.23.1**, using Backdrop **1.35.2** source definitions and H5P Core
+API **1.28**. PHP includes 325 separate-request administration lifecycle assertions
+and 54 readiness assertions. These suites use isolated collaborators and private
+files. Later Checkpoint 3C Lite passed 46 focused assertions and all seven manual
+Firefox acceptance tests, including an isolated database-backed warmed upgrade
+and Density-setting OFF/ON. A separate clone passed 85 focused checks of actual
+module disable/re-enable without uninstalling: schema 1003, all eight saved
+configuration hashes and Global Default fresh_source were preserved. See
+[current evidence and limits](v0.4.0-readiness.md). These results do not establish
+every Backdrop 1.x release or other H5P APIs; full code rollback was not rehearsed.
 The user confirmed Firefox Step 5E 10/10 PASS and Step 6E 9/9 PASS; no additional
 browser testing is claimed by publication corrections. Source/tests check native
 select/label association, but keyboard-only, screen-reader announcements, focus
 on control removal, narrow/mobile layout, RTL/long labels, Chromium, Safari,
 restricted storage and broader library compatibility are not fully qualified.
-The v0.2.0 release designation is not a claim of universal compatibility or WCAG
+The v0.4.0 candidate designation is not a claim of universal compatibility or WCAG
 certification. Historical checkpoint totals remain in their original phase records.

@@ -59,7 +59,7 @@ function h5p_themer_preview($selection, $schema_version = 2, $original = FALSE, 
     '#suffix' => '</section>',
     '#attached' => array('css' => array(backdrop_get_path('module', 'h5p_themer') . '/css/h5p_themer.preview.css')),
     'description' => array('#markup' => '<h3>' . t('Saved theme preview') . '</h3><p>' .
-      t('Preview-only examples, not an H5P activity. Libraries and authored styles may look different. This preview does not change the global default. Unsaved form edits are not shown. Density is not applied.') . '</p>'),
+      t('Preview-only examples, not an H5P activity. Libraries and authored styles may look different. This preview does not change the global default. Unsaved form edits are not shown. Density is not applied in this representative color-only preview. Native Density playback support is separate; live Density preview is deferred to Checkpoint 3D.') . '</p>'),
     'sample' => array('#markup' => '<iframe' . backdrop_attributes(array(
       'class' => array('h5p-themer-preview-frame'), 'title' => $title,
       'sandbox' => 'allow-same-origin', 'height' => 640, 'srcdoc' => $document,
@@ -87,7 +87,7 @@ function h5p_themer_preview($selection, $schema_version = 2, $original = FALSE, 
       $build['#prefix'] = '<section' . backdrop_attributes(array('class' => array('h5p-themer-saved-preview', 'h5p-themer-live-preview'),
         'aria-label' => $title, 'data-h5p-themer-preview' => backdrop_json_encode($metadata))) . '>';
       $build['description']['#markup'] = '<h3 class="h5p-themer-preview-heading">' . t('Saved theme preview') . '</h3><p>' .
-        t('With JavaScript, valid color edits update this preview immediately. Changes are not saved until Save is clicked. Without JavaScript, the saved preview remains available. Density is not applied.') . '</p>';
+        t('With JavaScript, valid color edits update this preview immediately. Changes are not saved until Save is clicked. Without JavaScript, the saved preview remains available. Density is not applied in this representative color-only preview. Native Density playback support is separate; live Density preview is deferred to Checkpoint 3D.') . '</p>';
       $build['live_status'] = array('#markup' => '<p class="h5p-themer-preview-status" role="status" aria-live="polite" aria-atomic="true">' .
         t('Saved colors. Changes are not saved until Save is clicked.') . '</p>');
       $build['#attached']['js'][] = backdrop_get_path('module', 'h5p_themer') . '/js/h5p_themer.preview.js';

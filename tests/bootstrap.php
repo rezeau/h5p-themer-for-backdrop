@@ -55,9 +55,39 @@ function backdrop_valid_test_ua() {
   return FALSE;
 }
 function settings_get($name, $default = NULL) {
+  if ($name === 'h5p_themer_native_density_enabled') {
+    return isset($GLOBALS['native_density_test_enabled']) ? $GLOBALS['native_density_test_enabled'] : $default;
+  }
   // Test-only backend injection for native file-storage safety regressions.
   $class = isset($GLOBALS['visibility_test_storage_class']) ? $GLOBALS['visibility_test_storage_class'] : 'H5PThemerMemoryStorage';
   return in_array($name, array('config_active_class', 'config_staging_class'), TRUE) ? $class : $default;
+}
+
+/** Site-free double of the read-only H5P Backdrop API; never constructs services. */
+class H5PBackdrop {
+  public static $libraries = array();
+  public static $contents = array();
+  public static $reads = 0;
+  public static $fail = FALSE;
+  public function isInDevMode() { return FALSE; }
+  public function loadLibrary($name, $major, $minor) {
+    self::$reads++;
+    if (self::$fail) { throw new RuntimeException('Unavailable library API'); }
+    return isset(self::$libraries[$name]) ? self::$libraries[$name] : FALSE;
+  }
+  public function loadContent($id) {
+    self::$reads++;
+    if (self::$fail) { throw new RuntimeException('Unavailable content API'); }
+    return isset(self::$contents[$id]) ? self::$contents[$id] : NULL;
+  }
+}
+function native_density_fixture($ids = array(6, 7, 8)) {
+  H5PBackdrop::$fail = FALSE;
+  H5PBackdrop::$libraries = array('H5P.TrueFalse' => array('libraryId' => '17', 'machineName' => 'H5P.TrueFalse', 'majorVersion' => '1', 'minorVersion' => '8', 'patchVersion' => '24'));
+  H5PBackdrop::$contents = array();
+  foreach ($ids as $id) {
+    H5PBackdrop::$contents[$id] = array('id' => $id, 'libraryId' => '17', 'libraryName' => 'H5P.TrueFalse', 'libraryMajorVersion' => '1', 'libraryMinorVersion' => '8', 'embedType' => 'div', 'libraryEmbedTypes' => 'iframe');
+  }
 }
 function module_exists($name) {
   return $name === 'h5p' && $GLOBALS['h5p_enabled'];

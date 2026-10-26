@@ -2,18 +2,21 @@
 
 SPDX-License-Identifier: GPL-2.0-or-later.
 
-This guide covers the v0.2.0 baseline and the local v0.2.1 release candidate.
-Read the [candidate notes](release-notes-v0.2.1.md) and
-[v0.2.0 release notes](release-notes-v0.2.0.md) before upgrading. Historical phase/checkpoint
-records preserve development evidence; they are not installation instructions.
+This guide covers published v0.2.1 and the **unreleased v0.4.0 development
+version**. v0.3.0 was withdrawn. Historical phase/checkpoint records preserve their
+original evidence; they are not current installation instructions. See the
+[v0.4.0 readiness note](v0.4.0-readiness.md) for accepted evidence, remaining release preparation and qualification limits.
 
 ## 1. Prepare Backdrop and the H5P integration
 
 Backdrop **1.x** is the metadata declaration. Actual source inspection and local
 verification used **Backdrop 1.35.2**, H5P Core API **1.28**, and PHP **7.4.33**,
-**8.3.18** and **8.4.22**. The v0.2.1 feature PHP suite passed 3,673 assertions on each version;
-the JavaScript suite passed 387 tests on Node.js **22.23.1**. These are isolated
-automated tests, not database-backed installation or universal browser
+**8.3.18** and **8.4.22**. The accepted Checkpoint 3C Stage 1 baseline passed 3,793 PHP assertions on each
+version and 470 tests on Node.js **22.23.1**. Later focused verification passed
+46 Checkpoint 3C Lite assertions and 85 module lifecycle checks; Lite also passed
+all seven manual Firefox acceptance tests. The complete suites use isolated
+collaborators; the later clone checks cover specific database-backed deployment
+and module operations. Neither establishes universal installation or browser
 certification. Other Backdrop/PHP versions and arbitrary H5P integration releases
 are not established as compatible by this evidence.
 
@@ -60,6 +63,8 @@ Duplicate or Preset Duplicate also start hidden. The learner-selection setting
 starts disabled, and Global Default starts at
 **H5P Core defaults (no overrides)** (`null`).
 
+Native Density starts disabled unless the strict site setting below is enabled.
+
 Do not invoke update hooks manually on a fresh installation. Backdrop records
 the installed schema level and runs the install hook through its normal module
 installation lifecycle. Verify that the overview has no activation diagnostics.
@@ -68,7 +73,99 @@ The existing local public-files directory must be writable and use a browser-saf
 relative path for global-theme CSS. Remote/absolute public-path mappings are not
 supported by this runtime. Preview itself does not publish runtime CSS.
 
-### Upgrading an existing installation
+### v0.2.1 to v0.4.0 development upgrade and rollback
+
+**Verified in an independent disposable clone; not an executed production upgrade.**
+Accepted Checkpoint 3C Lite supersedes the planned full Stage 2/3 rehearsal. It
+verified the cache-warmed v0.2.1 upgrade, hook/cache procedure and Density-setting
+OFF/ON, with 46 focused assertions and all seven manual Firefox acceptance tests.
+A separate clone subsequently passed 85 actual module disable/re-enable checks
+without uninstalling. Full code rollback was not rehearsed; the procedure below
+remains recovery guidance, not a tested rollback claim. Preserve all accepted
+Checkpoint 2B, 3B and 3C Lite environments. Verify the intended deployment target
+and backups; metadata 0.4.0 alone does not authorize deployment.
+
+1. Confirm the intended site/root/database, installed Themer version and schema,
+   Core API exactly 1.28, and actual installed H5P library versions. Only trusted
+   server-qualified **H5P.TrueFalse 1.8.24**, top-level iframe playback, supports
+   Density. Development-mode libraries, other versions/types, nested/DIV/external
+   players and ambiguous embeddings are excluded. Do not edit version declarations.
+2. Back up complete module code, settings.php, active configuration and database
+   recovery state. Record checksums and a site-specific restore plan. Preserve
+   custom themes, saved Density, preset pins, Global Default, visibility and learner
+   preferences/configuration. Pause theme administration/config synchronization.
+3. Keep native Density disabled for initial deployment: leave its setting absent
+   or set it to boolean FALSE. Deploy the complete v0.4.0 module coherently, including
+   the new native-density PHP include and JS controller. Never deploy a mixture of
+   versions or uninstall/reinstall. For existing v0.2.1 at schema 1003, there is no
+   new database update or configuration migration. Do not replay update hooks.
+4. **Refresh hook discovery**, including the new `hook_node_view`, and perform
+   supported cache rebuilding covering module metadata, output and JS/CSS aggregates.
+   The following are native PHP API calls, not shell/Drush commands. Run only inside
+   a supported, fully bootstrapped CLI context that has verified the intended site:
+
+   ```php
+   module_implements_reset();
+   backdrop_flush_all_caches();
+   ```
+
+   Source was verified in Backdrop 1.35.2: `core/includes/module.inc` defines the
+   hook reset; `core/includes/common.inc` defines the rebuild, including module data,
+   JS/CSS caches and bootstrap/output bins. **No-argument `cache_clear_all()` alone
+   does not reset hook discovery.** This sequence was verified in the cache-warmed
+   3C Lite clone; adapt and verify the guarded bootstrap for each intended target. Do not expose a cache-clearing web endpoint or run this as
+   unbootstrapped PHP. Respect any site-specific opcode-cache deployment process.
+5. With Density still OFF, verify existing colors, Global Default, hidden themes,
+   learner choices and saved/live color preview. Compare configuration with backup;
+   existing schema-1/2 customs and saved Density must remain unchanged.
+6. If qualified content exists and the administrator opts in, add:
+
+   ```php
+   $settings['h5p_themer_native_density_enabled'] = TRUE;
+   ```
+
+   Only boolean TRUE enables it: strings, 1, arrays, NULL and FALSE do not. This is an
+   installation setting, not a new form control or exported configuration field.
+7. Refresh relevant output and JS assets in the intended site and reload playback.
+   Existing native API calls for this narrower refresh are `backdrop_clear_js_cache();`
+   and `cache_clear_all();` in the same guarded full CLI context. These do not replace
+   step 4 when module hooks change. Check actual delivered assets and parent metadata.
+8. Verify native Small/Medium/Large; retained answers/feedback/Retry; Core restoring
+   original; built-ins restoring original; Site default following effective Global
+   Default, including a hidden custom default. Unsupported content must retain its
+   original Density while existing color behavior continues under its own rules.
+
+**Disable:** set the installation switch FALSE or remove it, refresh relevant caches
+and reload. Already-open pages retain their supplied settings until reloaded; this
+is not a live remote kill switch. Refresh qualification/output after library changes
+too; a newer patch is not automatically qualified.
+
+**Module disable/re-enable:** use the normal checkbox and Save configuration at
+`admin/modules`. Do not uninstall or delete configuration. This is separate from
+the Density installation switch above. On the independent lifecycle clone,
+disabling removed Themer playback hooks/assets on fresh pages while H5P still
+played and scored. Re-enabling restored hooks, colors, the learner picker and
+qualified Density. Schema 1003, all eight saved configuration hashes and Global
+Default `fresh_source` were preserved; the Density opt-in remained TRUE throughout.
+Reload playback after either module operation. This does not qualify every site
+or imply that answers persist across navigation/reload.
+
+**Code rollback to v0.2.1 (not rehearsed):** restore the complete known-good v0.2.1 module and the
+previous site setting (or remove the Density switch). Repeat the hook-discovery
+reset and supported asset/output rebuild, then reload and verify colors, learner
+selection and preview. Preserve theme configuration and saved Density; no reverse
+schema migration or routine database restore is necessary. Older v0.2.1 code ignores
+this new installation setting. Existing open v0.4.0 pages require reload.
+
+**Partial deployment failure:** keep the site out of active use while restoring a
+complete known-good module; do not try to repair missing includes with mixed code.
+Use the recorded site-specific recovery plan. Restore a database snapshot only
+when independently needed to undo test/data changes, never over unrelated or later
+production data. No upgrade or rollback is authorized by this documentation.
+
+<a id="upgrading-an-existing-installation"></a>
+
+### Older installation/schema history
 
 1. Back up code, the database (including module schema and activation state),
    configuration and files using the site's established recovery procedure.
@@ -137,7 +234,7 @@ Reload existing activity pages after saving. Only libraries that consume the
 relevant variables will visibly change. Embedded playback served by this site
 can receive the selected global colors through its integration; unrelated remote
 providers, existing open frames and independently cached host pages are outside
-that guarantee. Density is not applied.
+that guarantee. Native Density has a narrower, opt-in scope: qualified top-level TrueFalse 1.8.24 iframe playback only; see the activation procedure above.
 
 ## 5. Create or edit a custom theme
 
@@ -271,6 +368,8 @@ do not bypass the guards with direct files or low-level saves. See the
 [configuration contract](configuration.md#native-configuration-validation-and-importexport).
 
 ## Deployment cache refresh
+
+For a code upgrade adding/removing hooks, first follow the [hook-discovery and full rebuild procedure](#v021-to-v040-development-upgrade-and-rollback) above. The narrower operations below describe existing asset/header corrections; they are not a complete v0.2.1 upgrade or rollback.
 
 When deploying the learner HTML cache-header correction, existing Backdrop
 page-cache entries must be refreshed, even if no JavaScript has changed. Older

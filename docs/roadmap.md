@@ -2,6 +2,25 @@
 
 SPDX-License-Identifier: GPL-2.0-or-later.
 
+## Current v0.4.0 development status — NOT YET RELEASED
+
+v0.2.1 is the latest published stable release; v0.3.0 was withdrawn. Checkpoint 3B
+native Density is implemented and user-confirmed Firefox PASS: qualified top-level
+TrueFalse 1.8.24 iframe players on Core API 1.28 only, disabled by default. Existing
+colors and learner selection retain their own broader compatibility rules.
+Checkpoint 3C Lite superseded the full Stage 2/3 plan: its cache-warmed upgrade,
+hook/cache refresh and Density-setting OFF/ON passed 46 focused assertions and all
+seven manual Firefox tests. A separate actual module disable/re-enable verification
+passed 85 focused checks without uninstalling, preserving schema 1003 and all eight
+saved configuration hashes. Full code rollback was not rehearsed. The complete
+automated baseline remains 3,793 PHP assertions on each of PHP 7.4.33, 8.3.18 and
+8.4.22, plus 470 Node.js 22.23.1 tests.
+
+Independent learner Density buttons are deferred to v0.4.1. Live Density Preview
+(Checkpoint 3D) is deferred unless separately authorized; today's preview is
+representative and color-only. Neither enhancement is part of v0.4.0. See
+[readiness/evidence](v0.4.0-readiness.md) and [upgrade instructions](installation.md#v021-to-v040-development-upgrade-and-rollback).
+
 ## Implemented baseline
 
 Phase 1B administration, Phase 1C built-in presets and custom inheritance,
@@ -57,9 +76,8 @@ were performed by publication corrections. Historical [switching](phase-2c-step-
 [session](phase-2c-step-5.md) and [compatibility](phase-2c-step-6.md) records retain
 their original checkpoint observations and pending-test statements.
 
-**v0.2.0-alpha.1 is already published**. **v0.2.0-alpha.2 is the proposed next
-prerelease**, not a release created by these corrections. Phase 2C implementation
-completion does not make it stable production software.
+The following Phase 2C results are historical checkpoint evidence, not current
+release publication. Current release/development status is recorded above.
 Source/tests check native select/label association. Keyboard-only acceptance,
 screen-reader announcements, focus on control removal, narrow/mobile layout,
 RTL/long translated labels, Chromium, Safari, restricted-storage environments,
@@ -110,8 +128,9 @@ H5P content. No approximate palette or accessibility guarantee is introduced her
 
 ## Existing limitations and further investigation
 
-Density application, per-content assignments, comprehensive external/nested embed
-qualification and broad library/browser coverage are not part of the implemented
-color runtime. Current previews are representative samples rather than running
+Native Density is deliberately limited to the qualified TrueFalse scope above.
+Per-content assignments, comprehensive external/nested qualification and broad
+library/browser coverage are not implemented. Current previews are representative samples rather than running
 activities. The administration/preview interface was usable but cramped at 375px
-in Firefox; the learner selector's narrow/mobile layout is not yet qualified.
+in Firefox; Checkpoint 3B Firefox acceptance covered narrow layouts and 200% zoom for its
+fixtures; broader mobile, keyboard-only and assistive-technology coverage remains limited.

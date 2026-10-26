@@ -1,0 +1,34 @@
+{
+    "immutable_lf_sha256": {
+        "h5p_themer.native-density.inc": "881a54618e0a4e99416f51bb97577f05e40d9f3cfa3683d7e643604bfa0d8924",
+        "js/h5p_themer.native-density.js": "8751db50b79e58db47e62bcb07d926a42724c3c9dedeee0d0d38816412e69250",
+        "js/h5p_themer.preview.js": "fba7055d4124a701897a4dfd828a4abb80edf99f88ed028e796d1ca971277792",
+        "css/h5p_themer.preview.css": "bb840d47fa2387786ba5c7a1319feeb07ee885b2f937646bf818503526749809",
+        "h5p_themer.config.inc": "9bc33e87865e8d13d91f85b7c3c52e1a93f394ae81c35a3be05d7389074091ba",
+        "config/h5p_themer.settings.json": "f9012775bb556f27af12e1d69c38e237ee720f7ce7cac5d6bed669858280c027",
+        "h5p_themer.presets.inc": "72d2f8816a6021cbd8109cb5f522f0120c6491d567066fe3939d3a2a867ba64b",
+        "h5p_themer.catalog.inc": "23340f278fdd935c35ccc380b043f414ad02a54d2db9d60e3597bd763b474537",
+        "h5p_themer.runtime.inc": "9c32b85675e57e966a8698bf6f21e1db5855ac84b1f579c696109c3eac7cae5f",
+        "h5p_themer.learner.inc": "b9a4a6482027b78b4cf16df279cc27732085772f0365b9ac761d2d581883eb3d",
+        "js/h5p_themer.learner.js": "91dad464a2999eeff87a45d9b70253d21f3c98ebaf3568661bfe0b8b2023b69a",
+        "js/h5p_themer.learner-picker.js": "419c588fad11b6cee8aa04d3667eefbf985216da7fb3e93b13acabe1814940ac",
+        "LICENSE": "4052be61f35ad6a156dcee919b8f99058b24b0417a152ecef746f702c7f34c5c",
+        "LICENSE.txt": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643",
+        "LICENSE-GPL-3.0.md": "4052be61f35ad6a156dcee919b8f99058b24b0417a152ecef746f702c7f34c5c",
+        "LICENSE-MIT-H5P-THEME-PICKER.txt": "6934d3015453129c55f5da0d4c65aabdd7373394b7d02697d96dd7557f1c3489",
+        "THIRD-PARTY-NOTICES.md": "be2a93a71f8ca32989679046f9ad02d137a083904d0a50eb39847acf75ce3713",
+        "dev/native-density/controller.js": "91118af0691c4480b3a225aa50f8c5021cc8eb14a760cbd90057d68c19cc2be4",
+        "dev/native-density/harness.js": "f04e59c78b7b6ef08559ca20c89f320d21137b299e78907547ba782bdc1d75f6",
+        "dev/native-density/index.html": "8d742f58e58cfd8cb6e2bc427be3cbe7c643d0e7cde965c67da2a904f3a8a8ad",
+        "dev/native-density/prepare.cjs": "d6a64f95544c6ff9f9fdc557c61fc1f3540c5f6418d0658df89588f1c7d904b1",
+        "dev/native-density/README.md": "a01102bb0fedcc8f97a57ab7fafa961075032a02b4daf9c55ed9cc14524a499a",
+        "dev/native-density/serve.cjs": "928869f9b065823fe32d509f9f4444be30d63318f6a47496cd3059951d0fea03",
+        "tests/js/native-density.test.cjs": "4648b85a97277a0ca721423f06282daeff3b446919b828345a6c0580a63ffdd1"
+    },
+    "translated_text_only_signature": {
+        "h5p_themer.admin.inc": "49b52887500c6bd0a31aa4c57c44cbf99dcb73e919776eca3f7111da694c95b4",
+        "h5p_themer.module": "34e764fb555470f62acfb75adfe659bef08614aba808458c2fb3ee3a723cb3f6",
+        "h5p_themer.install": "4878a3a0504a671cb1973b4beb60e76391ae1ffd692a43c06ca3f7081d07e1c8",
+        "h5p_themer.preview.inc": "4ccce2ec6724c898a24bb804c362c1d514490843bea41e3fe1aa4f753e4d0739"
+    }
+}
