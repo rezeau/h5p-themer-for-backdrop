@@ -4,8 +4,7 @@ SPDX-License-Identifier: GPL-2.0-or-later.
 
 ## Current status annotation
 
-v0.4.0 is unreleased development; v0.2.1 remains latest stable and v0.3.0 was
-withdrawn. Accepted Checkpoint 3B adds opt-in native Density only for qualified
+v0.4.0 builds on the v0.2.1 stable baseline; v0.3.0 was withdrawn. Accepted Checkpoint 3B adds opt-in native Density only for qualified
 top-level TrueFalse 1.8.24 iframe players on Core API 1.28. Built-ins themselves
 still supply no Density override. Density is disabled by default and requires
 explicit boolean TRUE opt-in. Unsupported players retain original Density.

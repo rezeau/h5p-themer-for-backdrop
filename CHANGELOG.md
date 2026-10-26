@@ -2,7 +2,9 @@
 
 SPDX-License-Identifier: GPL-3.0-or-later.
 
-## v0.4.0 — unreleased
+<a id="v040--unreleased"></a>
+
+## v0.4.0
 
 Adds disabled-by-default native Density for qualified top-level TrueFalse 1.8.24
 iframe players on H5P Core API 1.28, with explicit boolean TRUE opt-in. Unsupported
@@ -20,5 +22,5 @@ is deferred unless separately authorized. See the [v0.4.0 release notes](docs/re
 ## Earlier versions
 
 - v0.3.0 — withdrawn.
-- v0.2.1 — latest published stable; [historical release notes](docs/release-notes-v0.2.1.md).
+- v0.2.1 — earlier stable baseline; [historical release notes](docs/release-notes-v0.2.1.md).
 - v0.2.0 — [historical release notes](docs/release-notes-v0.2.0.md).

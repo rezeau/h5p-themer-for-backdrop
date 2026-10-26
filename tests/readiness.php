@@ -38,8 +38,10 @@ foreach ($readiness_baseline['translated_text_only_signature'] as $path => $expe
     'Only translated descriptions changed from accepted 3B: ' . $path);
 }
 $info = parse_ini_file($readiness_root . '/h5p_themer.info', FALSE, INI_SCANNER_RAW);
-check($info['version'] === '0.4.0' && strpos($info['description'], 'Unreleased development version.') === 0,
-  'Planned metadata version is explicitly unreleased');
+check($info['version'] === '0.4.0'
+  && strpos($info['description'], 'Manage reusable H5P themes with Core API 1.28.') === 0
+  && strpos($info['description'], 'Unreleased development version.') === FALSE,
+  'Neutral v0.4.0 module metadata retains its qualified description');
 foreach (array('type' => 'module', 'name' => 'H5P Themer', 'package' => 'H5P', 'backdrop' => '1.x',
   'dependencies' => array('h5p'), 'configure' => 'admin/config/content/h5p-themer') as $key => $value) {
   check($info[$key] === $value, 'Metadata identity, compatibility and dependency unchanged: ' . $key);
@@ -76,6 +78,8 @@ check(strpos($guide, 'does not reset hook discovery') !== FALSE
   && strpos($guide, '85 actual module disable/re-enable checks') !== FALSE,
   'Guide separates hook reset and output refresh and records accepted Lite/module evidence with rollback limits');
 $readme = file_get_contents($readiness_root . '/README.md');
-check(strpos($readme, 'NOT YET RELEASED') !== FALSE && strpos($readme, 'latest published stable release; v0.3.0 was withdrawn') !== FALSE,
-  'Release history is truthful');
+check(strpos($readme, '**H5P Themer v0.4.0**') !== FALSE
+  && strpos($readme, 'v0.3.0 was withdrawn') !== FALSE
+  && !preg_match('/NOT YET RELEASED|release candidate/i', $readme),
+  'README uses neutral v0.4.0 wording and preserves withdrawn-release history');
 printf("Readiness text and preservation: %d assertions\n", $passed - $readiness_start);

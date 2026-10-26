@@ -2,9 +2,11 @@
 
 SPDX-License-Identifier: GPL-2.0-or-later.
 
-## Current v0.4.0 development status — NOT YET RELEASED
+<a id="current-v040-development-status--not-yet-released"></a>
 
-v0.2.1 is the latest published stable release; v0.3.0 was withdrawn. Checkpoint 3B
+## Current v0.4.0 status
+
+v0.4.0 builds on the v0.2.1 stable baseline; v0.3.0 was withdrawn. Checkpoint 3B
 native Density is implemented and user-confirmed Firefox PASS: qualified top-level
 TrueFalse 1.8.24 iframe players on Core API 1.28 only, disabled by default. Existing
 colors and learner selection retain their own broader compatibility rules.
@@ -77,7 +79,7 @@ were performed by publication corrections. Historical [switching](phase-2c-step-
 their original checkpoint observations and pending-test statements.
 
 The following Phase 2C results are historical checkpoint evidence, not current
-release publication. Current release/development status is recorded above.
+release publication. Current release status is recorded above.
 Source/tests check native select/label association. Keyboard-only acceptance,
 screen-reader announcements, focus on control removal, narrow/mobile layout,
 RTL/long translated labels, Chromium, Safari, restricted-storage environments,

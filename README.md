@@ -4,8 +4,8 @@ Manage reusable color themes for compatible H5P activities in Backdrop CMS,
 with optional native Density for a narrowly qualified player type.
 This independent project does not modify authored H5P content or H5P libraries.
 
-**v0.4.0 is a release candidate and is NOT YET RELEASED.**
-v0.2.1 is the latest published stable release; v0.3.0 was withdrawn.
+**H5P Themer v0.4.0**
+v0.2.1 is the earlier stable baseline; v0.3.0 was withdrawn.
 
 ## Main features
 

@@ -2,8 +2,8 @@
 
 SPDX-License-Identifier: GPL-2.0-or-later.
 
-This guide covers published v0.2.1 and the **unreleased v0.4.0 development
-version**. v0.3.0 was withdrawn. Historical phase/checkpoint records preserve their
+This guide covers the v0.2.1 baseline and **v0.4.0**. v0.3.0 was withdrawn.
+Historical phase/checkpoint records preserve their
 original evidence; they are not current installation instructions. See the
 [v0.4.0 readiness note](v0.4.0-readiness.md) for accepted evidence, remaining release preparation and qualification limits.
 
@@ -73,7 +73,9 @@ The existing local public-files directory must be writable and use a browser-saf
 relative path for global-theme CSS. Remote/absolute public-path mappings are not
 supported by this runtime. Preview itself does not publish runtime CSS.
 
-### v0.2.1 to v0.4.0 development upgrade and rollback
+<a id="v021-to-v040-development-upgrade-and-rollback"></a>
+
+### v0.2.1 to v0.4.0 upgrade and rollback
 
 **Verified in an independent disposable clone; not an executed production upgrade.**
 Accepted Checkpoint 3C Lite supersedes the planned full Stage 2/3 rehearsal. It

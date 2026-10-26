@@ -9,7 +9,9 @@ See [administration](administration.md), [installation and upgrades](installatio
 and the [v0.4.0 release notes](release-notes-v0.4.0.md). The
 [schema-2/read-API record](phase-1c-step-2a.md) preserves historical design evidence.
 
-## Native Density activation (v0.4.0 development)
+<a id="native-density-activation-v040-development"></a>
+
+## Native Density activation (v0.4.0)
 
 The existing `density` values `small`, `medium` and `large` and serialized schema-1/2
 objects are unchanged. Density is independent of a pinned preset's color inheritance.
@@ -480,5 +482,5 @@ browser testing is claimed by publication corrections. Source/tests check native
 select/label association, but keyboard-only, screen-reader announcements, focus
 on control removal, narrow/mobile layout, RTL/long labels, Chromium, Safari,
 restricted storage and broader library compatibility are not fully qualified.
-The v0.4.0 candidate designation is not a claim of universal compatibility or WCAG
+The v0.4.0 version designation is not a claim of universal compatibility or WCAG
 certification. Historical checkpoint totals remain in their original phase records.

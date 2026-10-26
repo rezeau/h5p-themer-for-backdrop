@@ -1,10 +1,11 @@
-# H5P Themer for Backdrop v0.4.0 — release candidate
+<a id="h5p-themer-for-backdrop-v040--release-candidate"></a>
+
+# H5P Themer for Backdrop v0.4.0
 
 SPDX-License-Identifier: GPL-3.0-or-later.
 
-**Unreleased.** These notes prepare the existing candidate; they do not announce a
-tag, release date, archive or publication. v0.2.1 remains the latest published
-stable release; v0.3.0 was withdrawn.
+Release notes for v0.4.0, based on the v0.2.1 stable baseline. v0.3.0 was withdrawn.
+These notes do not assert that a tag or public release has been published.
 
 ## Changes since v0.2.1
 
@@ -90,9 +91,10 @@ certification is claimed.
 Independent learner Density buttons and overrides are deferred to **v0.4.1**.
 Live Density Preview is deferred unless separately authorized. Saved and live
 unsaved-color previews remain representative color-only samples, not running H5P
-activities. No deferred feature is part of this candidate.
+activities. No deferred feature is part of v0.4.0.
 
-The proposed production package contains runtime files, documentation and the
+The curated production package contains runtime files, documentation and the
 existing license/attribution notices. Tests, developer harnesses, private artifacts,
 temporary environments, settings/credentials, SQL, generated files and backups are
-excluded. No final release archive is built or uploaded by this preparation.
+excluded. Curated archives use the reviewed allowlist and require inventory,
+SHA-256 and integrity verification. Package verification does not publish a release.
