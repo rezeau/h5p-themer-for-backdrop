@@ -231,12 +231,7 @@
         if (densityView === view && view.controller) { view.controller.setOverride(entry.value); syncDensity(); }
       });
     });
-    var reset = node('button', 'h5p-themer-density-reset', Backdrop.t('Use theme Density'));
-    reset.setAttribute('type', 'button');
-    reset.addEventListener('click', function () {
-      if (densityView === view && view.controller) { view.controller.resetOverride(); syncDensity(); }
-    });
-    actions.appendChild(reset); group.appendChild(label); group.appendChild(actions); group.appendChild(mode);
+    group.appendChild(label); group.appendChild(actions); group.appendChild(mode);
     group.appendChild(note); group.appendChild(status); box.appendChild(group);
     view = { controller: null, unsubscribe: null, render: function (snapshot) {
       var visible = snapshot && snapshot.enabled === true && snapshot.available === true && snapshot.readyPlayers > 0 &&
@@ -248,7 +243,7 @@
         }
         group.setAttribute('hidden', ''); box.removeAttribute('data-density-visible'); status.textContent = ''; return;
       }
-      var text = Backdrop.t('Using theme Density');
+      var text = Backdrop.t('Using original activity spacing');
       entries.forEach(function (entry) {
         var pressed = entry.value === snapshot.override;
         entry.button.setAttribute('aria-pressed', pressed ? 'true' : 'false');

@@ -56,7 +56,7 @@ function backdrop_valid_test_ua() {
 }
 function settings_get($name, $default = NULL) {
   if ($name === 'h5p_themer_native_density_enabled') {
-    return isset($GLOBALS['native_density_test_enabled']) ? $GLOBALS['native_density_test_enabled'] : $default;
+    return array_key_exists('native_density_test_enabled', $GLOBALS) ? $GLOBALS['native_density_test_enabled'] : $default;
   }
   // Test-only backend injection for native file-storage safety regressions.
   $class = isset($GLOBALS['visibility_test_storage_class']) ? $GLOBALS['visibility_test_storage_class'] : 'H5PThemerMemoryStorage';

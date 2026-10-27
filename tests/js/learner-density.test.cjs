@@ -36,13 +36,13 @@ for(const enhanced of [false,true])test((enhanced?'decorative':'native fallback'
  assert.equal(!!f.trigger(),enhanced);assert.equal(f.group().hasAttribute('hidden'),false);
  assert.equal(f.group().getAttribute('role'),'group');assert.equal(f.doc.getElementById(f.group().getAttribute('aria-labelledby')).textContent,'Density');
  assert.deepEqual(f.sizes().map(b=>b.getAttribute('aria-label')),['Small Density','Medium Density','Large Density']);
- for(const b of [...f.sizes(),f.reset()])assert.equal(b.type,'button');
+ for(const b of f.sizes())assert.equal(b.type,'button');
  for(const b of f.sizes()){
   assert.equal(b.textContent,'T');assert.equal(b.getAttribute('aria-pressed'),'false');
   assert.equal(b.querySelector('span').getAttribute('aria-hidden'),'true');assert.equal(b.hasAttribute('tabindex'),false);
   assert.equal((b.listeners.keydown||[]).length,0);
  }
- assert.equal(f.reset().textContent,'Use theme Density');assert.equal(f.mode().textContent,'Using theme Density');
+ assert.equal(f.reset(),null);assert.equal(f.group().querySelectorAll('button').length,3);assert.equal(f.mode().textContent,'Using original activity spacing');
  assert.equal(f.status().getAttribute('role'),'status');assert.equal(f.status().getAttribute('aria-live'),'polite');assert.equal(f.status().getAttribute('aria-atomic'),'true');
  assert.equal(f.status().hasAttribute('hidden'),false);assert.equal(f.status().textContent,'');
  assert.deepEqual(f.c.calls.slice(0,2),['subscribe','getSnapshot']);
@@ -53,11 +53,11 @@ for(const value of ['small','medium','large'])test('button requests '+value+' an
  assert.equal(f.status().textContent,'Learner Density: '+title);assert.equal(f.doc.activeElement,b);
  assert.deepEqual(f.sizes().map(b=>b.getAttribute('aria-pressed')),['small','medium','large'].map(v=>v===value?'true':'false'));
  assert.ok(f.c.calls.some(c=>Array.isArray(c)&&c[0]==='setOverride'&&c[1]===value));assert.equal(f.select().value,'site_default');assert.equal(f.session.calls.length,before);
- f.reset().focus();f.event(f.reset(),'click');assert.equal(f.mode().textContent,'Using theme Density');assert.equal(f.status().textContent,'Using theme Density');
- assert.ok(f.sizes().every(b=>b.getAttribute('aria-pressed')==='false'));assert.equal(f.doc.activeElement,f.reset());
+ f.c.api.resetOverride();assert.equal(f.mode().textContent,'Using original activity spacing');assert.equal(f.status().textContent,'Using original activity spacing');
+ assert.ok(f.sizes().every(b=>b.getAttribute('aria-pressed')==='false'));assert.equal(f.doc.activeElement,b);
 });
 test('rejected requests never create local preference state',()=>{
- const f=fixture();f.c.api.setOverride=()=>false;f.press('small');assert.equal(f.mode().textContent,'Using theme Density');assert.ok(f.sizes().every(b=>b.getAttribute('aria-pressed')==='false'));
+ const f=fixture();f.c.api.setOverride=()=>false;f.press('small');assert.equal(f.mode().textContent,'Using original activity spacing');assert.ok(f.sizes().every(b=>b.getAttribute('aria-pressed')==='false'));
 });
 test('external snapshot updates and theme refresh keep separate status regions',()=>{
  const f=fixture();f.player('8',{theme:false});f.attach();const themeStatus=f.panel().querySelector('[role="status"]');
@@ -96,7 +96,7 @@ test('repeated refresh, pageshow and attach preserve one subscription and native
 });
 test('panel destruction unsubscribes and recreation uses the current snapshot',()=>{
  const f=fixture();const old=f.group(),oldButton=f.sizes()[0];f.p.root.parentNode.removeChild(f.p.root);f.attach();
- assert.equal(f.panel(),null);assert.equal(f.c.listeners.size,0);f.c.emit({override:'large'});assert.equal(old.querySelector('.h5p-themer-density-mode').textContent,'Using theme Density');
+ assert.equal(f.panel(),null);assert.equal(f.c.listeners.size,0);f.c.emit({override:'large'});assert.equal(old.querySelector('.h5p-themer-density-mode').textContent,'Using original activity spacing');
  f.doc.body.appendChild(f.p.root);f.attach();assert.equal(f.c.listeners.size,1);assert.equal(f.mode().textContent,'Learner Density: Large');
  f.event(oldButton,'click');assert.equal(f.mode().textContent,'Learner Density: Large');
 });
@@ -133,7 +133,7 @@ test('mode and scope text are visually clipped while accessible descriptions and
  assert.equal(f.mode().hasAttribute('hidden'),false);assert.equal(f.group().querySelector('.h5p-themer-density-note').hasAttribute('hidden'),false);
  for(const id of f.group().getAttribute('aria-describedby').split(' '))assert.ok(f.doc.getElementById(id));
  f.press('small');assert.equal(f.status().textContent,'Learner Density: Small');assert.equal(f.status().getAttribute('aria-live'),'polite');
- f.event(f.reset(),'click');assert.equal(f.status().textContent,'Using theme Density');
+ f.c.api.resetOverride();assert.equal(f.status().textContent,'Using original activity spacing');
 });
 test('desktop Density actions share the selector grid row while narrow layouts wrap',()=>{
  const css=fs.readFileSync(path.join(__dirname,'../../css/h5p_themer.learner.css'),'utf8');

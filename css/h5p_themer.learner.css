@@ -102,7 +102,6 @@
   outline: 2px solid Highlight;
   outline-offset: 3px;
 }
-.h5p-themer-learner-controls .h5p-themer-density-reset { padding: .25em .5em; white-space: normal; overflow-wrap: anywhere; }
 /* Keep mode/scope descriptions and live announcements available to assistive technology. */
 .h5p-themer-learner-controls .h5p-themer-density-mode,
 .h5p-themer-learner-controls .h5p-themer-density-note,

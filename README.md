@@ -4,32 +4,32 @@ Manage reusable color themes for compatible H5P activities in Backdrop CMS,
 with optional native Density for a narrowly qualified player type.
 This independent project does not modify authored H5P content or H5P libraries.
 
-**H5P Themer v0.4.1 development**
-Published baseline: v0.4.0. No v0.4.1 release or publication is claimed.
-v0.2.1 is the earlier stable baseline; v0.3.0 was withdrawn.
+**H5P Themer v0.4.2 development**
+Published baseline: v0.4.1 (`02900d937e37319e4023f7016e0d03a1d2b8d5ca`).
+The development build was installed on the local backdrop2 acceptance site.
+Administrator Form API checks passed. The user reported Firefox acceptance for
+Density choices, theme independence, persistence, scoring/Retry, keyboard/focus,
+200% zoom and a 375 px viewport, with no console errors. This release is not published.
+See the [v0.4.2 release notes](docs/release-notes-v0.4.2.md) for verification limits.
 
 ## Main features
 
-- Five built-in themes: Daylight, Lavender, Mint, Sunset and Dark.
-- Named custom themes with editing, duplication and learner visibility controls.
-- A Global Default theme and an optional learner theme dropdown.
-- Learner theme choices remembered for the current browser tab when session
-  storage is available; theme changes preserve current answers and feedback.
-- Saved-theme previews and live previews of unsaved color edits.
-- Optional native Small, Medium and Large Density using saved custom themes.
-- Independent learner Density buttons beside the theme picker, with a
-  **Use theme Density** reset, on qualified players when learner selection is enabled.
+- Five built-in palettes, editable custom colors, Global Default and learner visibility.
+- Learner theme picker with independent browser-tab session preferences.
+- Optional native Density controls: exactly Small, Medium and Large, beside the picker.
+- Before an explicit learner choice, each activity retains its original spacing.
+  Saved theme Density never supplies a playback profile in v0.4.2.
+- Saved and unsaved color previews. **Live Density Preview remains deferred.**
 
-Previews remain representative color-only samples. Learner Density controls are
-implemented; **Live Density Preview remains deferred**.
-Themer does not save H5P answers across navigation or reload.
+H5P answers, scoring, feedback and Retry are not recreated by styling changes.
+Themer does not save answers across navigation or reload.
 
 ## Requirements and compatibility
 
 - Backdrop CMS 1.x; local verification used **Backdrop 1.35.2**.
 - An enabled Backdrop H5P integration exposing **H5P Core API exactly 1.28**.
   Older/newer APIs and arbitrary integration releases are not qualified.
-- PHP **7.4.33**, **8.3.18** and **8.4.22** have been verified.
+- PHP **7.4.33**, **8.3.18** and **8.4.22** are regression targets.
 - Writable local public-file storage for generated theme styles.
 - Color changes require an H5P library that consumes the relevant theme variables.
 
@@ -40,63 +40,43 @@ compatibility rules. Broader browser/accessibility support is not certified.
 
 ## Install and configure
 
-1. Install and enable the Backdrop H5P integration first; confirm existing playback.
-2. Place the module in a directory named `h5p_themer`, normally
-   `<Backdrop-root>/modules/h5p_themer`, and enable it at `admin/modules`.
-3. Open `admin/config/content/h5p-themer` with **Administer H5P themes** permission.
-4. Select Global Default or create a custom theme. New installations use
-   **H5P Core defaults (no overrides)**. Built-ins can be viewed or duplicated.
-5. Optionally enable **Allow learners to select their H5P theme**. Publish optional
-   choices using **Available to learners** and **Save visibility**; new custom
-   themes start hidden. Reload activity pages after configuration changes.
+1. Enable a compatible Backdrop H5P integration and confirm existing playback.
+2. Install the module as `h5p_themer`, then use its administration overview.
+3. Choose visual themes and enable learner theme selection.
+4. In Global settings, enable **Enable native Density controls** if desired.
+   The checkbox defaults to disabled and still requires learner theme selection.
 
-For upgrades, back up the site and follow the
-[installation, upgrade and cache instructions](docs/installation.md).
-Existing v0.2.1 installations at schema 1003 need no new migration; do not
-uninstall/reinstall or replay update hooks. Saved theme schemas remain unchanged.
+An explicit PHP `$settings['h5p_themer_native_density_enabled']` overrides the
+checkbox: boolean TRUE enables; boolean FALSE disables; any other present value,
+including NULL, disables with an administrator diagnostic. Remove the override
+to use the checkbox. Environment overrides are never copied into configuration.
 
-### Optional native Density
+Qualified players offer three native buttons. No button is pressed before an
+explicit choice, even if the original activity already uses a native profile.
+Small/Medium/Large persist through theme switches and same-tab reload/navigation.
+There is no visible reset button. The controller retains `resetOverride()` for
+clearing the preference and restoring each player's original spacing.
+Core's unclassified baseline uses Small profile variables, not Large.
 
-Density is **disabled by default**. Installation-level activation requires:
+Theme schema-1/2 `density` fields remain valid and round-trip unchanged, but are
+legacy metadata. Edit/Add/Duplicate forms and the overview no longer expose them.
+New themes retain an internal compatibility value; copies retain their source value.
+The settings extension is optional, so existing configurations need no migration.
+After saving it, v0.4.1 code cannot validate the new key: rollback requires restoring
+pre-upgrade settings as well as code. Never uninstall/reinstall as an upgrade.
 
-```php
-$settings['h5p_themer_native_density_enabled'] = TRUE;
-```
-
-Only boolean `TRUE` enables it. Refresh the intended site's caches and reload
-playback as described in the [activation guide](docs/installation.md#v021-to-v040-development-upgrade-and-rollback).
-Open pages keep their supplied settings until reload.
-
-While following theme Density, custom themes apply saved Density; Core and built-ins
-restore the player's original profile. Site default follows effective Global
-Default, including a hidden custom default. Small is compact, Medium intermediate
-and Large spacious; these profiles do not set container width.
-
-With learner theme selection enabled, the labelled Density group offers three
-progressively sized **T** buttons: Small, Medium and Large. One shared choice
-applies to all ready, qualified players on the page, independently of colors.
-Precedence is **learner override > current theme's saved Density > each player's
-original native Density**. An override survives theme changes, including Core and
-built-ins. **Use theme Density** removes it and resolves the current theme again.
-
-The separate sessionStorage preference follows the same installation and browser
-tab across reload/navigation; storage failures leave current-page controls usable.
-It saves no answers or account preference. Unsupported content is untouched by
-Density, and unsupported-only pages retain their existing color picker behavior.
-
-Buttons have accessible names, pressed states, visible focus and native keyboard
-activation. Mode/scope text and polite state announcements are visually hidden for
-a compact toolbar. User-reported Firefox acceptance passed 11 tests, including
-keyboard, 200% zoom and narrow layout. Windows forced colors and screen reader
-were not tested; no broader accessibility certification is claimed. See
-[v0.4.1 readiness](docs/v0.4.1-readiness.md).
+See [v0.4.2 behavior, migration and acceptance](docs/v0.4.2-development.md).
+Fresh pages must receive matching PHP metadata and JavaScript (Density transport
+version 3). Refresh deployment caches in a separately authorized site context;
+existing open pages retain their loaded code. Deployments require site-specific authorization.
 
 ## Documentation
 
 - [Installation, activation, disable and recovery](docs/installation.md)
 - [Theme administration and learner visibility](docs/administration.md)
 - [Configuration contracts and import rules](docs/configuration.md)
-- [Prepared v0.4.1 release notes](docs/release-notes-v0.4.1.md) and [changelog](CHANGELOG.md)
+- [v0.4.2 release notes](docs/release-notes-v0.4.2.md) and [changelog](CHANGELOG.md)
+- [Historical v0.4.1 release notes](docs/release-notes-v0.4.1.md)
 - [Historical v0.4.0 release notes](docs/release-notes-v0.4.0.md)
 - [Planned disposable v0.4.0 upgrade rehearsal](docs/v0.4.1-upgrade-rehearsal.md)
 - [v0.4.1 readiness and developer tests](docs/v0.4.1-readiness.md)

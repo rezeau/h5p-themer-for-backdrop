@@ -18,7 +18,7 @@ function add_request_server($file) {
     'overrides' => $GLOBALS['config'], 'tempstore' => array())));
 }
 function add_request_post(array $get, array $values = array()) {
-  return array('method' => 'POST', 'input' => $values + array('id' => 'request_copy', 'label' => 'Request copy', 'density' => 'small', 'colors' => array(),
+  return array('method' => 'POST', 'input' => $values + array('id' => 'request_copy', 'label' => 'Request copy', 'colors' => array(),
     'form_id' => 'h5p_themer_theme_form', 'form_build_id' => $get['build_id'], 'form_token' => $get['token'], 'op' => 'Save theme'));
 }
 function add_request_change($file, $name, array $changes) {

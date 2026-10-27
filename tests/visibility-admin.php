@@ -84,7 +84,7 @@ $result = admin_post(admin_form('visibility'), $input);
 check(!$result['errors'] && isset(h5p_themer_learner_catalog()['data']['custom:legacy']) && isset(h5p_themer_learner_catalog()['data']['builtin:mint']), 'Optional built-in and custom can be explicitly published again');
 
 visibility_admin_fixture();
-$result = admin_post(admin_form('theme', 'preset_duplicate', 'mint', 'moodle-478fed30d2a4'), array('id' => 'new_copy', 'label' => 'New copy', 'description' => '', 'density' => 'large', 'colors' => array()));
+$result = admin_post(admin_form('theme', 'preset_duplicate', 'mint', 'moodle-478fed30d2a4'), array('id' => 'new_copy', 'label' => 'New copy', 'description' => '', 'colors' => array()));
 check(!$result['errors'] && visibility_admin_control(admin_form('visibility')[1], 'custom:new_copy')['#default_value'] === 0, 'New copied theme appears unchecked');
 $bundle = admin_form('visibility'); $input = visibility_admin_input($bundle);
 $bytes = H5PThemerMemoryStorage::$raw; $before = H5PThemerMemoryStorage::$writes;
@@ -169,7 +169,7 @@ seed('h5p_themer.theme.broken', array('schema_version' => 1));
 $overview = admin_form('visibility')[1];
 check(count($overview['themes']['#rows']) === 3 && end($overview['themes']['#rows'][2]) === 'Unavailable: invalid theme.', 'Invalid theme row and diagnostic remain present without a publication checkbox');
 check(array_keys($overview['builtins']['#rows'][0][5]['data']['#links']) === array('view', 'duplicate') &&
-  array_keys($overview['themes']['#rows'][0][5]['data']['#links']) === array('edit', 'duplicate', 'delete'), 'Existing operations remain in place alongside final visibility column');
+  array_keys($overview['themes']['#rows'][0][4]['data']['#links']) === array('edit', 'duplicate', 'delete'), 'Existing operations remain in place alongside final visibility column');
 $routes = h5p_themer_menu();
 check($routes['admin/config/content/h5p-themer']['page callback'] === 'backdrop_get_form' &&
   $routes['admin/config/content/h5p-themer/list']['page arguments'] === array('h5p_themer_overview'), 'Both existing overview routes invoke native Form API');

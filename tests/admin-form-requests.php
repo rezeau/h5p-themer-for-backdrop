@@ -35,8 +35,7 @@ function lifecycle_post($kind, array $get, array $values = array()) {
   }
   elseif ($kind === 'default') { $input = array('default_theme' => 'core'); }
   elseif ($kind === 'delete') { $input = array('confirm' => '1'); }
-  else { $input = array('id' => $kind === 'edit' ? 'source' : 'copied', 'label' => 'Submitted label', 'density' => 'small',
-    'colors' => $kind === 'preset_duplicate' ? array() : array('--h5p-theme-background' => '#abc')); }
+  else { $input = array('id' => $kind === 'edit' ? 'source' : 'copied', 'label' => 'Submitted label', 'colors' => $kind === 'preset_duplicate' ? array() : array('--h5p-theme-background' => '#abc')); }
   return array('kind' => $kind, 'method' => 'POST', 'input' => $values + $input + array('form_id' => $get['form_id'],
     'form_build_id' => $get['build_id'], 'form_token' => $get['token'], 'op' => $get['op']));
 }
@@ -113,7 +112,7 @@ try {
     lifecycle_fixture($lifecycle_file, $schema); $get = lifecycle_request($lifecycle_file, array('kind' => 'edit'));
     $source = $get['context']['h5p_themer']['original'];
     $before = json_decode(file_get_contents($lifecycle_file), TRUE);
-    $unchanged = lifecycle_request($lifecycle_file, lifecycle_post('edit', $get, array('label' => $source['label'], 'description' => $source['description'], 'density' => $source['density'], 'colors' => $source['colors'])));
+    $unchanged = lifecycle_request($lifecycle_file, lifecycle_post('edit', $get, array('label' => $source['label'], 'description' => $source['description'], 'colors' => $source['colors'])));
     $after = json_decode(file_get_contents($lifecycle_file), TRUE);
     check(!$unchanged['errors'] && $unchanged['redirect'] !== NULL && $before['raw'] === $after['raw'], 'Unchanged schema-' . $schema . ' Edit remains legitimate');
     foreach (array('edit', 'duplicate') as $kind) {
@@ -125,7 +124,7 @@ try {
       $good = lifecycle_request($lifecycle_file, lifecycle_post($kind, $bad, array('colors' => array('--h5p-theme-background' => ''))));
       $after = json_decode(file_get_contents($lifecycle_file), TRUE); $id = $kind === 'edit' ? 'source' : 'copied';
       $saved = json_decode($after['raw']['./active']['h5p_themer.theme.' . $id], TRUE);
-      check(!$good['errors'] && $saved['colors'] === array() && $saved['schema_version'] === $schema && $saved['density'] === 'small', 'Edit/Duplicate blank fields clear overrides without migration: ' . $schema . '/' . $kind);
+      check(!$good['errors'] && $saved['colors'] === array() && $saved['schema_version'] === $schema && $saved['density'] === $get['context']['h5p_themer']['original']['density'], 'Edit/Duplicate blank fields clear overrides without migration: ' . $schema . '/' . $kind);
       check($saved['schema_version'] !== 2 || $saved['base_preset'] === $get['context']['h5p_themer']['original']['base_preset'], 'Pinned expressions remain inherited: ' . $schema . '/' . $kind);
       if ($kind === 'duplicate') {
         $policy = json_decode($after['raw']['./active']['h5p_themer.learner_visibility'], TRUE);

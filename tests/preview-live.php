@@ -24,7 +24,7 @@ check(strpos($build['description']['#markup'], 'Without JavaScript') !== FALSE &
 check(strpos(preview_document($build), '<script') === FALSE && strpos(preview_document($build), '<form') === FALSE && strpos($build['sample']['#markup'], 'sandbox="allow-same-origin"') !== FALSE, 'Live enhancement introduces no iframe script/form/permission');
 check($build['#attached']['js'] === array('modules/h5p_themer/js/h5p_themer.preview.js') && $bundle[1]['#attached']['js'] === array('modules/h5p_themer/js/h5p_themer.admin.js'), 'Only Edit adds the new parent asset; native picker asset stays unchanged');
 check($bundle[1]['general']['#collapsed'] === FALSE && $bundle[1]['colors']['main']['#collapsed'] === TRUE, 'Native fieldset defaults stay unchanged');
-$input = array('id' => 'checkpoint_test', 'label' => 'Copy of Mint', 'description' => '', 'density' => 'large', 'colors' => array('--h5p-theme-main-cta-base' => '#B03060'));
+$input = array('id' => 'checkpoint_test', 'label' => 'Copy of Mint', 'description' => '', 'colors' => array('--h5p-theme-main-cta-base' => '#B03060'));
 $result = admin_post($bundle, $input, TRUE, FALSE);
 check(!$result['errors'] && $result['form']['colors']['main']['--h5p-theme-main-cta-base']['#value'] === '#B03060', 'Native validation accepts a valid draft without saving');
 check(h5p_themer_theme_load('checkpoint_test')['data']['colors'] === array('--h5p-theme-main-cta-base' => '#3366CC') && h5p_themer_default_selection_load()['data']['kind'] === 'core', 'Draft cannot persist over confirmed #3366CC or select a global default');

@@ -29,7 +29,7 @@ function add_theme_fixture($schema = 2, $settings_schema = 2) {
   return $theme;
 }
 function add_theme_input($id = 'added') {
-  return array('id' => $id, 'label' => 'Independent copy', 'description' => '', 'density' => 'small', 'colors' => array());
+  return array('id' => $id, 'label' => 'Independent copy', 'description' => '', 'colors' => array());
 }
 function add_theme_hidden($id) {
   $policy = _h5p_themer_visibility_policy_read(FALSE);
@@ -47,7 +47,7 @@ foreach (array('daylight', 'lavender', 'mint', 'sunset', 'dark') as $id) {
   check($snapshot['seed']['colors'] === array() && $snapshot['seed']['density'] === 'large' && !$snapshot['fallback'], 'Built-in Add starts with empty overrides and large density: ' . $id);
   check($snapshot['palette']['colors'] === $preset['colors'] && strpos($bundle[1]['help']['#markup'], $preset['label']) !== FALSE, 'Actual built-in name and complete starting palette: ' . $id);
   check(H5PThemerMemoryStorage::$raw === $before && H5PThemerMemoryStorage::$writes === $writes, 'Add build is read-only: ' . $id);
-  $input = add_theme_input(); $input['density'] = 'large';
+  $input = add_theme_input();
   $result = admin_post($bundle, $input); $saved = h5p_themer_theme_load('added')['data'];
   check(!$result['errors'] && $saved['colors'] === array() && h5p_themer_theme_resolve('added')['data']['colors'] === $preset['colors'], 'Unchanged Add preserves all catalog colors and expressions without flattening: ' . $id);
   check(add_theme_hidden('added') && H5PThemerMemoryStorage::$writes === $writes + 2, 'Only hidden policy and new definition are written: ' . $id);
@@ -60,7 +60,7 @@ foreach (array(1, 2) as $schema) {
     $source = add_theme_fixture($schema, $settings_schema);
     $before = H5PThemerMemoryStorage::$raw;
     $bundle = admin_form('theme'); $snapshot = $bundle[2]['h5p_themer']['add_snapshot'];
-    check($snapshot['seed']['schema_version'] === $schema && $snapshot['seed']['colors'] === $source['colors'] && $bundle[1]['general']['density']['#default_value'] === 'small', 'Custom Add preserves source schema, sparse overrides and density: ' . $schema . '/' . $settings_schema);
+    check($snapshot['seed']['schema_version'] === $schema && $snapshot['seed']['colors'] === $source['colors'] && $snapshot['seed']['density'] === 'small' && !isset($bundle[1]['general']['density']), 'Custom Add preserves source schema, sparse overrides and density: ' . $schema . '/' . $settings_schema);
     check(!$snapshot['fallback'] && strpos($bundle[1]['help']['#markup'], 'Custom &lt;Daylight&gt;') !== FALSE, 'Custom daylight ID resolves as custom with escaped actual name');
     $field = $bundle[1]['colors']['surfaces']['--h5p-theme-background'];
     check($field['#default_value'] === '' && $field['#attributes']['data-h5p-themer-inherited'] === '#aBc', 'Copied custom color is a starting swatch, never a filled override');
@@ -95,8 +95,8 @@ foreach (array(1, 2) as $schema) {
   if ($schema === 2) { $GLOBALS['config']['h5p_themer.theme.daylight']['base_preset'] = array('id' => 'dark', 'version' => $add_version); }
   $before = H5PThemerMemoryStorage::$raw;
   $bundle = admin_form('theme');
-  check($bundle[1]['general']['density']['#default_value'] === 'medium' && strpos($bundle[1]['help']['#markup'], 'Effective custom') !== FALSE, 'Add reads effective custom metadata');
-  $input = add_theme_input(); $input['density'] = 'medium';
+  check($bundle[2]['h5p_themer']['original']['density'] === 'medium' && !isset($bundle[1]['general']['density']) && strpos($bundle[1]['help']['#markup'], 'Effective custom') !== FALSE, 'Add reads effective custom metadata');
+  $input = add_theme_input();
   $input['colors'] = array('--h5p-theme-background' => '', '--h5p-theme-text-secondary' => '#aB0');
   $result = admin_post($bundle, $input); $saved = h5p_themer_theme_load('added')['data'];
   check(!$result['errors'] && $saved['colors'] === array('--h5p-theme-background' => '#DEF', '--h5p-theme-text-secondary' => '#aB0') && $saved['density'] === 'medium', 'Effective colors are copied as a complete sparse map and explicit overrides replace starting values');

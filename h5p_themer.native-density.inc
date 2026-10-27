@@ -5,9 +5,26 @@
  * SPDX-License-Identifier: GPL-3.0-or-later.
  */
 
-/** Absent, false and non-boolean settings all leave v0.2.1 behavior intact. */
+/** Effective preference; PHP overrides are environment-local and never migrated. */
+function h5p_themer_native_density_control() {
+  global $settings;
+  $absent = new stdClass();
+  $override = settings_get('h5p_themer_native_density_enabled', $absent);
+  // Core settings_get() uses isset(): an explicit NULL must not become absence.
+  if (is_array($settings) && array_key_exists('h5p_themer_native_density_enabled', $settings)) {
+    $override = $settings['h5p_themer_native_density_enabled'];
+  }
+  if ($override !== $absent) {
+    return array('enabled' => $override === TRUE, 'overridden' => TRUE,
+      'valid' => is_bool($override));
+  }
+  $config = h5p_themer_config_load('h5p_themer.settings');
+  return array('enabled' => !$config['errors'] && isset($config['data']['native_density_enabled']) &&
+    $config['data']['native_density_enabled'] === TRUE, 'overridden' => FALSE, 'valid' => !$config['errors']);
+}
+
 function h5p_themer_native_density_enabled() {
-  return settings_get('h5p_themer_native_density_enabled', FALSE) === TRUE;
+  return h5p_themer_native_density_control()['enabled'];
 }
 
 /** Internal qualification list, deliberately exact and not administratively editable. */
@@ -64,35 +81,12 @@ function h5p_themer_native_density_player($node) {
   catch (Throwable $e) { return NULL; }
 }
 
-/** NULL means preserve/restore the player's original native profile. */
-function _h5p_themer_native_density_profile(array $theme) {
-  return $theme['kind'] === 'custom' ? $theme['density'] : NULL;
-}
-
-/** Pure theme metadata. The selectable catalog matters even when initial Core is null. */
+/** Learner-only capability. Legacy saved theme Density is never delivered. */
 function h5p_themer_native_density_settings() {
-  if (!h5p_themer_native_density_enabled()) { return NULL; }
-  $global = h5p_themer_runtime_theme();
-  if ($global['errors']) { return NULL; }
-  $learner = h5p_themer_learner_selection_enabled();
-  $profiles = array(); $bundle_id = NULL;
-  if ($learner) {
-    $bundle = h5p_themer_learner_bundle(); $catalog = h5p_themer_learner_catalog();
-    if ($bundle['errors'] || $catalog['errors']) { return NULL; }
-    $bundle_id = $bundle['data']['id'];
-    foreach ($bundle['data']['keys'] as $token => $key) {
-      if (!isset($catalog['data'][$token])) { return NULL; }
-      $resolved = h5p_themer_selection_resolve($catalog['data'][$token]['reference']);
-      if ($resolved['errors']) { return NULL; }
-      $profiles[$key] = _h5p_themer_native_density_profile($resolved['data']);
-    }
-    ksort($profiles);
-  }
-  $profile = _h5p_themer_native_density_profile($global['data']);
-  // Learner capability must also be available for Core/built-in-only catalogs.
-  // Global-only mode still needs an actual saved profile before attaching.
-  if (!$learner && $profile === NULL) { return NULL; }
-  return array('version' => 2, 'learner' => $learner, 'global' => $profile, 'bundle' => $bundle_id, 'profiles' => (object) $profiles);
+  if (!h5p_themer_native_density_enabled() || !h5p_themer_learner_selection_enabled()) { return NULL; }
+  $bundle = h5p_themer_learner_bundle();
+  if ($bundle['errors']) { return NULL; }
+  return array('version' => 3, 'learner' => TRUE, 'bundle' => $bundle['data']['id']);
 }
 
 /** Route-independent metadata, policy and installed-patch cache dependencies. */

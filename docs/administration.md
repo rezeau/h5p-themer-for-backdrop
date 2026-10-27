@@ -1,5 +1,12 @@
 # Theme administration
 
+> v0.4.2 development: [the current Density contract](v0.4.2-development.md) supersedes
+> the v0.4.0/v0.4.1 Density and activation descriptions retained below.
+> Visual themes now supply colors only. Native Density uses the Global settings
+> checkbox unless explicitly overridden by PHP; original spacing is preserved
+> before an explicit learner choice. The toolbar has no reset button.
+
+
 SPDX-License-Identifier: GPL-2.0-or-later.
 
 The implemented module provides immutable built-ins, both custom-theme schemas,

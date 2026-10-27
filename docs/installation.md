@@ -1,6 +1,50 @@
 # Installation and first use
 
+> v0.4.2 development: [the current Density contract](v0.4.2-development.md) supersedes
+> the v0.4.0/v0.4.1 Density and activation descriptions retained below.
+> Visual themes now supply colors only. Native Density uses the Global settings
+> checkbox unless explicitly overridden by PHP; original spacing is preserved
+> before an explicit learner choice. The toolbar has no reset button.
+
+
 SPDX-License-Identifier: GPL-2.0-or-later.
+
+## Current v0.4.1 to v0.4.2 upgrade and rollback
+
+Use the [v0.4.2 release notes](release-notes-v0.4.2.md) and
+[current Density contract](v0.4.2-development.md). The older version-specific
+procedures below are historical and must not be replayed for this upgrade.
+
+1. Verify the exact target site and take a matching database/filesystem backup,
+   including active configuration, settings.php, custom themes and H5P content/libraries.
+   Verify hashes and retain the existing module for rollback.
+2. Replace only the module with a complete matching v0.4.2 distribution. Do not
+   uninstall/reinstall, copy default config into active storage, replay update hooks,
+   change schema 1003 or replay visibility activation. Existing settings may omit
+   the new optional boolean; no theme-schema migration is required.
+3. Refresh deployment caches using supported APIs scoped to that site, then reload
+   playback so PHP, JavaScript, CSS and version-3 metadata are coherent. Do not
+   modify H5P content/libraries or assume old open pages update automatically.
+4. Existing PHP TRUE/FALSE overrides retain precedence. NULL or another invalid
+   present value disables with a diagnostic. Without the PHP override, a missing
+   checkbox key defaults to disabled. Save the administrator checkbox to enable it.
+5. Verify themes, visibility, qualification, playback and persistence. Legacy saved
+   theme Density is preserved but no longer affects playback. Original spacing
+   precedes the learner's first choice; there is no visible reset button.
+
+**Rollback is settings-aware.** Once `native_density_enabled` has been saved,
+v0.4.1 rejects that new key. Restore matching pre-upgrade Themer settings,
+settings.php and code through a separately reviewed recovery procedure; code-only
+rollback is insufficient. Preserve other work performed since the backup. If a
+full restore is required, use the matching database/filesystem pair, verify the
+target and hashes, and obtain explicit authorization rather than restoring
+automatically. Do not use uninstall/reinstall or guarded theme/policy imports as
+a recovery shortcut. No full restore rehearsal has been completed.
+
+The backdrop2 local deployment, administrator checkbox conversion and user-reported
+Firefox checks passed. These results do not qualify every site or a full rollback.
+
+## Historical installation and checkpoint guidance
 
 This guide covers the v0.2.1 baseline and **v0.4.0**. v0.3.0 was withdrawn.
 For uncommitted v0.4.1 learner Density development, see

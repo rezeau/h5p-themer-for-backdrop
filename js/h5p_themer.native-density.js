@@ -72,11 +72,8 @@
       var transport = (settings || Backdrop.settings || {}).h5pThemerNativeDensity;
       var data = JSON.parse(transport.payload); data.players = transport.players;
       if (!data.players || typeof data.players !== 'object' || Array.isArray(data.players)) { return null; }
-      if (data.version !== 2 ||
-          typeof data.learner !== 'boolean' || !profile(data.global) || !data.profiles ||
-          typeof data.profiles !== 'object' || Array.isArray(data.profiles) ||
-          (data.learner ? !key(data.bundle) : data.bundle !== null || Object.keys(data.profiles).length !== 0) ||
-          !Object.keys(data.profiles).every(function (id) { return key(id) && profile(data.profiles[id]); })) { return null; }
+      if (data.version !== 3 || data.learner !== true || !key(data.bundle) ||
+          own(data, 'global') || own(data, 'profiles')) { return null; }
       var players = {};
       Object.keys(data.players).forEach(function (id) {
         var p = data.players[id];
@@ -175,10 +172,11 @@
     } catch (e) { return false; }
   }
   function selected(item) {
-    if (!options.learner || !item.root.hasAttribute('data-h5p-themer-eligible')) { return options.global; }
+    if (!item.root.hasAttribute('data-h5p-themer-eligible')) { return undefined; }
     var parentKey = document.documentElement.getAttribute(attribute), childKey = item.doc.documentElement.getAttribute(attribute);
     if (parentKey !== childKey) { return undefined; }
-    return parentKey === null ? options.global : own(options.profiles, parentKey) ? options.profiles[parentKey] : null;
+    // No visual theme supplies a Density profile. NULL restores this player's original.
+    return null;
   }
   function apply(item, value) {
     var name = value === null ? item.original : 'h5p-' + value;
@@ -249,7 +247,13 @@
           else if (restorePending) { restorePreference(); restorePending = false; }
           if (override !== null) { value = override; }
         }
-        apply(item, value);
+        if (value === null) {
+          // An untouched player remains H5P-owned, including native profile changes.
+          if (item.changed) { apply(item, null); item.changed = false; }
+        } else {
+          if (!item.changed && !item.pending) { item.original = effective(item.root); item.last = item.original; }
+          apply(item, value);
+        }
       } catch (e) { restore(item); item.failed = true; }
     });
     watchTree();

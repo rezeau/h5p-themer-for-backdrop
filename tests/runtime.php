@@ -250,7 +250,7 @@ try {
   $other = fixture_theme('cache_other'); seed('h5p_themer.theme.cache_other', $other);
   $result = admin_post(admin_form('default'), array('default_theme' => 'custom:cache_selected'));
   check(!$result['errors'] && $runtime_cache_invalidations === 3, 'Selecting a custom theme invalidates cached pages');
-  $input = array_replace($selected, array('label' => 'Changed metadata', 'density' => 'small')); unset($input['schema_version']);
+  $input = array_replace($selected, array('label' => 'Changed metadata', 'density' => 'small')); unset($input['schema_version'], $input['density']);
   $result = admin_post(admin_form('theme', 'edit', 'cache_selected'), $input);
   check(!$result['errors'] && $runtime_cache_invalidations === 3, 'Metadata/density-only edit does not invalidate colors-only output');
   $input['colors']['--h5p-theme-main-cta-base'] = '#aBc';

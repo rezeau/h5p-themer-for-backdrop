@@ -43,9 +43,9 @@ check(H5PThemerMemoryStorage::$raw === $bytes && H5PThemerMemoryStorage::$writes
 // no inherited CSS strings flattened into editable configuration.
 foreach ($ids as $id) {
   $bundle = admin_form('theme', 'preset_duplicate', $id, $version);
-  check($bundle[1]['general']['density']['#default_value'] === 'large' && $bundle[1]['general']['id']['#default_value'] === '', 'Preset copy starts with large density and new ID: ' . $id);
+  check(!isset($bundle[1]['general']['density']) && $bundle[2]['h5p_themer']['original']['density'] === 'large' && $bundle[1]['general']['id']['#default_value'] === '', 'Preset copy starts with large density and new ID: ' . $id);
   check(!isset($bundle[1]['colors']) && count($bundle[1]['inheritance']['#rows']) === 34, 'Preset copy initially shows inherited data without override inputs: ' . $id);
-  $input = array('id' => $id, 'label' => 'Custom ' . $id, 'description' => 'Independent copy', 'density' => 'large');
+  $input = array('id' => $id, 'label' => 'Custom ' . $id, 'description' => 'Independent copy', );
   $settings_before = config('h5p_themer.settings')->getOriginal();
   $result = admin_post($bundle, $input);
   check(!$result['errors'], 'Create preset copy through native form: ' . $id);
@@ -61,7 +61,7 @@ foreach ($ids as $id) {
 check(!isset(admin_form('theme', 'preset_duplicate', 'unknown', $version)[1]['actions']), 'Unknown preset duplication rejected');
 check(!isset(admin_form('theme', 'preset_duplicate', 'dark', 'latest')[1]['actions']), 'Unknown version duplication rejected');
 $bytes = H5PThemerMemoryStorage::$raw;
-$result = admin_post(admin_form('theme', 'preset_duplicate', 'dark', $version), array('id' => 'no_preflatten', 'label' => 'Bad', 'density' => 'large', 'colors' => array('--h5p-theme-background' => '#abc')));
+$result = admin_post(admin_form('theme', 'preset_duplicate', 'dark', $version), array('id' => 'no_preflatten', 'label' => 'Bad', 'colors' => array('--h5p-theme-background' => '#abc')));
 check((bool) $result['errors'] && H5PThemerMemoryStorage::$raw === $bytes, 'Preset-copy POST cannot insert an initial override map');
 
 // Schema 2 edit retains the exact base and permits only sparse hex overrides.
@@ -80,12 +80,12 @@ foreach ($edit[1]['colors'] as $key => $group) {
 }
 sort($fields); $allowed = h5p_themer_color_properties(); sort($allowed);
 check($fields === $allowed, 'Schema 2 exposes exactly the existing 33 override properties');
-$input = array('id' => 'dark', 'label' => 'Edited dark', 'description' => 'Keep base', 'density' => 'small', 'colors' => array('--h5p-theme-background' => '#aBc', '--h5p-theme-main-cta-base' => '#Aa00fF'));
+$input = array('id' => 'dark', 'label' => 'Edited dark', 'description' => 'Keep base', 'colors' => array('--h5p-theme-background' => '#aBc', '--h5p-theme-main-cta-base' => '#Aa00fF'));
 $result = admin_post($edit, $input);
 check(!$result['errors'], 'Schema 2 edits save through native validation');
 $saved = h5p_themer_theme_load('dark')['data'];
 check($saved['schema_version'] === 2 && $saved['base_preset'] === array('id' => 'dark', 'version' => $version), 'Editing preserves schema and exact base version');
-check($saved['colors'] == $input['colors'] && $saved['density'] === 'small', 'Editing stores sparse unnormalized overrides and density');
+check($saved['colors'] == $input['colors'] && $saved['density'] === 'large', 'Editing stores sparse unnormalized overrides and density');
 $edit = admin_form('theme', 'edit', 'dark');
 check(strpos($edit[1]['colors']['surfaces']['--h5p-theme-background']['#description'], 'Saved administrator override') !== FALSE, 'Saved override visually distinguished from inheritance');
 $clear = $input; $clear['colors'] = array('--h5p-theme-background' => '', '--h5p-theme-main-cta-base' => '');
@@ -116,7 +116,7 @@ check($copied['colors'] === $source['colors'] && $copied['density'] === $source[
 check(h5p_themer_theme_load('dark')['data'] === $source && config('h5p_themer.settings')->getOriginal() === fixture_settings(), 'Custom duplication preserves source and global default');
 seed('h5p_themer.theme.legacy', array_replace(fixture_theme('legacy'), array('colors' => array('--h5p-theme-background' => '#bCd'))));
 $legacy = h5p_themer_theme_load('legacy')['data'];
-$legacy_input = array('id' => 'legacy_copy', 'label' => 'Legacy copy', 'description' => '', 'density' => 'large', 'colors' => $legacy['colors']);
+$legacy_input = array('id' => 'legacy_copy', 'label' => 'Legacy copy', 'description' => '', 'colors' => $legacy['colors']);
 $result = admin_post(admin_form('theme', 'duplicate', 'legacy'), $legacy_input);
 check(!$result['errors'] && h5p_themer_theme_load('legacy_copy')['data']['schema_version'] === 1 && !isset(h5p_themer_theme_load('legacy_copy')['data']['base_preset']), 'Schema 1 duplication remains schema 1');
 $legacy_input['id'] = 'legacy'; $legacy_input['label'] = 'Legacy renamed';
@@ -177,7 +177,7 @@ seed('h5p_themer.settings', fixture_typed_settings());
 $GLOBALS['config']['h5p_themer.settings'] = array('default_theme' => array('kind' => 'custom', 'id' => 'dark'));
 check(admin_form('delete', 'dark')[1]['actions']['submit']['#disabled'] === TRUE, 'Effective typed custom override protects deletion');
 $overview = h5p_themer_overview(); $custom_rows = array_column($overview['themes']['#rows'], NULL, 1);
-check(isset($overview['warnings']) && $custom_rows['dark'][3] === 'No' && $custom_rows['dark'][4] === 'Yes', 'Overview distinguishes effective override from stored Core');
+check(isset($overview['warnings']) && $custom_rows['dark'][2] === 'No' && $custom_rows['dark'][3] === 'Yes', 'Overview distinguishes effective override from stored Core');
 $bytes = H5PThemerMemoryStorage::$raw;
 $result = admin_post(admin_form('default'), array('default_theme' => 'builtin:dark'));
 check((bool) $result['errors'] && H5PThemerMemoryStorage::$raw === $bytes, 'Default write cannot persist or override settings.php selection');
@@ -199,7 +199,7 @@ check(!$result['errors'] && config('h5p_themer.theme.dark')->isNew(), 'Built-in 
 check(h5p_themer_presets($version)['data'] === $catalog_before, 'Custom deletion cannot delete or alter built-in');
 
 // Authentication, compatibility, CSRF, stale sources, forged requests and locks.
-$input = array('id' => 'security_copy', 'label' => 'Security copy', 'description' => '', 'density' => 'large');
+$input = array('id' => 'security_copy', 'label' => 'Security copy', 'description' => '', );
 $bundle = admin_form('theme', 'preset_duplicate', 'dark', $version);
 $bytes = H5PThemerMemoryStorage::$raw;
 $result = admin_post($bundle, $input, FALSE);
@@ -290,7 +290,7 @@ H5PThemerMemoryStorage::$failWrite = FALSE;
 check(h5p_themer_presets($version)['data'] === $catalog_before, 'All administration attempts leave authoritative catalog unchanged');
 // Revalidation in submit must also protect new paths if invoked internally.
 $bundle = admin_form('theme', 'preset_duplicate', 'dark', $version);
-$state = $bundle[2]; $state['values'] = array_replace($input, array('density' => 'unsafe'));
+$state = $bundle[2]; $state['values'] = $input; $state['input']['density'] = 'unsafe';
 form_clear_error(); $bytes = H5PThemerMemoryStorage::$raw;
 form_execute_handlers('submit', $bundle[1], $state);
 check((bool) form_get_errors() && H5PThemerMemoryStorage::$raw === $bytes && !$write_locked, 'Preset submit cannot bypass schema validation or leak lock');

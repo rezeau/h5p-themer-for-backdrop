@@ -14,58 +14,24 @@ check(h5p_themer_native_density_enabled(), 'Explicit true enables Density');
 $settings_before = H5PThemerMemoryStorage::$raw; $writes_before = H5PThemerMemoryStorage::$writes;
 $bundle_before = h5p_themer_learner_bundle()['data']; $css_before = h5p_themer_runtime_css();
 $data = h5p_themer_native_density_settings();
-check($data['version'] === 2 && $data['learner'] === TRUE && $data['bundle'] === $bundle_before['id'], 'Metadata shares existing color bundle readiness without changing it');
-$profiles = (array) $data['profiles'];
-foreach ($bundle_before['keys'] as $token => $key) {
-  check(array_key_exists($key, $profiles) && $profiles[$key] === (strpos($token, 'custom:') === 0 ? 'large' : NULL), 'Custom saved profile versus Core/builtin restoration: ' . $token);
-}
-check($data['global'] === NULL, 'Builtin Global Default has no Density override');
-check($settings_before === H5PThemerMemoryStorage::$raw && $writes_before === H5PThemerMemoryStorage::$writes && $css_before === h5p_themer_runtime_css() && $bundle_before === h5p_themer_learner_bundle()['data'], 'Metadata generation preserves configuration, exact color CSS, keys and bundles');
-
-seed('h5p_themer.learner_visibility', array('schema_version' => 1, 'themes' => array('custom:checkpoint_test' => FALSE)));
-config('h5p_themer.theme.checkpoint_test')->set('density', 'medium')->save();
-config('h5p_themer.settings')->set('default_theme', array('kind' => 'custom', 'id' => 'checkpoint_test'))->save();
-$data = h5p_themer_native_density_settings();
-check($data['global'] === 'medium', 'Site default follows hidden custom Global Default');
-check(!isset(h5p_themer_learner_bundle()['data']['keys']['custom:checkpoint_test']), 'Hidden Global Default is not published as an explicit choice');
-$before = h5p_themer_native_density_cache_snapshot();
-config('h5p_themer.theme.checkpoint_test')->set('density', 'small')->save();
-check(h5p_themer_native_density_settings()['global'] === 'small' && h5p_themer_native_density_cache_snapshot() !== $before, 'Hidden Global Default Density-only change updates metadata dependency');
-
-config('h5p_themer.settings')->set('default_theme', NULL)->save();
-$before = h5p_themer_native_density_cache_snapshot();
-config('h5p_themer.theme.checkpoint_test')->set('density', 'large')->save();
-check(h5p_themer_native_density_settings()['global'] === NULL && h5p_themer_native_density_cache_snapshot() === $before, 'Hidden unselected Density does not invalidate learner capability metadata');
-config('h5p_themer.settings')->set('learner_selection_enabled', FALSE)->save();
-config('h5p_themer.settings')->set('default_theme', array('kind' => 'custom', 'id' => 'checkpoint_test'))->save();
-H5PThemerMemoryStorage::$failList = TRUE;
-$data = h5p_themer_native_density_settings();
-check($data['learner'] === FALSE && $data['global'] === 'large' && $data['bundle'] === NULL && (array) $data['profiles'] === array(), 'Global-only Density needs no catalog, learner CSS, or selector');
-H5PThemerMemoryStorage::$failList = FALSE;
+check($data === array('version' => 3, 'learner' => TRUE, 'bundle' => $bundle_before['id']), 'Version 3 contains readiness only, never saved Density profiles');
+check($settings_before === H5PThemerMemoryStorage::$raw && $writes_before === H5PThemerMemoryStorage::$writes && $css_before === h5p_themer_runtime_css(), 'Capability reads preserve configuration and color CSS');
 foreach (array('small', 'medium', 'large') as $density) {
   config('h5p_themer.theme.checkpoint_test')->set('density', $density)->save();
-  check(h5p_themer_native_density_settings()['global'] === $density, 'Existing saved Density enum resolves: ' . $density);
+  config('h5p_themer.settings')->set('default_theme', array('kind' => 'custom', 'id' => 'checkpoint_test'))->save();
+  check(!array_key_exists('global', h5p_themer_native_density_settings()) && !array_key_exists('profiles', h5p_themer_native_density_settings()), 'Global custom Density is never delivered: ' . $density);
 }
-config('h5p_themer.theme.checkpoint_test')->set('density', 'unsafe')->save();
-check(h5p_themer_native_density_settings() === NULL, 'Invalid configuration cannot publish a native class');
-
-// Exercise actual administration invalidation without changing the color snapshot.
-learner_switch_fixture(); $GLOBALS['native_density_test_enabled'] = TRUE;
-$cache_before = $runtime_cache_invalidations;
-$before = _h5p_themer_admin_cache_snapshot(); $color = h5p_themer_runtime_cache_snapshot(); $ui = h5p_themer_learner_ui_cache_snapshot();
-config('h5p_themer.theme.legacy')->set('density', 'small')->save();
-check($color === h5p_themer_runtime_cache_snapshot() && $ui === h5p_themer_learner_ui_cache_snapshot(), 'Density-only selectable edit preserves existing color/cache identities');
-_h5p_themer_admin_cache_invalidate($before);
-check($runtime_cache_invalidations === $cache_before + 1, 'Density-only selectable save invalidates stale metadata once');
-$before = _h5p_themer_admin_cache_snapshot(); _h5p_themer_admin_cache_invalidate($before);
-check($runtime_cache_invalidations === $cache_before + 1, 'No-op metadata does not invalidate');
+$before = h5p_themer_native_density_cache_snapshot();
+config('h5p_themer.theme.checkpoint_test')->set('density', 'small')->save();
+check($before === h5p_themer_native_density_cache_snapshot(), 'Legacy Density-only edit does not invalidate capability');
 config('h5p_themer.settings')->set('learner_selection_enabled', FALSE)->save();
-config('h5p_themer.settings')->set('default_theme', array('kind' => 'custom', 'id' => 'legacy'))->save();
-$before = _h5p_themer_admin_cache_snapshot(); $color = h5p_themer_runtime_cache_snapshot();
-config('h5p_themer.theme.legacy')->set('density', 'medium')->save();
+check(h5p_themer_native_density_settings() === NULL, 'Learner picker prerequisite suppresses saved global profiles');
+config('h5p_themer.settings')->set('learner_selection_enabled', TRUE)->save();
+$cache_before = $runtime_cache_invalidations; $before = _h5p_themer_admin_cache_snapshot();
+config('h5p_themer.theme.legacy')->set('density', 'small')->save();
 _h5p_themer_admin_cache_invalidate($before);
-check($color === h5p_themer_runtime_cache_snapshot() && $runtime_cache_invalidations === $cache_before + 2, 'Global-only Density invalidates HTML without changing color CSS');
-
+check($runtime_cache_invalidations === $cache_before, 'Legacy retained Density-only changes do not invalidate playback');
+learner_switch_fixture(); native_density_fixture();
 foreach (array('node/6', 'admin', 'node/6/edit', 'h5p/embed/6') as $route) {
   backdrop_static('h5p_themer_native_density_attach', array(), TRUE);
   $learner_test_path = $route; $learner_js = array(); $learner_headers = array();
@@ -122,10 +88,7 @@ $learner_test_path = 'node/6';
 $saved = H5PThemerMemoryStorage::$raw; $writes = H5PThemerMemoryStorage::$writes;
 $colors = h5p_themer_runtime_css(); $bundle = h5p_themer_learner_bundle();
 $data = h5p_themer_native_density_settings();
-check($data !== NULL && $data['version'] === 2 && $data['learner'] === TRUE && $data['global'] === NULL
-  && $data['bundle'] === $bundle['data']['id'] && count((array) $data['profiles']) > 0
-  && count(array_filter((array) $data['profiles'], function ($value) { return $value !== NULL; })) === 0,
-  'Core/built-in-only catalog delivers existing version-2 learner capability with all-null profiles');
+check($data === array('version' => 3, 'learner' => TRUE, 'bundle' => $bundle['data']['id']), 'Core/built-in-only catalogs deliver version-3 learner capability');
 check(H5PThemerMemoryStorage::$raw === $saved && H5PThemerMemoryStorage::$writes === $writes
   && h5p_themer_runtime_css() === $colors && h5p_themer_learner_bundle() === $bundle,
   'All-null capability leaves saved schema/configuration and color bundle unchanged');
@@ -141,7 +104,7 @@ foreach (array(FALSE, TRUE) as $enabled) {
     'All-null learner capability attaches once only with strict gate ON: ' . (int) $enabled);
   if ($enabled) {
     $delivered = json_decode($learner_js[0]['data']['h5pThemerNativeDensity']['payload'], TRUE);
-    check($delivered['learner'] === TRUE && $delivered['global'] === NULL
+    check($delivered['version'] === 3 && $delivered['learner'] === TRUE
       && $learner_js[1]['data'] === 'modules/h5p_themer/js/h5p_themer.native-density.js'
       && $learner_js[2]['data']['h5pThemerNativeDensity']['players']['cid-6']['patch'] === 24,
       'All-null delivery contains only existing payload, parent controller and exact qualified player metadata');

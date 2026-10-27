@@ -92,7 +92,7 @@ learner_reset(TRUE); seed('h5p_themer.theme.ocean', fixture_theme()); admin_publ
 $result = admin_post(admin_form('delete', 'ocean'), array('confirm' => '1'));
 check(!$result['errors'] && $runtime_cache_invalidations === $n + 1, 'Real deletion handler invalidates enabled UI once');
 learner_reset(TRUE); admin_publication_fixture(); $n = $runtime_cache_invalidations;
-$result = admin_post(admin_form('theme'), array('id' => 'new_ui', 'label' => 'New UI', 'description' => '', 'density' => 'large', 'colors' => array()));
+$result = admin_post(admin_form('theme'), array('id' => 'new_ui', 'label' => 'New UI', 'description' => '', 'colors' => array()));
 check(!$result['errors'] && $runtime_cache_invalidations === $n, 'Hidden new theme does not invalidate unchanged public catalog');
 learner_reset(TRUE); $n = $runtime_cache_invalidations;
 $result = admin_post(admin_form('default'), array('default_theme' => 'builtin:mint', 'learner_selection_enabled' => '1'));

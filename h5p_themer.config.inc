@@ -94,7 +94,7 @@ function h5p_themer_config_field_errors($name, $data) {
   if ($theme && isset($data['schema_version']) && $data['schema_version'] === 2) {
     $required[] = 'base_preset';
   }
-  $allowed = array_merge($required, array('_config_name', '_config_static'), $theme ? array('description') : array('learner_selection_enabled'));
+  $allowed = array_merge($required, array('_config_name', '_config_static'), $theme ? array('description') : array('learner_selection_enabled', 'native_density_enabled'));
   foreach ($required as $key) {
     if (!array_key_exists($key, $data)) {
       $add_error($key, t('Missing H5P Themer configuration field: @key.', array('@key' => $key)));
@@ -115,6 +115,9 @@ function h5p_themer_config_field_errors($name, $data) {
     $add_error('_form', t('The _config_static flag must be boolean.'));
   }
   if ($settings) {
+    if (array_key_exists('native_density_enabled', $data) && !is_bool($data['native_density_enabled'])) {
+      $add_error('native_density_enabled', t('Native Density controls must be boolean.'));
+    }
     if (array_key_exists('learner_selection_enabled', $data) && !is_bool($data['learner_selection_enabled'])) {
       $add_error('learner_selection_enabled', t('Learner theme selection must be boolean.'));
     }
@@ -197,7 +200,7 @@ function h5p_themer_config_load($name, $type = 'active', $original = FALSE) {
     $data = $config->getOriginal();
     if (!$original) {
       // Config::get() without a key does not merge field-level overrides.
-      $keys = $name === 'h5p_themer.settings' ? array('schema_version', 'default_theme', 'learner_selection_enabled') : array('schema_version', 'id', 'label', 'description', 'density', 'colors', 'base_preset');
+      $keys = $name === 'h5p_themer.settings' ? array('schema_version', 'default_theme', 'learner_selection_enabled', 'native_density_enabled') : array('schema_version', 'id', 'label', 'description', 'density', 'colors', 'base_preset');
       foreach ($keys as $key) {
         $value = $config->get($key);
         if (array_key_exists($key, $data) || $value !== NULL) {
@@ -296,7 +299,8 @@ function h5p_themer_selection_reference($selection, $schema_version = 2) {
 /**
  * Resolves a custom palette without changing its stored definition or base.
  *
- * Stored density is independent of the base's colors. Unsupported inherited
+ * Legacy density is retained for round trips and ignored by learner playback.
+ * Unsupported inherited
  * properties are retained and identified; resolution makes no runtime claim.
  */
 function h5p_themer_theme_resolve($id, $type = 'active', $original = FALSE) {

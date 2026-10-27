@@ -10,7 +10,8 @@ if (worker.status !== 0) throw Error(worker.stderr+worker.stdout);
 const metadata = JSON.parse(worker.stdout);
 const attr = 'data-h5p-themer-learner';
 
-function fixture({global=null, learner=true, original='large', ...learnerOptions}={}) {
+function fixture({initialChoice=null, learner=true, original='large', ...learnerOptions}={}) {
+  if(initialChoice && !learnerOptions.session) learnerOptions.session=sessionStorageFixture({'h5p_themer:learner-density:v1:/':initialChoice});
   const f=learnerFixture(learnerOptions), jobs=new Map(), calls=[], initialized=[]; let next=1;
   const BaseObserver=f.h.window.MutationObserver;
   f.h.window.MutationObserver=class extends BaseObserver {
@@ -18,8 +19,8 @@ function fixture({global=null, learner=true, original='large', ...learnerOptions
     observe(target,settings){super.observe(target,settings);this.targets.push({target,settings});}
     disconnect(){super.disconnect();this.targets=[];}
   };
-  const data=structuredClone(metadata);data.global=global;data.learner=learner;
-  if(!learner){data.bundle=null;data.profiles={};f.metadata.enabled=false;}
+  const data=structuredClone(metadata);data.learner=learner;
+  if(!learner){f.metadata.enabled=false;}
   f.data.h5pThemerNativeDensity={players:data.players};Object.defineProperty(f.data.h5pThemerNativeDensity,'payload',{get:()=>JSON.stringify(data)});
   f.h.window.H5P.externalDispatcher={on(name,fn){if(!initialized.includes(fn))initialized.push(fn);},off(name,fn){const at=initialized.indexOf(fn);if(at!==-1)initialized.splice(at,1);}};
   function style(element){return{getPropertyValue(name){
@@ -52,103 +53,81 @@ function fixture({global=null, learner=true, original='large', ...learnerOptions
   return{...f,data,player,initialize,nativeAttach,nativeDetach,attach,choose,notify,flush,jobs,calls,density,initialized,api:f.h.Backdrop.h5pThemerNativeDensity};
 }
 
-test('PHP metadata shares unchanged production color readiness and palette keys',()=>{
-  assert.equal(metadata.bundle,contract.bundle.id);
-  assert.equal(metadata.profiles[contract.settings.keys['custom:legacy']],'small');
-  assert.equal(metadata.profiles[contract.settings.keys.core],null);
-  assert.equal(metadata.profiles[contract.settings.keys['builtin:mint']],null);
+test('version 3 metadata retains bundle readiness without any theme Density mapping',()=>{
+ assert.equal(metadata.version,3);assert.equal(metadata.bundle,contract.bundle.id);
+ assert.equal(Object.hasOwn(metadata,'global'),false);assert.equal(Object.hasOwn(metadata,'profiles'),false);
 });
-for(const global of ['small','medium','large'])test('global-only saved '+global+' applies one native class without a selector',()=>{
-  const f=fixture({global,learner:false}),p=f.player();f.attach();f.flush();
-  assert.deepEqual(f.density(p),['h5p-'+global]);assert.equal(f.panel(),null);assert.deepEqual(f.session.calls,[]);
-  assert.ok(p.content.className.includes('preserve-color-class'));assert.equal(p.instance.feedback,'keep');assert.deepEqual(p.instance.answers,[true]);
+for(const original of ['small','medium','large'])test('all visual themes preserve original '+original+' before a choice',()=>{
+ const f=fixture({original}),p=f.player();f.attach();
+ for(const theme of ['site_default','custom:legacy','custom:checkpoint_test','core','builtin:mint']){
+  f.choose(theme);f.flush();assert.deepEqual(f.density(p),['h5p-'+original]);
+ }
+ assert.equal(f.api.getSnapshot().override,null);assert.equal(f.calls.length,0);
 });
-test('competing classes are replaced without disturbing unrelated classes or answers',()=>{
-  const f=fixture({global:'medium',learner:false}),p=f.player();p.content.className+=' h5p-small h5p-medium';f.attach();f.flush();
-  assert.deepEqual(f.density(p),['h5p-medium']);assert.ok(p.content.className.includes('h5p-initialized'));assert.ok(p.content.className.includes('preserve-color-class'));assert.equal(p.instance.score,1);
+for(const choice of ['small','medium','large'])test('no learner picker means no Density even with a saved '+choice+' preference',()=>{
+ const f=fixture({initialChoice:choice,learner:false}),p=f.player();f.attach();f.flush();
+ assert.deepEqual(f.density(p),['h5p-large']);assert.equal(f.panel(),null);assert.deepEqual(f.session.calls,[]);
 });
-test('existing choices distinguish Core, builtin, custom, and Site default',()=>{
-  const f=fixture({global:'medium'}),p=f.player();f.attach();f.flush();
-  assert.deepEqual(f.density(p),['h5p-medium']);
-  for(const [choice,expected] of [['custom:legacy','small'],['custom:checkpoint_test','large'],['core','large'],['builtin:mint','large'],['site_default','medium']]){
-    f.choose(choice);f.flush();assert.deepEqual(f.density(p),['h5p-'+expected]);
-    assert.equal(p.instance.feedback,'keep');assert.equal(p.instance.score,1);
-    assert.equal(p.child.doc.documentElement.getAttribute(attr),choice==='site_default'?null:f.metadata.keys[choice]);
-  }
-});
-for(const original of ['small','medium','large'])test('Core restores captured native '+original+' after custom overrides',()=>{
-  const f=fixture({original}),p=f.player();f.attach();
-  f.choose('custom:checkpoint_test');f.flush();f.choose('custom:legacy');f.flush();f.choose('core');f.flush();
-  assert.deepEqual(f.density(p),['h5p-'+original]);
-});
-test('Site default with no override restores original while preserving existing picker/color state',()=>{
-  const f=fixture({original:'medium'}),p=f.player();f.attach();f.choose('custom:legacy');f.flush();f.choose('site_default');f.flush();
-  assert.deepEqual(f.density(p),['h5p-medium']);assert.equal(f.select().value,'site_default');assert.equal(p.content.hasAttribute('data-h5p-themer-eligible'),true);
-});
-test('an ineligible target retains Global Default Density like existing global color fallback',()=>{
-  const f=fixture({global:'medium'}),p=f.player();f.attach();f.choose('custom:legacy');f.flush();
-  p.content.removeAttribute('data-h5p-themer-eligible');f.nativeAttach();f.flush();assert.deepEqual(f.density(p),['h5p-medium']);
-});
-test('a second True/False player keeps its profile and gets no native resize',()=>{
-  const f=fixture(),a=f.player(),b=f.player('8');f.attach();f.choose('custom:legacy');f.flush();
-  assert.deepEqual(f.density(a),['h5p-small']);assert.deepEqual(f.density(b),['h5p-large']);assert.deepEqual(f.calls.map(c=>c.owner),[a.instance]);
-  assert.equal(b.instance.feedback,'keep');assert.deepEqual(b.instance.answers,[true]);
+test('an ineligible player keeps its original while a qualified sibling can change',()=>{
+ const f=fixture(),a=f.player(),b=f.player('8');qualify(f,'8');f.attach();
+ a.content.removeAttribute('data-h5p-themer-eligible');f.nativeAttach();f.api.setOverride('small');f.flush();
+ assert.deepEqual(f.density(a),['h5p-large']);assert.deepEqual(f.density(b),['h5p-small']);
 });
 test('same profile, repeated attachment and color-only bundle replacement are no-ops',()=>{
-  const f=fixture({global:'small'}),p=f.player();f.attach();f.flush();f.calls.length=0;
+  const f=fixture({initialChoice:'small'}),p=f.player();f.attach();f.flush();f.calls.length=0;
   f.nativeAttach();f.nativeAttach();f.flush();assert.equal(f.calls.length,0);
   const changed='t'+'9'.repeat(64);f.data.bundle=changed;f.nativeAttach();f.flush();
   assert.deepEqual(f.density(p),['h5p-small']);assert.equal(f.calls.length,0);
   f.metadata.bundle=changed;f.nativeAttach();f.flush();assert.equal(f.calls.length,0);
 });
-test('rapid effective changes coalesce; a net-zero cycle requests no resize',()=>{
-  const f=fixture(),p=f.player();f.attach();f.choose('custom:legacy');f.choose('core');f.flush();assert.equal(f.calls.length,0);
-  f.choose('custom:legacy');f.data.profiles[f.metadata.keys['custom:legacy']]='medium';f.nativeAttach();assert.equal(f.jobs.size,1);f.flush();
-  assert.deepEqual(f.density(p),['h5p-medium']);assert.deepEqual(f.calls.map(c=>c.owner),[p.instance]);
+test('rapid choices coalesce and net-zero choices request no resize',()=>{
+ const f=fixture(),p=f.player();f.attach();f.api.setOverride('small');f.api.setOverride('large');f.flush();assert.equal(f.calls.length,0);
+ f.api.setOverride('small');f.api.setOverride('medium');assert.equal(f.jobs.size,1);f.flush();
+ assert.deepEqual(f.density(p),['h5p-medium']);assert.deepEqual(f.calls.map(c=>c.owner),[p.instance]);
 });
 test('profile changes still notify native button/feedback layout when root height is equal',()=>{
-  const f=fixture(),p=f.player();p.content.getBoundingClientRect=()=>({height:300});f.attach();f.choose('custom:legacy');f.flush();assert.equal(f.calls.length,1);
+  const f=fixture(),p=f.player();p.content.getBoundingClientRect=()=>({height:300});f.attach();f.api.setOverride('small');f.choose('custom:legacy');f.flush();assert.equal(f.calls.length,1);
 });
 test('pending resize survives readiness handoff and orphaned callbacks cannot clobber its replacement',()=>{
-  const f=fixture(),p=f.player();f.attach();f.choose('custom:legacy');const orphan=[...f.jobs.values()][0];
+  const f=fixture(),p=f.player();f.attach();f.api.setOverride('small');f.choose('custom:legacy');const orphan=[...f.jobs.values()][0];
   p.child.doc.bundleReady=false;f.nativeAttach();assert.equal(f.jobs.size,0);orphan();
   p.child.doc.bundleReady=true;f.nativeAttach();assert.equal(f.jobs.size,1);orphan();assert.equal(f.jobs.size,1);f.flush();
   assert.deepEqual(f.calls.map(c=>c.owner),[p.instance]);
 });
 test('temporarily mismatched parent/child selections do not bounce an owned profile',()=>{
-  const f=fixture(),p=f.player();f.attach();f.choose('custom:legacy');f.flush();f.calls.length=0;
+  const f=fixture(),p=f.player();f.attach();f.api.setOverride('small');f.choose('custom:legacy');f.flush();f.calls.length=0;
   f.doc.documentElement.setAttribute(attr,f.metadata.keys.core);f.nativeAttach();assert.deepEqual(f.density(p),['h5p-small']);assert.equal(f.jobs.size,0);
-  p.child.doc.documentElement.setAttribute(attr,f.metadata.keys.core);f.nativeAttach();f.flush();assert.deepEqual(f.density(p),['h5p-large']);assert.equal(f.calls.length,1);
+  p.child.doc.documentElement.setAttribute(attr,f.metadata.keys.core);f.nativeAttach();f.flush();assert.deepEqual(f.density(p),['h5p-small']);assert.equal(f.calls.length,0);
 });
 test('disabling metadata restores original and cancels stale work without changing color selection',()=>{
-  const f=fixture(),p=f.player();f.attach();f.choose('custom:legacy');const orphan=[...f.jobs.values()][0];
+  const f=fixture(),p=f.player();f.attach();f.api.setOverride('small');f.choose('custom:legacy');const orphan=[...f.jobs.values()][0];
   f.nativeAttach({});orphan();f.flush();assert.deepEqual(f.density(p),['h5p-large']);assert.equal(f.select().value,'custom:legacy');
   assert.equal(f.calls.length,1);assert.equal(f.jobs.size,0);assert.equal(f.initialized.length,0);
 });
 test('iframe replacement captures a fresh original and cannot resize the old instance',()=>{
-  const f=fixture(),p=f.player();f.attach();f.choose('custom:legacy');const old=p.instance,orphan=[...f.jobs.values()][0];
+  const f=fixture(),p=f.player();f.attach();f.api.setOverride('small');f.choose('custom:legacy');const old=p.instance,orphan=[...f.jobs.values()][0];
   p.writeDocument();f.initialize(p,'medium');f.nativeAttach();orphan();f.flush();assert.ok(f.calls.every(c=>c.owner!==old));
-  f.choose('core');f.flush();assert.deepEqual(f.density(p),['h5p-medium']);
+  f.choose('core');f.api.resetOverride();f.flush();assert.deepEqual(f.density(p),['h5p-medium']);
 });
 test('container replacement cannot recapture our previous override as the original profile',()=>{
-  const f=fixture(),p=f.player();f.attach();f.choose('custom:legacy');f.flush();f.calls.length=0;
+  const f=fixture(),p=f.player();f.attach();f.api.setOverride('small');f.choose('custom:legacy');f.flush();f.calls.length=0;
   const next=p.child.doc.createElement('div');next.className=p.container.className;p.content.removeChild(p.container);p.content.appendChild(next);
-  f.nativeAttach();f.flush();f.choose('core');f.flush();assert.deepEqual(f.density(p),['h5p-large']);
+  f.nativeAttach();f.flush();f.api.resetOverride();f.choose('core');f.flush();assert.deepEqual(f.density(p),['h5p-large']);
 });
 test('a replacement instance on the same root retains its own original even when classes match our last override',()=>{
-  const f=fixture(),p=f.player();f.attach();f.choose('custom:legacy');f.flush();
-  const old=p.instance;f.initialize(p,'small');f.nativeAttach();f.choose('core');f.flush();
+  const f=fixture(),p=f.player();f.attach();f.api.setOverride('small');f.choose('custom:legacy');f.flush();
+  const old=p.instance;f.initialize(p,'small');f.nativeAttach();f.api.resetOverride();f.choose('core');f.flush();
   assert.deepEqual(f.density(p),['h5p-small']);assert.notEqual(p.instance,old);
 });
 test('removed target cancels pending work and its orphaned callback',()=>{
-  const f=fixture(),p=f.player();f.attach();f.choose('custom:legacy');const orphan=[...f.jobs.values()][0];p.root.parentNode.removeChild(p.root);f.nativeAttach();orphan();f.flush();assert.equal(f.calls.length,0);
+  const f=fixture(),p=f.player();f.attach();f.api.setOverride('small');f.choose('custom:legacy');const orphan=[...f.jobs.values()][0];p.root.parentNode.removeChild(p.root);f.nativeAttach();orphan();f.flush();assert.equal(f.calls.length,0);
 });
 test('native resize failure restores original and does not retry on attachment',()=>{
   const f=fixture(),p=f.player();let attempts=0;p.child.window.H5P.trigger=()=>{attempts++;throw Error('Native failure');};
-  f.attach();f.choose('custom:legacy');f.flush();f.nativeAttach();f.flush();assert.equal(attempts,1);assert.deepEqual(f.density(p),['h5p-large']);
+  f.attach();f.api.setOverride('small');f.choose('custom:legacy');f.flush();f.nativeAttach();f.flush();assert.equal(attempts,1);assert.deepEqual(f.density(p),['h5p-large']);
 });
 for(const invalid of ['duplicate-frame','duplicate-instance','wrong-library','wrong-instance-id','object-instance-id','not-root','wrong-document','wrong-integration','external','srcdoc','nested','editor','extra-root'])test('unsafe identity fails closed: '+invalid,()=>{
-  const f=fixture({global:'small'}),p=f.player();
+  const f=fixture({initialChoice:'small'}),p=f.player();
   if(invalid==='duplicate-frame')f.player();
   if(invalid==='duplicate-instance')p.child.window.H5P.instances.push({...p.instance});
   if(invalid==='wrong-library')p.instance.libraryInfo.versionedName='H5P.Other 1.8';
@@ -165,51 +144,47 @@ for(const invalid of ['duplicate-frame','duplicate-instance','wrong-library','wr
   f.attach();f.flush();assert.deepEqual(f.density(p),['h5p-large']);assert.equal(f.calls.length,0);
 });
 test('native initialization event discovers a player that was not ready at behavior attachment',()=>{
-  const f=fixture({global:'small'}),p=f.player();p.child.window.H5P.instances=[];f.attach();assert.deepEqual(f.density(p),['h5p-large']);
+  const f=fixture({initialChoice:'small'}),p=f.player();p.child.window.H5P.instances=[];f.attach();assert.deepEqual(f.density(p),['h5p-large']);
   p.child.window.H5P.instances=[p.instance];for(const fn of [...f.initialized])fn();f.flush();assert.deepEqual(f.density(p),['h5p-small']);
 });
 test('no native Core CSS means no class changes until its resource load event',()=>{
-  const f=fixture({global:'small'}),p=f.player();p.child.doc.nativeReady=false;f.attach();assert.deepEqual(f.density(p),['h5p-large']);
+  const f=fixture({initialChoice:'small'}),p=f.player();p.child.doc.nativeReady=false;f.attach();assert.deepEqual(f.density(p),['h5p-large']);
   p.child.doc.nativeReady=true;p.child.doc.dispatchEvent(new f.h.Event('load'));f.flush();assert.deepEqual(f.density(p),['h5p-small']);
 });
 test('DIV-only rendering is outside this checkpoint and is never mutated',()=>{
-  const f=fixture({global:'small'}),p=f.element('div',{class:'h5p-content h5p-initialized h5p-large','data-content-id':'7'});
+  const f=fixture({initialChoice:'small'}),p=f.element('div',{class:'h5p-content h5p-initialized h5p-large','data-content-id':'7'});
   f.h.window.H5PIntegration.contents['cid-7']={library:'H5P.TrueFalse 1.8'};
   const before=p.className;f.attach();f.flush();assert.equal(p.className,before);assert.equal(f.calls.length,0);
 });
 for(const invalid of ['unsafe-profile','unsafe-target','bad-key','array-profiles','missing'])test('invalid transport cannot mutate a player: '+invalid,()=>{
-  const f=fixture({global:'small'}),p=f.player();
+  const f=fixture({initialChoice:'small'}),p=f.player();
   if(invalid==='unsafe-profile')f.data.global='small large';
   if(invalid==='unsafe-target')f.data.players['cid-7'].id='7"]';
-  if(invalid==='bad-key')f.data.profiles.unsafe='small';
+  if(invalid==='bad-key')f.data.bundle='unsafe';
   if(invalid==='array-profiles')f.data.profiles=[];
   f.nativeAttach(invalid==='missing'?{}:f.data);f.flush();assert.deepEqual(f.density(p),['h5p-large']);assert.equal(f.calls.length,0);
 });
 
 function qualify(f,id) { f.data.players['cid-'+id]={...f.data.players['cid-7'],id:String(id)}; }
 
-test('two qualified players keep distinct originals through Core/custom/default cycles',()=>{
- const f=fixture({global:'medium'}),a=f.player(),b=f.player('8');qualify(f,'8');f.initialize(b,'small');
- f.attach();f.flush();assert.deepEqual(f.density(a),['h5p-medium']);assert.deepEqual(f.density(b),['h5p-medium']);
- f.choose('core');f.flush();assert.deepEqual(f.density(a),['h5p-large']);assert.deepEqual(f.density(b),['h5p-small']);
- f.choose('custom:legacy');f.flush();f.choose('core');f.flush();
- assert.deepEqual(f.density(a),['h5p-large']);assert.deepEqual(f.density(b),['h5p-small']);
- assert.ok(f.calls.every(c=>c.owner===a.instance||c.owner===b.instance));
- for(const p of [a,b]){assert.equal(p.instance.feedback,'keep');assert.equal(p.instance.score,1);assert.deepEqual(p.instance.answers,[true]);}
+test('two qualified players share explicit choice and reset to distinct originals',()=>{
+ const f=fixture(),a=f.player(),b=f.player('8');qualify(f,'8');f.initialize(b,'small');
+ f.attach();f.api.setOverride('medium');f.flush();assert.deepEqual(f.density(a),['h5p-medium']);assert.deepEqual(f.density(b),['h5p-medium']);
+ f.api.resetOverride();f.flush();assert.deepEqual(f.density(a),['h5p-large']);assert.deepEqual(f.density(b),['h5p-small']);
 });
 test('per-player color eligibility does not share mutable applied state',()=>{
- const f=fixture({global:'medium'}),a=f.player(),b=f.player('8');qualify(f,'8');f.attach();
- f.choose('custom:legacy');b.content.removeAttribute('data-h5p-themer-eligible');f.nativeAttach();f.flush();
- assert.deepEqual(f.density(a),['h5p-small']);assert.deepEqual(f.density(b),['h5p-medium']);
+ const f=fixture({initialChoice:'medium'}),a=f.player(),b=f.player('8');qualify(f,'8');f.attach();
+ f.api.setOverride('small');f.choose('custom:legacy');b.content.removeAttribute('data-h5p-themer-eligible');f.nativeAttach();f.flush();
+ assert.deepEqual(f.density(a),['h5p-small']);assert.deepEqual(f.density(b),['h5p-small']);
 });
 test('one resize failure restores only that player and never retries; sibling succeeds',()=>{
- const f=fixture({global:'small'}),a=f.player(),b=f.player('8');qualify(f,'8');let attempts=0;
+ const f=fixture({initialChoice:'small'}),a=f.player(),b=f.player('8');qualify(f,'8');let attempts=0;
  a.child.window.H5P.trigger=()=>{attempts++;throw Error('Broken player');};f.attach();f.flush();
  assert.deepEqual(f.density(a),['h5p-large']);assert.deepEqual(f.density(b),['h5p-small']);
  f.nativeAttach();f.flush();assert.equal(attempts,1);assert.equal(f.calls.length,1);assert.equal(f.calls[0].owner,b.instance);
 });
 for(const bad of ['patch','missing-patch','library','missing-content','inaccessible','missing-child-H5P'])test('one invalid qualification/owner preserves siblings: '+bad,()=>{
- const f=fixture({global:'small'}),a=f.player('7', {accessible:bad!=='inaccessible'}),b=f.player('8');qualify(f,'8');
+ const f=fixture({initialChoice:'small'}),a=f.player('7', {accessible:bad!=='inaccessible'}),b=f.player('8');qualify(f,'8');
  if(bad==='patch')f.data.players['cid-7'].patch=25;
  if(bad==='missing-patch')delete f.data.players['cid-7'].patch;
  if(bad==='library')f.data.players['cid-7'].library='H5P.MultiChoice 1.16';
@@ -218,66 +193,66 @@ for(const bad of ['patch','missing-patch','library','missing-content','inaccessi
  f.attach();f.flush();assert.deepEqual(f.density(a),['h5p-large']);assert.deepEqual(f.density(b),['h5p-small']);
 });
 test('duplicate content embeddings are rejected without excluding a distinct sibling',()=>{
- const f=fixture({global:'small'}),a=f.player(),copy=f.player(),b=f.player('8');qualify(f,'8');f.attach();f.flush();
+ const f=fixture({initialChoice:'small'}),a=f.player(),copy=f.player(),b=f.player('8');qualify(f,'8');f.attach();f.flush();
  assert.deepEqual(f.density(a),['h5p-large']);assert.deepEqual(f.density(copy),['h5p-large']);assert.deepEqual(f.density(b),['h5p-small']);
  assert.deepEqual(f.calls.map(c=>c.owner),[b.instance]);
 });
 test('partial detach is idempotent, cancels jobs and does not disable a sibling',()=>{
- const f=fixture({global:'small'}),a=f.player(),b=f.player('8');qualify(f,'8');f.attach();const stale=[...f.jobs.values()];
+ const f=fixture({initialChoice:'small'}),a=f.player(),b=f.player('8');qualify(f,'8');f.attach();const stale=[...f.jobs.values()];
  f.nativeDetach(a.root);f.nativeDetach(a.root);stale.forEach(fn=>fn());f.flush();
  assert.deepEqual(f.density(a),['h5p-large']);assert.deepEqual(f.density(b),['h5p-small']);
  f.nativeAttach(); // document reattachment permits a fresh owner
  f.flush();assert.deepEqual(f.density(a),['h5p-small']);
 });
 test('document detach releases native listeners/observers/jobs and reattaches once',()=>{
- const f=fixture({global:'small'}),a=f.player();f.attach();f.flush();
+ const f=fixture({initialChoice:'small'}),a=f.player();f.attach();f.flush();
  const count=()=>({observers:f.activeObservers().length,load:(f.doc.listeners.load||[]).length,pageshow:(f.windowListeners.pageshow||[]).length});
  const before=count();for(let i=0;i<20;i++)f.nativeAttach();assert.deepEqual(count(),before);assert.equal(f.initialized.length,1);
  f.nativeDetach();f.nativeDetach();assert.equal(f.initialized.length,0);assert.equal(f.jobs.size,0);assert.deepEqual(f.density(a),['h5p-large']);
  assert.ok(count().observers<before.observers);f.nativeAttach();f.flush();assert.deepEqual(count(),before);assert.equal(f.initialized.length,1);
 });
 test('serialize detach preserves playback and move detach permits safe reattachment',()=>{
- const f=fixture({global:'small'}),a=f.player();f.attach();f.flush();f.nativeDetach(a.root,'serialize');assert.deepEqual(f.density(a),['h5p-small']);
+ const f=fixture({initialChoice:'small'}),a=f.player();f.attach();f.flush();f.nativeDetach(a.root,'serialize');assert.deepEqual(f.density(a),['h5p-small']);
  f.nativeDetach(a.root,'move');assert.deepEqual(f.density(a),['h5p-large']);f.nativeAttach();f.flush();assert.deepEqual(f.density(a),['h5p-small']);
 });
 test('removed iframe cleans its own observers and stale callbacks, sibling remains active',()=>{
- const f=fixture({global:'small'}),a=f.player(),b=f.player('8');qualify(f,'8');f.attach();const stale=[...f.jobs.values()];
+ const f=fixture({initialChoice:'small'}),a=f.player(),b=f.player('8');qualify(f,'8');f.attach();const stale=[...f.jobs.values()];
  const before=f.activeObservers().length;f.doc.body.removeChild(a.root);f.nativeAttach();stale.forEach(fn=>fn());f.flush();
  assert.ok(f.activeObservers().length<before);assert.deepEqual(f.density(b),['h5p-small']);assert.ok(f.calls.every(c=>c.owner!==a.instance));
  f.doc.body.appendChild(a.root);f.nativeAttach();f.flush();assert.deepEqual(f.density(a),['h5p-small']);
 });
 test('no native observer watches an unbounded body subtree',()=>{
- const f=fixture({global:'small'});f.player();f.attach();
+ const f=fixture({initialChoice:'small'});f.player();f.attach();
  // Learner behavior has its own pre-existing observers. Native tree observer has a distinct callback.
  const nativeTree=f.activeObservers().filter(o=>o.callback.toString().includes('change.addedNodes'));
  assert.equal(nativeTree.length,1);assert.equal(nativeTree[0].settings.subtree,undefined);
 });
 test('missing parent H5P globals never mutate a player or recreate the activity',()=>{
- const f=fixture({global:'small'}),p=f.player();delete f.h.window.H5P;f.attach();f.flush();
+ const f=fixture({initialChoice:'small'}),p=f.player();delete f.h.window.H5P;f.attach();f.flush();
  assert.deepEqual(f.density(p),['h5p-large']);assert.equal(f.calls.length,0);
 });
 test('an originally unclassified root is restored without unrelated class loss',()=>{
  const f=fixture(),p=f.player();p.content.className=p.content.className.replace('h5p-large','');f.attach();
- f.choose('custom:checkpoint_test');f.flush();f.choose('core');f.flush();assert.deepEqual(f.density(p),[]);assert.ok(p.content.className.includes('preserve-color-class'));
+ f.choose('custom:checkpoint_test');f.flush();f.api.resetOverride();f.choose('core');f.flush();assert.deepEqual(f.density(p),[]);assert.ok(p.content.className.includes('preserve-color-class'));
 });
 
 
 test('native DOM removal observer restores the detached owned profile before reinsertion',()=>{
- const f=fixture({global:'small'}),a=f.player();f.attach();f.flush();
+ const f=fixture({initialChoice:'small'}),a=f.player();f.attach();f.flush();
  const tree=f.activeObservers().find(o=>o.callback.toString().includes('change.addedNodes'));
  assert.ok(tree.targets.some(t=>t.target===f.doc.body));assert.ok(tree.targets.every(t=>!t.settings.subtree));
  const parent=a.root.parentNode;parent.removeChild(a.root);tree.callback([{addedNodes:[],removedNodes:[a.root]}]);
- assert.deepEqual(f.density(a),['h5p-large']);f.doc.body.appendChild(a.root);f.nativeAttach();f.flush();f.choose('core');f.flush();
+ assert.deepEqual(f.density(a),['h5p-large']);f.doc.body.appendChild(a.root);f.nativeAttach();f.flush();f.api.resetOverride();f.choose('core');f.flush();
  assert.deepEqual(f.density(a),['h5p-large']);
 });
 test('new ambiguity releases owned profile without clobbering a replacement instance',()=>{
- const f=fixture({global:'small'}),a=f.player();f.attach();f.flush();const replacement={...a.instance};
+ const f=fixture({initialChoice:'small'}),a=f.player();f.attach();f.flush();const replacement={...a.instance};
  a.child.window.H5P.instances.push(replacement);f.nativeAttach();f.flush();assert.equal(f.calls.length,1);
  // The competing instance now prevents proof of unique ownership; no restoration write.
  assert.deepEqual(f.density(a),['h5p-small']);
 });
 test('each player can wait for native initialization without blocking an initialized sibling',()=>{
- const f=fixture({global:'small'}),a=f.player(),b=f.player('8');qualify(f,'8');a.child.window.H5P.instances=[];
+ const f=fixture({initialChoice:'small'}),a=f.player(),b=f.player('8');qualify(f,'8');a.child.window.H5P.instances=[];
  f.attach();f.flush();assert.deepEqual(f.density(b),['h5p-small']);assert.deepEqual(f.density(a),['h5p-large']);
  a.child.window.H5P.instances=[a.instance];for(const fn of [...f.initialized])fn();f.flush();assert.deepEqual(f.density(a),['h5p-small']);
 });
@@ -298,20 +273,19 @@ test('immutable default snapshot exists before attach; subscriptions support eit
  f.api.setOverride('small');assert.equal(late.length,1);off();off();lateOff();f.api.setOverride('large');assert.equal(events.length,2);
  assert.deepEqual(Object.keys(stable).sort(),['available','enabled','override','readyPlayers']);
 });
-for(const value of ['small','medium','large'])test('explicit '+value+' survives custom/Core/builtin/default changes and resets to current theme',()=>{
- const f=fixture({global:'medium'}),p=f.player();f.attach();f.flush();
+for(const value of ['small','medium','large'])test('explicit '+value+' survives custom/Core/builtin/default changes and resets to original activity spacing',()=>{
+ const f=fixture({initialChoice:'medium'}),p=f.player();f.attach();f.flush();
  assert.equal(f.api.setOverride(value),true);f.flush();
  for(const theme of ['custom:legacy','core','builtin:mint','site_default','custom:checkpoint_test']){
   f.choose(theme);f.flush();assert.deepEqual(f.density(p),['h5p-'+value]);assert.equal(f.api.getSnapshot().override,value);
  }
  f.choose('custom:legacy');f.flush();assert.equal(f.api.resetOverride(),true);f.flush();
- assert.deepEqual(f.density(p),['h5p-small']);assert.equal(f.api.getSnapshot().override,null);
+ assert.deepEqual(f.density(p),['h5p-large']);assert.equal(f.api.getSnapshot().override,null);
  assert.equal(p.instance.feedback,'keep');assert.equal(p.instance.score,1);assert.deepEqual(p.instance.answers,[true]);
 });
 test('all-null metadata supports override and reset to each distinct original, including no class',()=>{
  const f=fixture(),a=f.player(),b=f.player('8');qualify(f,'8');f.initialize(b,'small');
  a.content.className=a.content.className.replace('h5p-large','');
- for(const key of Object.keys(f.data.profiles))f.data.profiles[key]=null;
  f.attach();assert.equal(f.api.getSnapshot().readyPlayers,2);f.api.setOverride('medium');f.flush();
  assert.deepEqual(f.density(a),['h5p-medium']);assert.deepEqual(f.density(b),['h5p-medium']);
  f.choose('core');f.api.resetOverride();f.flush();assert.deepEqual(f.density(a),[]);assert.deepEqual(f.density(b),['h5p-small']);
@@ -419,8 +393,8 @@ for(const value of ['small','medium','large'])test('restores exact valid stored 
  const f=fixture({session:sessionStorageFixture({[densityKey]:value})}),p=f.player();f.attach();f.flush();
  assert.equal(f.api.getSnapshot().override,value);assert.deepEqual(f.density(p),['h5p-'+value]);assert.deepEqual(densityStorage(f).map(c=>c.method),['getItem']);
 });
-for(const [theme,expected] of [['site_default','medium'],['custom:legacy','small'],['core','large'],['builtin:mint','large']])test('reset follows currently selected '+theme,()=>{
- const f=fixture({global:'medium'}),p=f.player();f.attach();f.api.setOverride('small');f.choose(theme);f.api.resetOverride();f.flush();assert.deepEqual(f.density(p),['h5p-'+expected]);
+for(const [theme,expected] of [['site_default','large'],['custom:legacy','large'],['core','large'],['builtin:mint','large']])test('reset restores original independently of selected '+theme,()=>{
+ const f=fixture({initialChoice:'medium'}),p=f.player();f.attach();f.api.setOverride('small');f.choose(theme);f.api.resetOverride();f.flush();assert.deepEqual(f.density(p),['h5p-'+expected]);
 });
 test('preference restoration waits for initial qualification, CSS and synchronized eligibility',()=>{
  const f=fixture({session:sessionStorageFixture({[densityKey]:'small'})}),p=f.player();p.child.doc.nativeReady=false;
@@ -465,8 +439,8 @@ for(const nativeFirst of [false,true])test('toolbar follows actual controller in
  group.querySelector('[data-density="small"]').dispatchEvent(new f.h.Event('click'));f.flush();
  assert.deepEqual(f.density(p),['h5p-small']);assert.equal(mode.textContent,'Learner Density: Small');
  f.choose('custom:checkpoint_test');f.flush();assert.deepEqual(f.density(p),['h5p-small']);
- group.querySelector('.h5p-themer-density-reset').dispatchEvent(new f.h.Event('click'));f.flush();
- assert.deepEqual(f.density(p),['h5p-large']);assert.equal(mode.textContent,'Using theme Density');
+ assert.equal(group.querySelector('.h5p-themer-density-reset'),null);f.api.resetOverride();f.flush();
+ assert.deepEqual(f.density(p),['h5p-large']);assert.equal(mode.textContent,'Using original activity spacing');
 });
 test('actual unsupported library retains theme picker and hides toolbar',()=>{
  const f=fixture(),p=f.player();f.data.players['cid-7'].patch=25;f.attach();
@@ -486,4 +460,25 @@ for(const nativeFirst of [false,true])test('whole-document detach/reattach resto
  if(nativeFirst){f.nativeDetach();uiDetach();}else{uiDetach();f.nativeDetach();}
  f.attach();f.flush();const mode=f.panel().querySelector('.h5p-themer-density-mode');
  assert.equal(mode.textContent,'Learner Density: Small');f.api.setOverride('medium');assert.equal(mode.textContent,'Learner Density: Medium');
+});
+
+// v0.4.2 transport and original-spacing regressions.
+for(const version of [1,2,4])test('incompatible Density transport '+version+' fails closed',()=>{
+ const f=fixture({session:sessionStorageFixture({[densityKey]:'small'})}),p=f.player();f.data.version=version;f.attach();f.flush();
+ assert.deepEqual(f.density(p),['h5p-large']);assert.equal(f.api.getSnapshot().enabled,false);assert.deepEqual(densityStorage(f),[]);
+});
+for(const field of ['global','profiles'])test('version 3 rejects legacy '+field+' metadata',()=>{
+ const f=fixture(),p=f.player();f.data[field]=field==='global'?'small':{};f.attach();
+ assert.deepEqual(f.density(p),['h5p-large']);assert.equal(f.api.setOverride('small'),false);
+});
+test('before a choice an unclassified original stays unclassified across all themes',()=>{
+ const f=fixture(),p=f.player();p.content.className=p.content.className.replace('h5p-large','');f.attach();
+ for(const theme of ['custom:legacy','custom:checkpoint_test','core','site_default']){f.choose(theme);f.flush();assert.deepEqual(f.density(p),[]);}
+ assert.equal(f.calls.length,0);assert.equal(f.api.getSnapshot().override,null);
+});
+test('untouched native profile changes remain H5P-owned and become the reset original',()=>{
+ const f=fixture(),p=f.player();f.attach();p.content.className=p.content.className.replace('h5p-large','h5p-medium');f.nativeAttach();f.flush();
+ assert.deepEqual(f.density(p),['h5p-medium']);assert.equal(f.calls.length,0);
+ f.api.setOverride('small');f.flush();f.api.resetOverride();f.flush();assert.deepEqual(f.density(p),['h5p-medium']);
+ p.content.className=p.content.className.replace('h5p-medium','h5p-large');f.nativeAttach();f.flush();assert.deepEqual(f.density(p),['h5p-large']);
 });

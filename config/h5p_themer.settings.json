@@ -2,5 +2,6 @@
     "_config_name": "h5p_themer.settings",
     "schema_version": 1,
     "default_theme": null,
-    "learner_selection_enabled": false
+    "learner_selection_enabled": false,
+    "native_density_enabled": false
 }

@@ -27,7 +27,7 @@ function h5p_themer_requirements($phase) {
       'title' => t('H5P Themer configuration'),
       'value' => $default['errors'] ? t('Invalid configuration') : ($default['data'] === NULL ? t('No default selected') : check_plain($default['data']['label'])),
       'severity' => $default['errors'] ? REQUIREMENT_ERROR : REQUIREMENT_OK,
-      'description' => $default['errors'] ? implode(' ', $default['errors']) : t('Global color overrides apply to compatible H5P playback. Optional native Density is disabled by default; when enabled, only qualified top-level H5P.TrueFalse 1.8.24 iframe players use saved custom profiles. Core and built-ins restore original Density; Site default follows the effective Global Default. Other libraries do not make the module incompatible.'),
+      'description' => $default['errors'] ? implode(' ', $default['errors']) : t('Global color overrides apply to compatible H5P playback. Optional native Density is disabled by default; when enabled with learner theme selection, qualified top-level H5P.TrueFalse 1.8.24 iframe players offer independent Small, Medium and Large controls. Original spacing is preserved before a learner choice. Other libraries do not make the module incompatible.'),
     );
   }
   return $requirements;

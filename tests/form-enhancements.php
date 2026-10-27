@@ -8,7 +8,7 @@ $writes = H5PThemerMemoryStorage::$writes;
 $bytes = H5PThemerMemoryStorage::$raw;
 $form = admin_form('theme')[1];
 check($form['general']['#type'] === 'fieldset' && $form['general']['#collapsible'] === TRUE && $form['general']['#collapsed'] === FALSE, 'General uses a native initially expanded fieldset');
-foreach (array('id', 'label', 'description', 'density') as $key) {
+foreach (array('id', 'label', 'description') as $key) {
   check($form['general'][$key]['#parents'] === array($key) && !isset($form[$key]), 'General preserves flat parent: ' . $key);
 }
 check($form['#attached']['js'] === array('modules/h5p_themer/js/h5p_themer.admin.js'), 'Only the editable form attaches the picker asset');
@@ -46,10 +46,10 @@ foreach (h5p_themer_presets($version)['data'] as $id => $preset) {
 }
 check(!isset(admin_form('default')[1]['#attached']['js']), 'Global-default form has no picker asset');
 check(H5PThemerMemoryStorage::$raw === $bytes && H5PThemerMemoryStorage::$writes === $writes, 'Building every picker and read-only form makes zero configuration writes');
-$input = array('id' => 'picker_mint', 'label' => '', 'description' => 'Unchanged', 'density' => 'small', 'colors' => array('--h5p-theme-background' => '#12', '--h5p-theme-main-cta-base' => ' #aBc'));
+$input = array('id' => 'picker_mint', 'label' => '', 'description' => 'Unchanged', 'colors' => array('--h5p-theme-background' => '#12', '--h5p-theme-main-cta-base' => ' #aBc'));
 $result = admin_post(admin_form('theme', 'edit', 'picker_mint'), $input);
 check(isset($result['errors']['label'], $result['errors']['colors][--h5p-theme-background'], $result['errors']['colors][--h5p-theme-main-cta-base']), 'General and multiple color errors retain original keys');
-check($result['form']['general']['label']['#name'] === 'label' && $result['form']['general']['density']['#name'] === 'density', 'Native builder retains flat General input names');
+check($result['form']['general']['label']['#name'] === 'label' && !isset($result['form']['general']['density']), 'Native builder retains flat General input names');
 check($result['form']['colors']['surfaces']['--h5p-theme-background']['#name'] === 'colors[--h5p-theme-background]', 'Native builder retains color input name');
 foreach (array(array('general', 'label'), array('colors', 'surfaces', '--h5p-theme-background'), array('colors', 'main', '--h5p-theme-main-cta-base')) as $keys) {
   $element = $result['form']; foreach ($keys as $key) { $element = $element[$key]; }
@@ -77,7 +77,7 @@ foreach (array(array('picker' => '#123456'), array('general' => array('label' =>
 $h5p_enabled = FALSE;
 $disabled = admin_form('theme')[1];
 check($disabled['general']['#disabled'] === TRUE && $disabled['colors']['#disabled'] === TRUE, 'Compatibility guard disables General and color containers');
-$result = admin_post(admin_form('theme'), array('id' => 'disabled_copy', 'label' => 'Disabled', 'density' => 'small', 'colors' => array('--h5p-theme-background' => '#123')));
+$result = admin_post(admin_form('theme'), array('id' => 'disabled_copy', 'label' => 'Disabled', 'colors' => array('--h5p-theme-background' => '#123')));
 check($result['form']['general']['label']['#disabled'] && $result['form']['colors']['surfaces']['--h5p-theme-background']['#disabled'], 'Native builder propagates disabled state to authoritative controls');
 $h5p_enabled = TRUE;
 check(H5PThemerMemoryStorage::$raw === $bytes && H5PThemerMemoryStorage::$writes === $writes, 'Disabled form cannot write');

@@ -44,7 +44,7 @@ foreach ($form['colors'] as $key => $group) {
 $expected = h5p_themer_color_properties(); sort($expected); sort($properties);
 check($properties === $expected, 'Exactly all 33 supported properties grouped once');
 
-$input = array('id' => 'ocean', 'label' => 'Ocean', 'description' => 'Original description', 'density' => 'medium', 'colors' => array('--h5p-theme-background' => '#abc', '--h5p-theme-text-primary' => ''));
+$input = array('id' => 'ocean', 'label' => 'Ocean', 'description' => 'Original description', 'colors' => array('--h5p-theme-background' => '#abc', '--h5p-theme-text-primary' => ''));
 $bytes = H5PThemerMemoryStorage::$raw;
 $bad_csrf = admin_post($bundle, $input, FALSE);
 check(isset($bad_csrf['errors']['form_token']), 'Native Form API rejects invalid CSRF token');
@@ -54,7 +54,7 @@ check(!$created['errors'] && $created['state']['redirect'] === $base, 'Create su
 check(isset($created['form']['form_token']) && !empty($created['form']['#token']), 'Native preparation adds token control');
 $ocean = h5p_themer_theme_load('ocean')['data'];
 check($ocean['colors'] === array('--h5p-theme-background' => '#abc'), 'Blank omitted and explicit color preserved');
-check($ocean['density'] === 'medium' && $ocean['description'] === 'Original description', 'Create stores validated fields');
+check($ocean['density'] === 'large' && $ocean['description'] === 'Original description', 'Create stores validated fields');
 check(h5p_themer_default_theme_load()['data'] === NULL, 'Creation does not choose default');
 $duplicate_id = admin_post(admin_form('theme'), $input);
 check(isset($duplicate_id['errors']['id']), 'Creation rejects duplicate ID');
@@ -88,7 +88,7 @@ check(isset($result['errors']['id']) && H5PThemerMemoryStorage::$raw === $bytes,
 $source = h5p_themer_theme_load('ocean')['data'];
 $copy_bundle = admin_form('theme', 'duplicate', 'ocean');
 check($copy_bundle[1]['general']['id']['#default_value'] === '', 'Duplicate requires a new ID');
-check($copy_bundle[1]['general']['density']['#default_value'] === $source['density'], 'Duplicate copies density');
+check($copy_bundle[2]['h5p_themer']['original']['density'] === $source['density'], 'Duplicate copies density');
 $copy = $renamed; $copy['id'] = 'ocean_copy'; $copy['label'] = 'Ocean copy';
 $result = admin_post($copy_bundle, $copy);
 check(!$result['errors'] && h5p_themer_theme_load('ocean_copy')['data']['colors'] === $source['colors'], 'Duplicate copies palette');
@@ -188,7 +188,8 @@ $write_locked = FALSE;
 // Force a submit callback without validation: it must still reject bad data.
 form_clear_error();
 list($form_id, $form, $state) = admin_form('theme');
-$state['values'] = array_replace($input, array('id' => 'unchecked', 'density' => 'unsafe'));
+$state['values'] = array_replace($input, array('id' => 'unchecked'));
+$state['input']['density'] = 'unsafe';
 $bytes = H5PThemerMemoryStorage::$raw;
 form_execute_handlers('submit', $form, $state);
 check((bool) form_get_errors() && H5PThemerMemoryStorage::$raw === $bytes, 'Submit callback cannot bypass shared schema validation');

@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.4.2 development (unreleased)
+
+- Add an administrator Density checkbox with explicit PHP override precedence.
+- Make native Density learner-only; preserve original spacing before a choice.
+- Remove theme Density inputs/overview column and the learner reset button.
+- Retain legacy theme values, session preferences and the internal reset API.
+- Use version-3 Density metadata without saved-theme profiles.
+- Preserve exact qualification, visibility safeguards and historical release evidence.
+
+
 SPDX-License-Identifier: GPL-3.0-or-later.
 
 ## v0.4.1 — development, not published

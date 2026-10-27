@@ -1,6 +1,6 @@
 type = module
 name = H5P Themer
-version = 0.4.1
+version = 0.4.2
 description = "Manage reusable H5P themes with Core API 1.28. Optional native Density for qualified top-level TrueFalse 1.8.24 iframe players; disabled by default."
 package = H5P
 backdrop = 1.x

@@ -121,7 +121,7 @@ foreach (array('preview_legacy', 'preview_pinned') as $id) {
   check(preview_css($edit['saved_preview']) === preview_css(h5p_themer_preview(array('kind' => 'custom', 'id' => $id), 2, TRUE)), 'Edit uses the shared stored renderer: ' . $id);
   check($edit['general']['#collapsed'] === FALSE && $edit['colors']['main']['#collapsed'] === TRUE && $edit['general']['id']['#disabled'] === TRUE, 'Existing grouping and identity behavior preserved: ' . $id);
   check($edit['#attached']['js'] === array('modules/h5p_themer/js/h5p_themer.admin.js') && $edit['saved_preview']['#attached']['js'] === array('modules/h5p_themer/js/h5p_themer.preview.js'), 'Native picker and parent-only live-preview assets stay separately attached: ' . $id);
-  $input = array('id' => $id, 'label' => 'Unsaved name', 'description' => '', 'density' => 'large', 'colors' => array('--h5p-theme-main-cta-base' => '#123456'));
+  $input = array('id' => $id, 'label' => 'Unsaved name', 'description' => '', 'colors' => array('--h5p-theme-main-cta-base' => '#123456'));
   $result = admin_post($bundle, $input, TRUE, FALSE);
   check(!$result['errors'] && $result['form']['colors']['main']['--h5p-theme-main-cta-base']['#value'] === '#123456', 'Native form retains unsaved submitted color: ' . $id);
   check(preview_css($result['form']['saved_preview']) === preview_css($edit['saved_preview']), 'Submitted valid draft does not alter saved preview: ' . $id);

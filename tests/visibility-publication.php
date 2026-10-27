@@ -26,7 +26,7 @@ function publication_fixture($activate = TRUE) {
   $GLOBALS['runtime_cache_invalidations'] = 0;
 }
 function publication_input($id = 'new_theme') {
-  return array('id' => $id, 'label' => 'New theme', 'description' => '', 'density' => 'medium',
+  return array('id' => $id, 'label' => 'New theme', 'description' => '',
     'colors' => array('--h5p-theme-background' => '#336699'));
 }
 function publication_policy() {
