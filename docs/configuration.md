@@ -1,5 +1,9 @@
 # Configuration contract — schemas 1 and 2 and learner selection
 
+> v0.4.3 development adds exact MultiChoice 1.16.27 qualification alongside
+> TrueFalse 1.8.24. Local deployment and user-reported Firefox acceptance are complete; see the
+> [acceptance evidence and remaining limits](v0.4.3-readiness.md).
+
 > v0.4.2 development: [the current Density contract](v0.4.2-development.md) supersedes
 > the v0.4.0/v0.4.1 Density and activation descriptions retained below.
 > Visual themes now supply colors only. Native Density uses the Global settings

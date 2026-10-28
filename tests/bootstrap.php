@@ -89,6 +89,11 @@ function native_density_fixture($ids = array(6, 7, 8)) {
     H5PBackdrop::$contents[$id] = array('id' => $id, 'libraryId' => '17', 'libraryName' => 'H5P.TrueFalse', 'libraryMajorVersion' => '1', 'libraryMinorVersion' => '8', 'embedType' => 'div', 'libraryEmbedTypes' => 'iframe');
   }
 }
+/** Adds a trusted MultiChoice main player alongside the existing TrueFalse fixture. */
+function native_density_multichoice_fixture($id = 9) {
+  H5PBackdrop::$libraries['H5P.MultiChoice'] = array('libraryId' => '18', 'machineName' => 'H5P.MultiChoice', 'majorVersion' => '1', 'minorVersion' => '16', 'patchVersion' => '27');
+  H5PBackdrop::$contents[$id] = array('id' => $id, 'libraryId' => '18', 'libraryName' => 'H5P.MultiChoice', 'libraryMajorVersion' => '1', 'libraryMinorVersion' => '16', 'embedType' => 'div', 'libraryEmbedTypes' => 'iframe');
+}
 function module_exists($name) {
   return $name === 'h5p' && $GLOBALS['h5p_enabled'];
 }

@@ -1,6 +1,17 @@
 # Changelog
 
-## v0.4.2 development (unreleased)
+## v0.4.3 development (unreleased)
+
+- Add exact official H5P.MultiChoice 1.16.27 native Density qualification alongside
+  H5P.TrueFalse 1.8.24, preserving Core API 1.28 and top-level internal iframe scope.
+- Reuse the existing learner controls, version-3 transport, tab-session preference
+  and per-instance resize lifecycle. Other libraries remain excluded.
+- Add server and browser-controller regressions. The development build is deployed
+  on local backdrop2. The user reports all six MultiChoice Firefox acceptance tests
+  and mixed-player isolation passed. See [acceptance and limits](docs/v0.4.3-readiness.md)
+  and the [draft release notes](docs/release-notes-v0.4.3.md).
+
+## v0.4.2 — published baseline
 
 - Add an administrator Density checkbox with explicit PHP override precedence.
 - Make native Density learner-only; preserve original spacing before a choice.

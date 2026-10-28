@@ -29,7 +29,7 @@ function h5p_themer_native_density_enabled() {
 
 /** Internal qualification list, deliberately exact and not administratively editable. */
 function _h5p_themer_native_density_registry() {
-  return array('H5P.TrueFalse' => array(1, 8, 24));
+  return array('H5P.TrueFalse' => array(1, 8, 24), 'H5P.MultiChoice' => array(1, 16, 27));
 }
 
 function _h5p_themer_native_density_integer($value) {
@@ -69,10 +69,11 @@ function h5p_themer_native_density_player($node) {
     if (!is_array($content) || !isset($content['id'], $content['libraryName'], $content['libraryId'])) { return NULL; }
     if (!_h5p_themer_native_density_integer($content['id']) || (string) $content['id'] !== (string) $id) { return NULL; }
     $qualified = _h5p_themer_native_density_library($api, $content['libraryName']);
+    $registry = _h5p_themer_native_density_registry();
     if ($qualified === NULL || !_h5p_themer_native_density_integer($content['libraryId']) || (string) $content['libraryId'] !== $qualified['libraryId'] ||
         !isset($content['libraryMajorVersion'], $content['libraryMinorVersion']) ||
-        !_h5p_themer_native_density_integer($content['libraryMajorVersion']) || (int) $content['libraryMajorVersion'] !== 1 ||
-        !_h5p_themer_native_density_integer($content['libraryMinorVersion']) || (int) $content['libraryMinorVersion'] !== 8 ||
+        !_h5p_themer_native_density_integer($content['libraryMajorVersion']) || (int) $content['libraryMajorVersion'] !== $registry[$content['libraryName']][0] ||
+        !_h5p_themer_native_density_integer($content['libraryMinorVersion']) || (int) $content['libraryMinorVersion'] !== $registry[$content['libraryName']][1] ||
         !isset($content['embedType'], $content['libraryEmbedTypes']) ||
         !is_string($content['embedType']) || !is_string($content['libraryEmbedTypes']) ||
         H5PCore::determineEmbedType($content['embedType'], $content['libraryEmbedTypes']) !== 'iframe') { return NULL; }

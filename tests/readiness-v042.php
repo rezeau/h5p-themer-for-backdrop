@@ -55,4 +55,4 @@ finally {
   }
   rmdir($historical_temp);
 }
-check(parse_ini_file(dirname(__DIR__) . '/h5p_themer.info', FALSE, INI_SCANNER_RAW)['version'] === '0.4.2', 'Development module version is 0.4.2');
+check(parse_ini_file(dirname(__DIR__) . '/h5p_themer.info', FALSE, INI_SCANNER_RAW)['version'] === '0.4.3-dev', 'Current development module version is 0.4.3-dev');

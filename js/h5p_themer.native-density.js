@@ -1,9 +1,14 @@
-/** Opt-in, qualified top-level True/False iframes only. GPL-3.0-or-later. */
+/** Opt-in, exactly qualified top-level question iframes only. GPL-3.0-or-later. */
 (function (Backdrop, document, window) {
   'use strict';
   var options = null, records = [], suspended = new WeakSet(), listening = false, treeObserver = null, parentObserver = null, dispatcher = null;
   var attribute = 'data-h5p-themer-learner';
   var nativeClasses = ['h5p-small', 'h5p-medium', 'h5p-large'];
+  // Fixed adapters, never selectors or version policy supplied by content/transport.
+  var libraries = {
+    'H5P.TrueFalse 1.8': { machine: 'H5P.TrueFalse', major: '1', minor: '8', patch: 24, container: '.h5p-question.h5p-theme.h5p-true-false' },
+    'H5P.MultiChoice 1.16': { machine: 'H5P.MultiChoice', major: '1', minor: '16', patch: 27, container: '.h5p-question.h5p-theme.h5p-multichoice' }
+  };
   var excluded = 'form, .h5peditor, .h5p-editor, #h5p-editor, .h5p-themer-saved-preview, .h5p-themer-preview-sample';
   var own = function (object, key) { return Object.prototype.hasOwnProperty.call(object, key); };
   var override = null, preferenceInitialized = false, storageKey = null, storageUnavailable = false;
@@ -78,7 +83,7 @@
       Object.keys(data.players).forEach(function (id) {
         var p = data.players[id];
         if (p && typeof p.id === 'string' && /^[1-9][0-9]{0,9}$/.test(p.id) &&
-            id === 'cid-' + p.id && p.library === 'H5P.TrueFalse 1.8' && p.patch === 24) { players[id] = p; }
+            id === 'cid-' + p.id && own(libraries, p.library) && p.patch === libraries[p.library].patch) { players[id] = p; }
       });
       data.players = players;
       return data;
@@ -95,6 +100,7 @@
   function identity(id) {
     if (!window.H5P || !options || !own(options.players, 'cid-' + id)) { return null; }
     try {
+      var qualified = options.players['cid-' + id], adapter = libraries[qualified.library];
       var frames = document.querySelectorAll('iframe.h5p-iframe[data-content-id="' + id + '"]');
       if (frames.length !== 1) { return null; }
       var frame = frames[0], wrapper = frame.parentElement && frame.parentElement.matches('.h5p-iframe-wrapper') ? frame.parentElement : frame;
@@ -103,7 +109,7 @@
           (wrapper.parentElement && wrapper.parentElement.closest('.h5p-content, .h5p-iframe-wrapper')) ||
           frame.hasAttribute('srcdoc') || (frame.getAttribute('src') || 'about:blank') !== 'about:blank' ||
           !integration || !integration.contents || !own(integration.contents, 'cid-' + id) ||
-          integration.contents['cid-' + id].library !== 'H5P.TrueFalse 1.8') { return null; }
+          integration.contents['cid-' + id].library !== qualified.library) { return null; }
       var doc = frame.contentDocument, view = frame.contentWindow;
       if (!doc || !view || view !== doc.defaultView || view.frameElement !== frame || view.document !== doc ||
           frame.contentDocument !== doc || view.H5PIntegration !== integration || !doc.documentElement.matches('html.h5p-iframe')) { return null; }
@@ -115,7 +121,7 @@
       var root = roots[0], containers = Array.prototype.filter.call(root.children, function (node) { return node.matches('.h5p-container'); });
       if (root.parentNode !== doc.body || root.ownerDocument !== doc || root.getAttribute('data-content-id') !== id ||
           !root.matches('.h5p-initialized') || containers.length !== 1 ||
-          !containers[0].matches('.h5p-question.h5p-theme.h5p-true-false')) { return null; }
+          !containers[0].matches(adapter.container)) { return null; }
       var api = view.H5P;
       if (!api || !Array.isArray(api.instances) || typeof api.trigger !== 'function' ||
           typeof view.requestAnimationFrame !== 'function' || typeof view.cancelAnimationFrame !== 'function') { return null; }
@@ -124,9 +130,9 @@
       });
       if (matches.length !== 1) { return null; }
       var instance = matches[0], info = instance.libraryInfo;
-      if (!info || info.versionedName !== 'H5P.TrueFalse 1.8' ||
-          (info.machineName !== undefined && info.machineName !== 'H5P.TrueFalse') ||
-          String(info.majorVersion) !== '1' || String(info.minorVersion) !== '8' ||
+      if (!info || info.versionedName !== qualified.library ||
+          (info.machineName !== undefined && info.machineName !== adapter.machine) ||
+          String(info.majorVersion) !== adapter.major || String(info.minorVersion) !== adapter.minor ||
           typeof instance.isRoot !== 'function' || instance.isRoot() !== true || typeof instance.trigger !== 'function') { return null; }
       return { target: id, qualification: options.players['cid-' + id], frame: frame, doc: doc, view: view, root: root, container: containers[0], api: api, instance: instance };
     } catch (e) { return null; }

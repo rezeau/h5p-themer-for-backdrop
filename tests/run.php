@@ -261,6 +261,7 @@ require __DIR__ . '/config-protection.php';
 require __DIR__ . '/native-theme-import.php';
 require __DIR__ . '/native-density.php';
 require __DIR__ . '/density-v042.php';
+require __DIR__ . '/density-v043.php';
 require __DIR__ . '/readiness-v042.php';
 
 printf("PHP %s: %d passed, %d failed\n", PHP_VERSION, $passed, $failed);

@@ -59,7 +59,7 @@ function h5p_themer_overview($form = array(), &$form_state = NULL) {
   if (!$compatibility['compatible']) {
     $warnings[] = $compatibility['message'] . ' ' . t('Theme management is read-only until compatibility is restored.');
   }
-  $build['help'] = array('#markup' => '<p>' . t('Manage stored theme definitions and global colors for compatible H5P playback. Optional native Density is disabled by default and supports only qualified top-level H5P.TrueFalse 1.8.24 iframe players on H5P Core API 1.28. Other players retain their original Density.') . '</p>');
+  $build['help'] = array('#markup' => '<p>' . t('Manage stored theme definitions and global colors for compatible H5P playback. Optional native Density is disabled by default and supports only qualified top-level H5P.TrueFalse 1.8.24 and H5P.MultiChoice 1.16.27 iframe players on H5P Core API 1.28. Other players retain their original Density.') . '</p>');
   if ($warnings) {
     $build['warnings'] = array('#markup' => '<p role="alert">' . implode(' ', array_unique($warnings)) . '</p>');
   }
@@ -768,7 +768,7 @@ function h5p_themer_default_form($form, &$form_state) {
   $form['learner_selection_enabled'] = array('#type' => 'checkbox',
     '#title' => t('Allow learners to select their H5P theme'),
     '#default_value' => isset($settings['learner_selection_enabled']) && $settings['learner_selection_enabled'] === TRUE ? 1 : 0,
-    '#description' => t('Optional: when enabled, eligible H5P activities display one learner theme selector per page. With native Density enabled, ready qualified TrueFalse players also offer independent Small, Medium and Large Density buttons. Unsupported activities do not trigger a selector. Choices change styling without changing learner answers or scoring. Where browser session storage is available, theme and Density preferences independently follow the current tab session and are not saved to a learner account.'));
+    '#description' => t('Optional: when enabled, eligible H5P activities display one learner theme selector per page. With native Density enabled, ready qualified TrueFalse and MultiChoice players also offer independent Small, Medium and Large Density buttons. Unsupported activities do not trigger a selector. Choices change styling without changing learner answers or scoring. Where browser session storage is available, theme and Density preferences independently follow the current tab session and are not saved to a learner account.'));
   $form['native_density_enabled'] = array('#type' => 'checkbox', '#title' => t('Enable native Density controls'),
     '#default_value' => $density_control['overridden'] ? (int) $density_control['enabled'] : (!empty($settings['native_density_enabled']) ? 1 : 0),
     '#disabled' => $density_control['overridden'],
@@ -776,7 +776,7 @@ function h5p_themer_default_form($form, &$form_state) {
       ? ($density_control['valid']
         ? t('Overridden by the PHP h5p_themer_native_density_enabled site setting. The saved checkbox preference is unchanged. Remove that override to use this checkbox.')
         : t('The PHP h5p_themer_native_density_enabled override is invalid: Density is disabled. Use a boolean TRUE or FALSE, or remove the override to use this checkbox.'))
-      : t('Requires learner theme selection and ready top-level TrueFalse 1.8.24 internal iframe players on Core API 1.28. Before a learner choice, original activity spacing is preserved. Choices persist in this tab independently of visual themes.'));
+      : t('Requires learner theme selection and ready top-level TrueFalse 1.8.24 or MultiChoice 1.16.27 internal iframe players on Core API 1.28. Before a learner choice, original activity spacing is preserved. Choices persist in this tab independently of visual themes.'));
   $form['#validate'] = array('h5p_themer_default_form_validate');
   $form['#submit'] = array('h5p_themer_default_form_submit');
   return _h5p_themer_admin_actions($form, t('Save global settings'), _h5p_themer_admin_check_original('h5p_themer.settings', $settings));

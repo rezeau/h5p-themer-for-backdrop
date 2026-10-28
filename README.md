@@ -1,16 +1,17 @@
 # H5P Themer for Backdrop
 
 Manage reusable color themes for compatible H5P activities in Backdrop CMS,
-with optional native Density for a narrowly qualified player type.
+with optional native Density for exactly qualified player types.
 This independent project does not modify authored H5P content or H5P libraries.
 
-**H5P Themer v0.4.2 development**
-Published baseline: v0.4.1 (`02900d937e37319e4023f7016e0d03a1d2b8d5ca`).
-The development build was installed on the local backdrop2 acceptance site.
-Administrator Form API checks passed. The user reported Firefox acceptance for
-Density choices, theme independence, persistence, scoring/Retry, keyboard/focus,
-200% zoom and a 375 px viewport, with no console errors. This release is not published.
-See the [v0.4.2 release notes](docs/release-notes-v0.4.2.md) for verification limits.
+**H5P Themer v0.4.3 development — locally deployed, not published**
+Published baseline: v0.4.2 (`91415f7676b9091abd1bb2517fa28e5bd802d411`).
+This development build adds exact official MultiChoice 1.16.27 qualification beside
+TrueFalse 1.8.24. The user reports all six MultiChoice Firefox acceptance tests
+passed, plus mixed-player isolation with TrueFalse and Fill in the Blanks.
+See the [acceptance and readiness review](docs/v0.4.3-readiness.md),
+[draft release notes](docs/release-notes-v0.4.3.md) and
+[implementation and test plan](docs/v0.4.3-development.md).
 
 ## Main features
 
@@ -18,7 +19,7 @@ See the [v0.4.2 release notes](docs/release-notes-v0.4.2.md) for verification li
 - Learner theme picker with independent browser-tab session preferences.
 - Optional native Density controls: exactly Small, Medium and Large, beside the picker.
 - Before an explicit learner choice, each activity retains its original spacing.
-  Saved theme Density never supplies a playback profile in v0.4.2.
+  Saved theme Density never supplies a playback profile.
 - Saved and unsaved color previews. **Live Density Preview remains deferred.**
 
 H5P answers, scoring, feedback and Retry are not recreated by styling changes.
@@ -33,8 +34,8 @@ Themer does not save answers across navigation or reload.
 - Writable local public-file storage for generated theme styles.
 - Color changes require an H5P library that consumes the relevant theme variables.
 
-Native Density supports only **qualified top-level H5P.TrueFalse 1.8.24 iframe
-players**. Other types/versions, nested, DIV, external and ambiguous players retain
+Native Density supports only **qualified top-level H5P.TrueFalse 1.8.24 and
+H5P.MultiChoice 1.16.27 iframe players**. Other types/versions, nested, DIV, external and ambiguous players retain
 their original Density. Color theming and the learner dropdown have their own
 compatibility rules. Broader browser/accessibility support is not certified.
 
