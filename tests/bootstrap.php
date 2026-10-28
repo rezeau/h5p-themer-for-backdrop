@@ -94,6 +94,11 @@ function native_density_multichoice_fixture($id = 9) {
   H5PBackdrop::$libraries['H5P.MultiChoice'] = array('libraryId' => '18', 'machineName' => 'H5P.MultiChoice', 'majorVersion' => '1', 'minorVersion' => '16', 'patchVersion' => '27');
   H5PBackdrop::$contents[$id] = array('id' => $id, 'libraryId' => '18', 'libraryName' => 'H5P.MultiChoice', 'libraryMajorVersion' => '1', 'libraryMinorVersion' => '16', 'embedType' => 'div', 'libraryEmbedTypes' => 'iframe');
 }
+/** Adds the official Blanks iframe fixture without changing other library records. */
+function native_density_blanks_fixture($id = 10) {
+  H5PBackdrop::$libraries['H5P.Blanks'] = array('libraryId' => '19', 'machineName' => 'H5P.Blanks', 'majorVersion' => '1', 'minorVersion' => '14', 'patchVersion' => '37');
+  H5PBackdrop::$contents[$id] = array('id' => $id, 'libraryId' => '19', 'libraryName' => 'H5P.Blanks', 'libraryMajorVersion' => '1', 'libraryMinorVersion' => '14', 'embedType' => 'div', 'libraryEmbedTypes' => 'iframe');
+}
 function module_exists($name) {
   return $name === 'h5p' && $GLOBALS['h5p_enabled'];
 }

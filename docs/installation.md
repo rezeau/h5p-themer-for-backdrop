@@ -1,8 +1,9 @@
 # Installation and first use
 
-> v0.4.3 development adds exact MultiChoice 1.16.27 qualification alongside
-> TrueFalse 1.8.24. Local deployment and user-reported Firefox acceptance are complete; see the
-> [acceptance evidence and remaining limits](v0.4.3-readiness.md).
+> v0.4.3 Phase 4 additionally qualifies H5P.Blanks 1.14.37 beside TrueFalse 1.8.24
+> and MultiChoice 1.16.27. Blanks is locally deployed; all six Firefox tests are
+> user-reported passes; see [current acceptance and limits](v0.4.3-blanks.md). The earlier MultiChoice
+> [acceptance record](v0.4.3-readiness.md) remains separate.
 
 > v0.4.2 development: [the current Density contract](v0.4.2-development.md) supersedes
 > the v0.4.0/v0.4.1 Density and activation descriptions retained below.

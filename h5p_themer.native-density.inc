@@ -29,7 +29,7 @@ function h5p_themer_native_density_enabled() {
 
 /** Internal qualification list, deliberately exact and not administratively editable. */
 function _h5p_themer_native_density_registry() {
-  return array('H5P.TrueFalse' => array(1, 8, 24), 'H5P.MultiChoice' => array(1, 16, 27));
+  return array('H5P.TrueFalse' => array(1, 8, 24), 'H5P.MultiChoice' => array(1, 16, 27), 'H5P.Blanks' => array(1, 14, 37));
 }
 
 function _h5p_themer_native_density_integer($value) {

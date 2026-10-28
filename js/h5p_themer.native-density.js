@@ -7,7 +7,8 @@
   // Fixed adapters, never selectors or version policy supplied by content/transport.
   var libraries = {
     'H5P.TrueFalse 1.8': { machine: 'H5P.TrueFalse', major: '1', minor: '8', patch: 24, container: '.h5p-question.h5p-theme.h5p-true-false' },
-    'H5P.MultiChoice 1.16': { machine: 'H5P.MultiChoice', major: '1', minor: '16', patch: 27, container: '.h5p-question.h5p-theme.h5p-multichoice' }
+    'H5P.MultiChoice 1.16': { machine: 'H5P.MultiChoice', major: '1', minor: '16', patch: 27, container: '.h5p-question.h5p-theme.h5p-multichoice' },
+    'H5P.Blanks 1.14': { machine: 'H5P.Blanks', major: '1', minor: '14', patch: 37, container: '.h5p-question.h5p-theme.h5p-blanks' }
   };
   var excluded = 'form, .h5peditor, .h5p-editor, #h5p-editor, .h5p-themer-saved-preview, .h5p-themer-preview-sample';
   var own = function (object, key) { return Object.prototype.hasOwnProperty.call(object, key); };

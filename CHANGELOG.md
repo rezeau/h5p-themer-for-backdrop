@@ -2,11 +2,14 @@
 
 ## v0.4.3 development (unreleased)
 
+- Phase 4 adds exact official H5P.Blanks 1.14.37 qualification. The development
+  build is deployed on backdrop2; the user reports all six Blanks Firefox
+  acceptance tests passed. See [Blanks implementation, acceptance and limits](docs/v0.4.3-blanks.md).
 - Add exact official H5P.MultiChoice 1.16.27 native Density qualification alongside
   H5P.TrueFalse 1.8.24, preserving Core API 1.28 and top-level internal iframe scope.
 - Reuse the existing learner controls, version-3 transport, tab-session preference
   and per-instance resize lifecycle. Other libraries remain excluded.
-- Add server and browser-controller regressions. The development build is deployed
+- Add server and browser-controller regressions. The MultiChoice milestone is deployed
   on local backdrop2. The user reports all six MultiChoice Firefox acceptance tests
   and mixed-player isolation passed. See [acceptance and limits](docs/v0.4.3-readiness.md)
   and the [draft release notes](docs/release-notes-v0.4.3.md).

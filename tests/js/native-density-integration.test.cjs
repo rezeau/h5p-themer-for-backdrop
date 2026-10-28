@@ -21,6 +21,7 @@ function fixture({initialChoice=null, learner=true, original='large', library='H
   };
   const data=structuredClone(metadata);data.learner=learner;
   if(library==='H5P.MultiChoice')data.players['cid-7']={...data.players['cid-9'],id:'7'};
+  if(library==='H5P.Blanks')data.players['cid-7']={...data.players['cid-10'],id:'7'};
   if(!learner){f.metadata.enabled=false;}
   f.data.h5pThemerNativeDensity={players:data.players};Object.defineProperty(f.data.h5pThemerNativeDensity,'payload',{get:()=>JSON.stringify(data)});
   f.h.window.H5P.externalDispatcher={on(name,fn){if(!initialized.includes(fn))initialized.push(fn);},off(name,fn){const at=initialized.indexOf(fn);if(at!==-1)initialized.splice(at,1);}};
@@ -31,9 +32,10 @@ function fixture({initialChoice=null, learner=true, original='large', library='H
   }};}
   f.h.window.getComputedStyle=style;
   function initialize(p,profile=original,kind=library){
-    const multi=kind==='H5P.MultiChoice', minor=multi?16:8, versionedName=kind+' 1.'+minor;
+    const adapter={'H5P.TrueFalse':{minor:8,css:'h5p-true-false'},'H5P.MultiChoice':{minor:16,css:'h5p-multichoice'},'H5P.Blanks':{minor:14,css:'h5p-blanks'}}[kind];
+    const minor=adapter.minor, versionedName=kind+' 1.'+minor;
     p.content.className='h5p-content h5p-initialized preserve-color-class h5p-'+profile;
-    p.container.className='h5p-container h5p-question h5p-theme '+(multi?'h5p-multichoice':'h5p-true-false');
+    p.container.className='h5p-container h5p-question h5p-theme '+adapter.css;
     f.h.window.H5PIntegration.contents['cid-'+p.node.getAttribute('data-content-id')].library=versionedName;
     p.child.window.H5PIntegration=f.h.window.H5PIntegration;
     const view=p.child.window; view.getComputedStyle=style;
@@ -465,7 +467,7 @@ for(const nativeFirst of [false,true])test('whole-document detach/reattach resto
 });
 
 // v0.4.3 exact multi-library boundaries and shared-controller regressions.
-for(const library of ['H5P.TrueFalse','H5P.MultiChoice']) {
+for(const library of ['H5P.TrueFalse','H5P.MultiChoice','H5P.Blanks']) {
  for(const invalid of ['patch','patch-string','minor','machine','versioned','integration','container','nested','external','duplicate','unsupported'])test(library+' rejects '+invalid,()=>{
   const f=fixture({library,initialChoice:'small'}),p=f.player();
   if(invalid==='patch')f.data.players['cid-7'].patch++;
@@ -473,7 +475,7 @@ for(const library of ['H5P.TrueFalse','H5P.MultiChoice']) {
   if(invalid==='minor')p.instance.libraryInfo.minorVersion++;
   if(invalid==='machine')p.instance.libraryInfo.machineName=library==='H5P.TrueFalse'?'H5P.MultiChoice':'H5P.TrueFalse';
   if(invalid==='versioned')p.instance.libraryInfo.versionedName='H5P.MultiChoice 1.15';
-  if(invalid==='integration')f.h.window.H5PIntegration.contents['cid-7'].library='H5P.Blanks 1.14';
+  if(invalid==='integration')f.h.window.H5PIntegration.contents['cid-7'].library='H5P.MarkTheWords 1.11';
   if(invalid==='container')p.container.className='h5p-container h5p-question h5p-theme '+(library==='H5P.TrueFalse'?'h5p-multichoice':'h5p-true-false');
   if(invalid==='nested'){const outer=f.element('div',{class:'h5p-content'});outer.appendChild(p.root);}
   if(invalid==='external')p.node.setAttribute('src','http://external.invalid/');
@@ -505,12 +507,12 @@ for(const library of ['H5P.TrueFalse','H5P.MultiChoice']) {
   f.api.setOverride('small');f.api.setOverride('medium');f.flush();assert.equal(f.calls.length,1);assert.equal(f.calls[0].owner,p.instance);
  });
 }
-test('TrueFalse, MultiChoice and unsupported siblings keep qualification isolated',()=>{
- const f=fixture(),tf=f.player(),mc=f.player('9',{library:'H5P.MultiChoice'}),other=f.player('10');
- f.data.players['cid-10']={id:'10',library:'H5P.Blanks 1.14',patch:37};f.h.window.H5PIntegration.contents['cid-10'].library='H5P.Blanks 1.14';
- f.attach();assert.equal(f.api.getSnapshot().readyPlayers,2);f.api.setOverride('small');f.flush();
- assert.deepEqual(f.density(tf),['h5p-small']);assert.deepEqual(f.density(mc),['h5p-small']);assert.deepEqual(f.density(other),['h5p-large']);
- assert.deepEqual(f.calls.map(c=>c.owner),[tf.instance,mc.instance]);
+test('TrueFalse, MultiChoice, Blanks and unsupported siblings keep qualification isolated',()=>{
+ const f=fixture(),tf=f.player(),mc=f.player('9',{library:'H5P.MultiChoice'}),blanks=f.player('10',{library:'H5P.Blanks'}),other=f.player('11');
+ f.data.players['cid-11']={id:'11',library:'H5P.MarkTheWords 1.11',patch:24};f.h.window.H5PIntegration.contents['cid-11'].library='H5P.MarkTheWords 1.11';
+ f.attach();assert.equal(f.api.getSnapshot().readyPlayers,3);f.api.setOverride('small');f.flush();
+ assert.deepEqual(f.density(tf),['h5p-small']);assert.deepEqual(f.density(mc),['h5p-small']);assert.deepEqual(f.density(blanks),['h5p-small']);assert.deepEqual(f.density(other),['h5p-large']);
+ assert.deepEqual(f.calls.map(c=>c.owner),[tf.instance,mc.instance,blanks.instance]);
 });
 test('duplicate MultiChoice embeddings do not disable a distinct TrueFalse player',()=>{
  const f=fixture({initialChoice:'small'}),tf=f.player(),a=f.player('9',{library:'H5P.MultiChoice'}),b=f.player('9',{library:'H5P.MultiChoice'});f.attach();f.flush();
@@ -531,6 +533,31 @@ test('MultiChoice resize failure restores only its own original',()=>{
  const f=fixture({initialChoice:'small'}),tf=f.player(),mc=f.player('9',{library:'H5P.MultiChoice'});let attempts=0;
  mc.child.window.H5P.trigger=()=>{attempts++;throw Error('Resize failure');};f.attach();f.flush();
  assert.deepEqual(f.density(tf),['h5p-small']);assert.deepEqual(f.density(mc),['h5p-large']);f.nativeAttach();f.api.setOverride('medium');f.flush();assert.equal(attempts,1);
+});
+
+test('Blanks Density leaves text, caret, focused input, feedback and Retry state unchanged',()=>{
+ const f=fixture({library:'H5P.Blanks'}),p=f.player(),input=p.child.doc.createElement('input');p.container.appendChild(input);
+ input.value='Norway';input.selectionStart=2;input.selectionEnd=4;p.child.doc.activeElement=input;
+ let inputEvents=0;for(const event of ['input','change','keydown','blur'])input.addEventListener(event,()=>inputEvents++);
+ p.instance.answers=['Norway'];p.instance.done=true;p.instance.retryVisible=true;
+ const forbidden=[];for(const method of ['resetTask','getScore','showSolutions','setAnswer','checkAnswer'])p.instance[method]=()=>{forbidden.push(method);};
+ f.attach();for(const value of ['small','medium','large']){f.api.setOverride(value);f.choose('builtin:mint');f.flush();assert.deepEqual(f.density(p),['h5p-'+value]);}
+ assert.equal(input.value,'Norway');assert.equal(input.selectionStart,2);assert.equal(input.selectionEnd,4);assert.equal(p.child.doc.activeElement,input);assert.equal(inputEvents,0);
+ assert.deepEqual(p.instance.answers,['Norway']);assert.equal(p.instance.score,1);assert.equal(p.instance.feedback,'keep');assert.equal(p.instance.done,true);assert.equal(p.instance.retryVisible,true);assert.deepEqual(forbidden,[]);
+});
+test('Blanks shares the established tab-session preference with both previous libraries',()=>{
+ const session=sessionStorageFixture(),a=fixture({session});a.player();a.attach();a.api.setOverride('small');
+ const b=fixture({library:'H5P.Blanks',session}),p=b.player();b.attach();b.flush();assert.deepEqual(b.density(p),['h5p-small']);b.api.setOverride('medium');
+ const c=fixture({library:'H5P.MultiChoice',session}),mc=c.player();c.attach();c.flush();assert.deepEqual(c.density(mc),['h5p-medium']);
+});
+for(const method of ['access','getItem','setItem','removeItem'])test('Blanks tolerates storage '+method+' failure',()=>{
+ const f=fixture({library:'H5P.Blanks',session:sessionStorageFixture({}, {[method]:true})}),p=f.player();f.attach();
+ assert.equal(f.api.setOverride('small'),true);f.flush();assert.deepEqual(f.density(p),['h5p-small']);assert.equal(f.api.resetOverride(),true);f.flush();assert.deepEqual(f.density(p),['h5p-large']);
+});
+test('Blanks resize failure restores its original and preserves MultiChoice sibling',()=>{
+ const f=fixture({initialChoice:'small'}),a=f.player('10',{library:'H5P.Blanks'}),b=f.player('9',{library:'H5P.MultiChoice'});let attempts=0;
+ a.child.window.H5P.trigger=()=>{attempts++;throw Error('Resize failure');};f.attach();f.flush();assert.deepEqual(f.density(a),['h5p-large']);assert.deepEqual(f.density(b),['h5p-small']);
+ f.nativeAttach();f.api.setOverride('medium');f.flush();assert.equal(attempts,1);assert.deepEqual(f.density(b),['h5p-medium']);
 });
 
 // v0.4.2 transport and original-spacing regressions.

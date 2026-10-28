@@ -6,10 +6,14 @@ This independent project does not modify authored H5P content or H5P libraries.
 
 **H5P Themer v0.4.3 development — locally deployed, not published**
 Published baseline: v0.4.2 (`91415f7676b9091abd1bb2517fa28e5bd802d411`).
-This development build adds exact official MultiChoice 1.16.27 qualification beside
-TrueFalse 1.8.24. The user reports all six MultiChoice Firefox acceptance tests
-passed, plus mixed-player isolation with TrueFalse and Fill in the Blanks.
-See the [acceptance and readiness review](docs/v0.4.3-readiness.md),
+The accepted local MultiChoice milestone is `3427d15dbc12c50d84fbc9e1757343168151eff7`.
+This milestone additionally qualifies official **H5P.Blanks 1.14.37** (Fill in
+the Blanks). It is deployed on backdrop2. The user reports all six Blanks Firefox
+tests passed, including sizing/wrapping, scoring/Retry/solutions, both custom
+themes, persistence, keyboard/focus, zoom/responsiveness and three-player behavior.
+These observations are recorded separately from automated verification.
+See the [Blanks implementation and test plan](docs/v0.4.3-blanks.md),
+[MultiChoice milestone acceptance review](docs/v0.4.3-readiness.md),
 [draft release notes](docs/release-notes-v0.4.3.md) and
 [implementation and test plan](docs/v0.4.3-development.md).
 
@@ -34,8 +38,9 @@ Themer does not save answers across navigation or reload.
 - Writable local public-file storage for generated theme styles.
 - Color changes require an H5P library that consumes the relevant theme variables.
 
-Native Density supports only **qualified top-level H5P.TrueFalse 1.8.24 and
-H5P.MultiChoice 1.16.27 iframe players**. Other types/versions, nested, DIV, external and ambiguous players retain
+Native Density supports only **qualified top-level H5P.TrueFalse 1.8.24,
+H5P.MultiChoice 1.16.27 and H5P.Blanks 1.14.37 iframe players** in this working tree.
+Other types/versions, nested, DIV, external and ambiguous players retain
 their original Density. Color theming and the learner dropdown have their own
 compatibility rules. Broader browser/accessibility support is not certified.
 

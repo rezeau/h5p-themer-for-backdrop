@@ -1,15 +1,19 @@
 # H5P Themer v0.4.3 — draft release notes
 
-Development build: 0.4.3-dev. Not committed, packaged or published as v0.4.3.
+Development build: 0.4.3-dev. The MultiChoice and Blanks milestones are locally
+validated; the Blanks build is deployed on backdrop2 and user-reported Firefox
+acceptance passed. This remains a development milestone rather than a published release.
+No v0.4.3 release is packaged or published.
 Published baseline: v0.4.2, commit `91415f7676b9091abd1bb2517fa28e5bd802d411`.
 
 ## Changes from v0.4.2
 
-Native learner-controlled Density now also qualifies official H5P.MultiChoice
-1.16.27, alongside H5P.TrueFalse 1.8.24. Both require H5P Core API exactly 1.28
+Native learner-controlled Density in this working tree qualifies official
+H5P.MultiChoice 1.16.27 and H5P.Blanks 1.14.37, alongside H5P.TrueFalse 1.8.24.
+All three require H5P Core API exactly 1.28
 and uniquely owned, ready, top-level internal iframe playback. Other library
 versions, DIV/external/nested players and ambiguous or duplicate content embeddings
-remain excluded. Fill in the Blanks is not newly supported for Density.
+remain excluded. Fill in the Blanks uses machine name H5P.Blanks, not H5P.FillInTheBlanks.
 
 The existing Small, Medium and Large controls, color theme selection, tab-session
 preference and version-3 transport remain unchanged. Before an explicit learner
@@ -26,17 +30,26 @@ Preview is not implemented.
 
 ## Verification and limitations
 
-Automated regression: 612 JavaScript tests, plus 4,006 PHP assertions on each of
-PHP 7.4.33, 8.3.18 and 8.4.22. Includes configuration/import/visibility, v0.4.2
-behavior, saved/live color previews and preserved historical readiness checks.
-See the [final review](v0.4.3-readiness.md) for rerun evidence and provenance.
+The current three-library implementation passes 646 JavaScript tests and 4,038
+PHP assertions on each of PHP 7.4.33, 8.3.18 and 8.4.22. This includes controller,
+exact-version and native input-sizing/keyboard tests; see the
+[Blanks verification record](v0.4.3-blanks.md) for results and limitations.
+Complete suites include configuration/import/visibility, v0.4.2 behavior,
+saved/live color previews and preserved historical readiness checks.
 
 The user reports six MultiChoice Firefox acceptance passes: Density choices;
 scoring/feedback/Retry; theme switching/session persistence; keyboard/focus;
 200% zoom and 375 px viewport; and no console errors. The user also reports that
-the mixed-player page changes TrueFalse and MultiChoice Density, leaves Blanks
-Density unaffected, and supports visual themes on all three without unexpected
-behavior. These are user observations, not agent browser automation.
+at the earlier MultiChoice milestone the mixed-player page changed TrueFalse and MultiChoice Density, left Blanks
+Density unaffected, and supported visual themes on all three without unexpected
+behavior. Those observations describe the earlier MultiChoice milestone.
+
+For the subsequent Blanks build, the user reports all six Firefox tests passed:
+input widths/wrapping/layout at all Density settings; scoring/feedback/Retry/Show
+Solution; Colorblind Friendly and High Contrast Light theme switching, persistence,
+reload/navigation; Tab/Shift+Tab, caret/focus, answer preservation/native blur;
+200% zoom and 375 px viewport; and correct Density response from all three players
+with no console errors. These are user observations, not agent browser automation.
 
 Other browsers, screen readers, forced colors and additional library versions
 are not qualified by this report. See the final review for additional untested
@@ -45,11 +58,13 @@ checks do not authenticate arbitrarily modified library bytes.
 
 ## Deployment and rollback
 
-The development build is already installed on local backdrop2. No installation
-changes are part of the final review. No schema migration, new configuration key,
+The accepted Blanks build is installed on local backdrop2. No installation changes
+are part of the final review/local commit. No schema migration, new configuration key,
 library update or authored H5P content change is required by this implementation.
 The deployment's full-row H5P fingerprint discrepancy was resolved as population
 of `filtered` cache fields for content IDs 8 and 9; authored JSON was unchanged.
+The subsequent Blanks deployment used consistent before/after row-level snapshots
+and verified unchanged authored/derived H5P data, configuration and custom themes.
 
 For a separately authorized deployment, back up matching module/configuration and
 database data, deploy coherent PHP/JS files, refresh relevant module/output/JS
