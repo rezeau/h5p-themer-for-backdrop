@@ -2,6 +2,12 @@
 
 ## v0.4.3 development (unreleased)
 
+- Selector simplification removes Site default/Core from selectable
+  rows while retaining their internal states and truthful placeholders. Add the
+  accessible theme-only Reset icon. No catalog, configuration, token, persistence
+  key or Density changes. The toolbar collision and duplicate visible placeholder
+  are corrected; all six Firefox acceptance tests are user-reported passes.
+  See [selector acceptance and limitations](docs/v0.4.3-selector.md).
 - Phase 4 adds exact official H5P.Blanks 1.14.37 qualification. The development
   build is deployed on backdrop2; the user reports all six Blanks Firefox
   acceptance tests passed. See [Blanks implementation, acceptance and limits](docs/v0.4.3-blanks.md).

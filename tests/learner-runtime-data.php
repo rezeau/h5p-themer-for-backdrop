@@ -6,6 +6,11 @@ $mapping = h5p_autoload_info();
 require_once $h5p_root . '/' . $mapping['H5PCore'];
 require __DIR__ . '/learner-fixture.php';
 learner_switch_fixture();
+// Additional site-free effective-default contracts for presentation/Reset tests.
+$default_fixture = getenv('H5P_THEMER_DEFAULT_FIXTURE');
+if ($default_fixture === 'core') { config('h5p_themer.settings')->set('default_theme', NULL)->save(); }
+elseif ($default_fixture === 'dark') { config('h5p_themer.settings')->set('default_theme', array('kind' => 'builtin', 'id' => 'dark', 'version' => 'moodle-478fed30d2a4'))->save(); }
+elseif ($default_fixture === 'custom') { config('h5p_themer.settings')->set('default_theme', array('kind' => 'custom', 'id' => 'checkpoint_test'))->save(); }
 // Site-free policy contracts consumed by focused JS tests only.
 $scenario = getenv('H5P_THEMER_VISIBILITY_FIXTURE');
 if ($scenario === 'three' || $scenario === 'custom') {

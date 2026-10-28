@@ -4,7 +4,7 @@ Manage reusable color themes for compatible H5P activities in Backdrop CMS,
 with optional native Density for exactly qualified player types.
 This independent project does not modify authored H5P content or H5P libraries.
 
-**H5P Themer v0.4.3 development — locally deployed, not published**
+**H5P Themer v0.4.3 development — locally deployed and accepted, not published**
 Published baseline: v0.4.2 (`91415f7676b9091abd1bb2517fa28e5bd802d411`).
 The accepted local MultiChoice milestone is `3427d15dbc12c50d84fbc9e1757343168151eff7`.
 This milestone additionally qualifies official **H5P.Blanks 1.14.37** (Fill in
@@ -12,6 +12,11 @@ the Blanks). It is deployed on backdrop2. The user reports all six Blanks Firefo
 tests passed, including sizing/wrapping, scoring/Retry/solutions, both custom
 themes, persistence, keyboard/focus, zoom/responsiveness and three-player behavior.
 These observations are recorded separately from automated verification.
+The validated selector simplification shows only permitted colour
+themes, preserves special states with truthful placeholders, and adds a theme-only
+Reset icon. The user reports all six Firefox acceptance tests passed, including
+acceptance of the two UI corrections. See the separate
+[implementation and acceptance record](docs/v0.4.3-selector.md).
 See the [Blanks implementation and test plan](docs/v0.4.3-blanks.md),
 [MultiChoice milestone acceptance review](docs/v0.4.3-readiness.md),
 [draft release notes](docs/release-notes-v0.4.3.md) and
@@ -20,7 +25,8 @@ See the [Blanks implementation and test plan](docs/v0.4.3-blanks.md),
 ## Main features
 
 - Five built-in palettes, editable custom colors, Global Default and learner visibility.
-- Learner theme picker with independent browser-tab session preferences.
+- Learner colour-theme picker with independent browser-tab session preferences;
+  **Use site default theme** resets only the theme preference, leaving Density unchanged.
 - Optional native Density controls: exactly Small, Medium and Large, beside the picker.
 - Before an explicit learner choice, each activity retains its original spacing.
   Saved theme Density never supplies a playback profile.

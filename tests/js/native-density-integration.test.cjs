@@ -560,6 +560,23 @@ test('Blanks resize failure restores its original and preserves MultiChoice sibl
  f.nativeAttach();f.api.setOverride('medium');f.flush();assert.equal(attempts,1);assert.deepEqual(f.density(b),['h5p-medium']);
 });
 
+for(const library of ['H5P.TrueFalse','H5P.MultiChoice','H5P.Blanks'])test(library+' theme Reset preserves Density and mixed-player state',()=>{
+ const session=sessionStorageFixture({[densityKey]:'small','h5p_themer:learner-theme:v1:/':'core',unrelated:'keep'}),f=fixture({library,session}),p=f.player();
+ f.attach();f.flush();const before=JSON.stringify({answers:p.instance.answers,feedback:p.instance.feedback,score:p.instance.score});
+ const button=f.panel().querySelector('.h5p-themer-theme-reset');assert.equal(button.disabled,false);button.dispatchEvent(new f.h.Event('click'));f.notify();f.flush();
+ assert.equal(f.select().value,'site_default');assert.equal(f.doc.documentElement.getAttribute(attr),null);assert.equal(p.child.doc.documentElement.getAttribute(attr),null);assert.equal(session.values.has('h5p_themer:learner-theme:v1:/'),false);
+ assert.equal(session.values.get(densityKey),'small');assert.equal(f.api.getSnapshot().override,'small');assert.deepEqual(f.density(p),['h5p-small']);assert.equal(JSON.stringify({answers:p.instance.answers,feedback:p.instance.feedback,score:p.instance.score}),before);
+});
+
+test('theme Reset preserves Density isolation across three qualified players and an unsupported sibling',()=>{
+ const f=fixture(),tf=f.player(),mc=f.player('9',{library:'H5P.MultiChoice'}),blanks=f.player('10',{library:'H5P.Blanks'}),other=f.player('11');
+ f.data.players['cid-11']={id:'11',library:'H5P.MarkTheWords 1.11',patch:24};f.h.window.H5PIntegration.contents['cid-11'].library='H5P.MarkTheWords 1.11';
+ f.attach();f.api.setOverride('medium');f.choose('builtin:mint');f.flush();const before=[tf,mc,blanks,other].map(p=>JSON.stringify(p.instance.answers));
+ f.panel().querySelector('.h5p-themer-theme-reset').dispatchEvent(new f.h.Event('click'));f.notify();f.flush();
+ for(const p of [tf,mc,blanks]){assert.deepEqual(f.density(p),['h5p-medium']);assert.equal(p.child.doc.documentElement.getAttribute(attr),null);}assert.deepEqual(f.density(other),['h5p-large']);
+ assert.equal(f.api.getSnapshot().readyPlayers,3);assert.equal(f.api.getSnapshot().override,'medium');assert.deepEqual([tf,mc,blanks,other].map(p=>JSON.stringify(p.instance.answers)),before);
+});
+
 // v0.4.2 transport and original-spacing regressions.
 for(const version of [1,2,4])test('incompatible Density transport '+version+' fails closed',()=>{
  const f=fixture({session:sessionStorageFixture({[densityKey]:'small'})}),p=f.player();f.data.version=version;f.attach();f.flush();

@@ -21,7 +21,9 @@ try {
   foreach (array('h5p_themer.presets.inc', 'h5p_themer.runtime.inc', 'h5p_themer.import.inc',
     'h5p_themer.visibility.inc', 'h5p_themer.visibility-activation.inc', 'h5p_themer.visibility-publication.inc',
     'h5p_themer.visibility-admin.inc', 'h5p_themer.learner-runtime.inc',
-    'js/h5p_themer.learner-picker.js', 'css/h5p_themer.learner-picker.css',
+    // Picker JS now has explicitly approved presentation changes, covered by
+    // current behavior suites; pinned historical sources still run unchanged.
+    'css/h5p_themer.learner-picker.css',
     'tests/readiness.php', 'tests/readiness-v041.php', 'tests/fixtures/v040-readiness-baseline.json',
     'tests/fixtures/v041-readiness.json', 'docs/release-notes-v0.4.0.md', 'docs/release-notes-v0.4.1.md',
     'docs/v0.4.0-readiness.md', 'docs/v0.4.1-readiness.md') as $protected_path) {
@@ -56,3 +58,7 @@ finally {
   rmdir($historical_temp);
 }
 check(parse_ini_file(dirname(__DIR__) . '/h5p_themer.info', FALSE, INI_SCANNER_RAW)['version'] === '0.4.3-dev', 'Current development module version is 0.4.3-dev');
+$selector_contract = h5p_themer_learner_bundle();
+check(!$selector_contract['errors'] && $selector_contract['data']['options'][0]['value'] === 'site_default' &&
+  isset($selector_contract['data']['keys']['core'], $selector_contract['data']['keys']['builtin:daylight']),
+  'Colour-only presentation preserves the full internal special-state metadata contract');

@@ -4,9 +4,23 @@ Development build: 0.4.3-dev. The MultiChoice and Blanks milestones are locally
 validated; the Blanks build is deployed on backdrop2 and user-reported Firefox
 acceptance passed. This remains a development milestone rather than a published release.
 No v0.4.3 release is packaged or published.
+The [learner selector simplification](v0.4.3-selector.md), including the toolbar
+collision and duplicate-placeholder corrections, is deployed on backdrop2.
+The user reports all six Firefox acceptance tests passed. This observation is
+recorded separately from automated verification; no agent browser acceptance occurred.
 Published baseline: v0.4.2, commit `91415f7676b9091abd1bb2517fa28e5bd802d411`.
 
 ## Changes from v0.4.2
+
+The learner dropdown presents only permitted colour themes. Site default and Core
+remain internal states represented by non-selectable **Using site settings** and
+**Using original H5P colours** placeholders. A **Use site default theme** Reset
+icon restores administrator settings and clears only the theme preference;
+Density and its persistence are unchanged. Previously saved Core preferences
+remain valid. Enhanced and native fallback presentations use the same projection.
+The follow-up UI correction gives Density a separate desktop grid track and keeps
+Reset feedback visually clipped, without repeating either placeholder below the
+dropdown. Visible fallback warnings and polite announcements are preserved.
 
 Native learner-controlled Density in this working tree qualifies official
 H5P.MultiChoice 1.16.27 and H5P.Blanks 1.14.37, alongside H5P.TrueFalse 1.8.24.
@@ -15,8 +29,8 @@ and uniquely owned, ready, top-level internal iframe playback. Other library
 versions, DIV/external/nested players and ambiguous or duplicate content embeddings
 remain excluded. Fill in the Blanks uses machine name H5P.Blanks, not H5P.FillInTheBlanks.
 
-The existing Small, Medium and Large controls, color theme selection, tab-session
-preference and version-3 transport remain unchanged. Before an explicit learner
+The existing Small, Medium and Large controls, internal theme selection, tab-session
+preference keys and version-3 Density transport remain unchanged. Before an explicit learner
 choice, original activity spacing is preserved. Visual theme changes do not supply
 or reset Density. Multiple distinct qualified players share the learner preference;
 unsupported players retain their own spacing while retaining separate color support.
@@ -30,10 +44,12 @@ Preview is not implemented.
 
 ## Verification and limitations
 
-The current three-library implementation passes 646 JavaScript tests and 4,038
+The current three-library implementation with selector UI corrections passes 699 JavaScript tests and 4,038
 PHP assertions on each of PHP 7.4.33, 8.3.18 and 8.4.22. This includes controller,
 exact-version and native input-sizing/keyboard tests; see the
 [Blanks verification record](v0.4.3-blanks.md) for results and limitations.
+The [selector verification record](v0.4.3-selector.md) separately covers the new
+presentation and Reset tests, deployment checks and user-reported Firefox acceptance.
 Complete suites include configuration/import/visibility, v0.4.2 behavior,
 saved/live color previews and preserved historical readiness checks.
 

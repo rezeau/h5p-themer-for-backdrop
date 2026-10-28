@@ -1,7 +1,7 @@
 /** Learner UI only; no activity colors or CSS variables. GPL-2.0-or-later. */
 .h5p-themer-learner-controls {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   column-gap: .5em;
   box-sizing: border-box;
   width: 100%;
@@ -22,8 +22,8 @@
   grid-row: 2;
   min-width: 0;
 }
-.h5p-themer-learner-controls .h5p-themer-learner-help {
-  grid-column: 2;
+.h5p-themer-learner-controls .h5p-themer-learner-help,
+.h5p-themer-learner-controls .h5p-themer-theme-reset {
   grid-row: 2;
   align-self: center;
   box-sizing: border-box;
@@ -40,7 +40,11 @@
   line-height: 1;
   cursor: pointer;
 }
-.h5p-themer-learner-controls .h5p-themer-learner-help:focus {
+.h5p-themer-learner-controls .h5p-themer-learner-help { grid-column: 3; }
+.h5p-themer-learner-controls .h5p-themer-theme-reset { grid-column: 2; }
+.h5p-themer-learner-controls .h5p-themer-theme-reset:disabled { opacity: .55; cursor: default; }
+.h5p-themer-learner-controls .h5p-themer-learner-help:focus,
+.h5p-themer-learner-controls .h5p-themer-theme-reset:focus {
   outline: 2px solid Highlight;
   outline-offset: 2px;
 }
@@ -103,6 +107,7 @@
   outline-offset: 3px;
 }
 /* Keep mode/scope descriptions and live announcements available to assistive technology. */
+.h5p-themer-learner-controls .h5p-themer-theme-announcement,
 .h5p-themer-learner-controls .h5p-themer-density-mode,
 .h5p-themer-learner-controls .h5p-themer-density-note,
 .h5p-themer-learner-controls .h5p-themer-density-status {
@@ -116,11 +121,12 @@
   white-space: nowrap;
 }
 @media (min-width: 48em) {
-  .h5p-themer-learner-controls[data-density-visible] { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
-  .h5p-themer-learner-controls[data-density-visible] label { grid-column: 1 / 3; }
+  /* Theme, Reset and help occupy separate tracks; Density starts after all three. */
+  .h5p-themer-learner-controls[data-density-visible] { grid-template-columns: minmax(0, 1fr) auto auto minmax(0, 1fr); }
+  .h5p-themer-learner-controls[data-density-visible] label { grid-column: 1 / 4; }
   .h5p-themer-learner-controls .h5p-themer-density {
     display: grid;
-    grid-column: 3;
+    grid-column: 4;
     grid-row: 1 / span 2;
     grid-template-rows: subgrid;
     margin-top: 0;

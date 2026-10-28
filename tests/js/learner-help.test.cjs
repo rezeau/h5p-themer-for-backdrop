@@ -64,7 +64,7 @@ function fixture({enhanced = false, denied = false, initial = null} = {}) {
   }
   const attach = () => Backdrop.behaviors.h5pThemerLearner.attach(doc, {basePath: '/', h5pThemerLearner: {payload: JSON.stringify(metadata)}});
   const panel = () => doc.querySelector('.h5p-themer-learner-controls');
-  const button = () => panel().querySelector('button');
+  const button = () => panel().querySelector('.h5p-themer-learner-help');
   const help = () => doc.getElementById(button().getAttribute('aria-controls'));
   const select = () => panel().querySelector('select');
   const click = () => button().dispatchEvent({type: 'click', detail: 0});
@@ -115,8 +115,8 @@ test('enhanced selection still commits through the canonical select with help av
   const f = fixture({enhanced: true}); f.click();
   const trigger = f.panel().querySelector('[role="combobox"]'); trigger.dispatchEvent({type: 'click'});
   const list = f.panel().querySelector('[role="listbox"]');
-  list.dispatchEvent({type: 'click', target: list.children[1]});
-  assert.equal(f.select().value, 'core'); assert.equal(f.values.get(f.key), 'core');
+  list.dispatchEvent({type: 'click', target: list.children[0]});
+  assert.equal(f.select().value, 'builtin:daylight'); assert.equal(f.values.get(f.key), 'builtin:daylight');
   assert.equal(f.button().getAttribute('aria-expanded'), 'true');
 });
 

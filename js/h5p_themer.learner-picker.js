@@ -17,7 +17,7 @@
   function create(select, data) {
     var box = select.parentNode, label = box.querySelector('label');
     var wrap = document.createElement('div'), trigger = document.createElement('div'), list = document.createElement('div');
-    var rows = [], candidate = 0, opened = false, buffer = '', typedAt = 0, fingerprint = '', lastValue = null;
+    var rows = [], candidate = 0, explored = false, opened = false, buffer = '', typedAt = 0, fingerprint = '', lastValue = null;
     var oldLabelId = label.id, oldFor = label.getAttribute('for');
     var oldHidden = select.getAttribute('hidden'), oldAria = select.getAttribute('aria-hidden'), oldTab = select.getAttribute('tabindex');
     var listeners = [], openListeners = [], destroyed = false;
@@ -44,7 +44,7 @@
     }
     function selectedIndex() {
       for (var i = 0; i < data.options.length; i++) { if (data.options[i].value === select.value) { return i; } }
-      return 0;
+      return -1;
     }
     function paint() {
       rows.forEach(function (row, index) {
@@ -87,7 +87,7 @@
     function open() {
       if (opened) { return; }
       try {
-        candidate = selectedIndex(); buffer = ''; list.showPopover(); opened = true;
+        candidate = Math.max(0, selectedIndex()); explored = false; buffer = ''; list.showPopover(); opened = true;
         trigger.setAttribute('aria-expanded', 'true'); place(); paint();
         listen(document, 'pointerdown', function (event) { if (!contains(wrap, event.target)) { close(); } }, true, openListeners);
         listen(document, 'focusin', function (event) { if (!contains(wrap, event.target)) { close(); } }, true, openListeners);
@@ -102,17 +102,23 @@
     function keydown(event) {
       if (event.altKey || event.ctrlKey || event.metaKey || event.isComposing) { return; }
       var key = event.key;
-      if (key === 'Tab') { if (opened) { commit(); } return; }
+      if (key === 'Tab') {
+        if (opened) { if (selectedIndex() === -1 && !explored) { close(); } else { commit(); } }
+        return;
+      }
       if (key === 'Escape') { if (opened) { event.preventDefault(); close(); } return; }
       if (key === 'Enter' || key === ' ') {
         event.preventDefault(); if (opened) { commit(); } else { open(); } return;
       }
       if (['ArrowDown', 'ArrowUp', 'Home', 'End'].indexOf(key) !== -1) {
         event.preventDefault();
+        var hiddenStart = !opened && selectedIndex() === -1;
         if (!opened) { open(); if (!opened) { return; } }
         if (key === 'Home') { candidate = 0; }
         else if (key === 'End') { candidate = rows.length - 1; }
+        else if (hiddenStart) { candidate = key === 'ArrowUp' ? rows.length - 1 : 0; }
         else { candidate = Math.max(0, Math.min(rows.length - 1, candidate + (key === 'ArrowDown' ? 1 : -1))); }
+        explored = true;
         paint(); return;
       }
       if (typeof key === 'string' && key.length === 1) {
@@ -122,13 +128,13 @@
         var query = buffer.split('').every(function (c) { return c === character; }) ? character : buffer;
         for (var i = 1; i <= rows.length; i++) {
           var index = (candidate + i) % rows.length;
-          if (data.options[index].label.toLocaleLowerCase().indexOf(query) === 0) { candidate = index; break; }
+          if (data.options[index].label.toLocaleLowerCase().indexOf(query) === 0) { candidate = index; explored = true; break; }
         }
         paint();
       }
     }
     function sync(next) {
-      if (!valid(next) || window.getComputedStyle(wrap).getPropertyValue('--h5p-themer-picker-ready').trim() !== '1') { destroy(true); return; }
+      if (!valid(next) || !next.options.length || window.getComputedStyle(wrap).getPropertyValue('--h5p-themer-picker-ready').trim() !== '1') { destroy(true); return; }
       var nextFingerprint = JSON.stringify([next.options, next.icons]);
       if (lastValue !== select.value) { close(); }
       lastValue = select.value;
@@ -140,7 +146,11 @@
         });
         fingerprint = nextFingerprint;
       } else { data = next; }
-      render(trigger, data.options[selectedIndex()], false);
+      var index = selectedIndex();
+      if (index === -1) {
+        trigger.textContent = '';
+        trigger.appendChild(node('span', 'h5p-themer-picker-text', data.placeholder));
+      } else { render(trigger, data.options[index], false); }
       trigger.appendChild(node('span', 'h5p-themer-picker-arrow', '\u25be'));
       trigger.children[trigger.children.length - 1].setAttribute('aria-hidden', 'true');
       if (!opened) { candidate = selectedIndex(); } paint();
@@ -193,7 +203,7 @@
       if (!select) { return; }
       var picker = select[property];
       try {
-        if (!valid(data)) { if (picker) { picker.destroy(true); } return; }
+        if (!valid(data) || !data.options.length || typeof data.placeholder !== 'string') { if (picker) { picker.destroy(true); } return; }
         if (picker) { picker.sync(data); }
         else { var created = create(select, data); if (created) { select[property] = created; } }
       } catch (e) { if (picker) { picker.destroy(true); } }

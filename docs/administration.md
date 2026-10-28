@@ -1,5 +1,9 @@
 # Theme administration
 
+> Validated selector UI: only permitted colour themes are selectable.
+> Special states use truthful placeholders; theme Reset leaves Density unchanged.
+> See [implementation, tests and user-reported Firefox acceptance](v0.4.3-selector.md).
+
 > v0.4.3 Phase 4 additionally qualifies H5P.Blanks 1.14.37 beside TrueFalse 1.8.24
 > and MultiChoice 1.16.27. Blanks is locally deployed; all six Firefox tests are
 > user-reported passes; see [current acceptance and limits](v0.4.3-blanks.md). The earlier MultiChoice

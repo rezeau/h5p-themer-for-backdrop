@@ -195,11 +195,28 @@
     return id;
   }
   function fill(select) {
-    select.textContent = '';
-    options.options.forEach(function (entry) {
-      var item = document.createElement('option'); item.value = entry.value; item.textContent = entry.label; select.appendChild(item);
-    });
+    var view = presentation(), hidden = selected === 'site_default' || selected === 'core';
+    var signature = JSON.stringify([view.options, hidden ? selected : null, view.placeholder]);
+    if (select.__h5pThemerChoices !== signature) {
+      select.textContent = '';
+      if (hidden || !view.options.length) {
+        var placeholder = document.createElement('option');
+        placeholder.value = selected; placeholder.textContent = view.placeholder;
+        placeholder.disabled = true; select.appendChild(placeholder);
+      }
+      view.options.forEach(function (entry) {
+        var item = document.createElement('option'); item.value = entry.value; item.textContent = entry.label; select.appendChild(item);
+      });
+      select.__h5pThemerChoices = signature;
+    }
+    select.disabled = !view.options.length;
     select.value = selected;
+  }
+  // Presentation only: the validated catalog, keys, stored tokens and CSS stay intact.
+  function presentation() {
+    return { options: options.options.filter(function (entry) { return entry.value !== 'site_default' && entry.value !== 'core'; }),
+      icons: options.icons, placeholder: selected === 'core' ? Backdrop.t('Using original H5P colours') :
+        selected === 'site_default' ? Backdrop.t('Using site settings') : Backdrop.t('Choose a colour theme') };
   }
   function buildDensity(box, select) {
     var view;
@@ -270,7 +287,10 @@
   function buildPanel() {
     var box = document.createElement('div'), label = document.createElement('label');
     var select = document.createElement('select'), description = document.createElement('p'), status = document.createElement('p');
-    var help = document.createElement('button');
+    var help = document.createElement('button'), reset = document.createElement('button');
+    var announcement = document.createElement('p'); announcement.className = 'h5p-themer-theme-announcement';
+    // Keep an empty live region mounted before events; do not repeat control values.
+    announcement.setAttribute('role', 'status'); announcement.setAttribute('aria-live', 'polite'); announcement.setAttribute('aria-atomic', 'true');
     box.className = 'h5p-themer-learner-controls';
     select.id = uniqueId('h5p-themer-learner-theme'); select.className = 'h5p-themer-learner-select';
     label.setAttribute('for', select.id); label.textContent = options.label;
@@ -286,23 +306,32 @@
       if (expanded) { description.removeAttribute('hidden'); }
       else { description.setAttribute('hidden', ''); }
     });
+    reset.className = 'h5p-themer-theme-reset'; reset.setAttribute('type', 'button');
+    reset.setAttribute('aria-label', Backdrop.t('Use site default theme'));
+    reset.setAttribute('title', Backdrop.t('Use site default theme'));
+    var glyph = document.createElement('span'); glyph.setAttribute('aria-hidden', 'true'); glyph.textContent = '\u21ba'; reset.appendChild(glyph);
+    reset.addEventListener('click', function () {
+      if (reset.disabled || !options) { return; }
+      selected = 'site_default'; refresh('', Backdrop.t('Theme reset.')); savePreference();
+    });
     status.id = select.id + '-status'; status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite'); status.setAttribute('aria-atomic', 'true');
     fill(select);
     select.addEventListener('change', function () {
       var requested = select.value;
       var valid = requested === 'site_default' || Object.prototype.hasOwnProperty.call(options.keys, requested);
       selected = valid ? requested : 'site_default'; select.value = selected;
-      refresh(valid ? '' : options.fallback);
+      refresh(valid ? '' : options.fallback, '');
       savePreference();
     });
-    box.appendChild(label); box.appendChild(select); box.appendChild(help); box.appendChild(description); box.appendChild(status);
+    box.appendChild(label); box.appendChild(select); box.appendChild(reset); box.appendChild(help); box.appendChild(description); box.appendChild(status);
+    box.appendChild(announcement);
     densityView = buildDensity(box, select);
     return box;
   }
   function resourceLoaded(event) {
     if (event.target && event.target.tagName && event.target.tagName.toLowerCase() === 'link') { refresh(); }
   }
-  function refresh(note) {
+  function refresh(note, announcement) {
     if (!options) { return; }
     if (document.querySelector(editors) || document.body.matches('.h5p-themer-preview-document')) { stop(); return; }
     var found = discover(), next = [];
@@ -326,15 +355,23 @@
     }
     var restoredNote = '';
     if (!preferenceInitialized) { restoredNote = initializePreference(preferenceSettings); restorePending = false; }
-    else if (restorePending) { restoredNote = restorePreference(); restorePending = false; }
+    else if (restorePending) {
+      restoredNote = restorePreference(); restorePending = false;
+      // A restored page starts a new interaction, not a replay of an old Reset.
+      if (typeof announcement !== 'string') { announcement = ''; }
+    }
     if (!panel) { panel = buildPanel(); }
     var root = supported[0].root;
     if ((panel.nextSibling !== root || panel.parentNode !== root.parentNode) &&
         !(panel.parentNode && document.activeElement && document.activeElement.closest('.h5p-themer-learner-controls') === panel)) { root.parentNode.insertBefore(panel, root); }
     var select = panel.querySelector('select');
-    select.disabled = false;
-    if (select.value !== selected) { select.value = selected; }
-    if (Backdrop.h5pThemerLearnerPicker) { Backdrop.h5pThemerLearnerPicker.sync(select, options); }
+    fill(select);
+    var reset = panel.querySelector('.h5p-themer-theme-reset'), resetFocused = document.activeElement === reset;
+    reset.disabled = selected === 'site_default';
+    if (Backdrop.h5pThemerLearnerPicker) { Backdrop.h5pThemerLearnerPicker.sync(select, presentation()); }
+    // Capture focus before disabling: browsers may immediately blur the button.
+    var target = panel.querySelector('[role="combobox"]') || select;
+    if (resetFocused && reset.disabled && !select.disabled && typeof target.focus === 'function') { target.focus(); }
     apply(document);
     frames.forEach(function (frame) {
       if (!frame.framed || !frame.doc) { return; }
@@ -347,6 +384,9 @@
     if (status.textContent !== text) { status.textContent = text; }
     if (text) { status.removeAttribute('hidden'); }
     else { status.setAttribute('hidden', ''); }
+    // Leave value announcements to the focused native select/combobox. Reset adds
+    // only its distinct action feedback; warnings remain in the visible region.
+    if (typeof announcement === 'string') { panel.querySelector('.h5p-themer-theme-announcement').textContent = announcement; }
     syncDensity();
   }
   function relevant(node) {

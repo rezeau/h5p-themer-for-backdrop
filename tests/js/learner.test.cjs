@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const {fixture,choices,labels}=require('./learner-fixture.cjs');
+const {fixture,choices}=require('./learner-fixture.cjs');
 test('false setting delivers no control and starts no observer', () => { const f=fixture({enabled:false}); const p=f.player(); f.attach(); assert.equal(f.panel(), null); assert.equal(f.observers.length,0); assert.equal(p.node.children[0],p.marker); f.unchanged(); });
 test('missing or non-Boolean client setting fails closed', () => { for(const data of [{},{h5pThemerLearner:{enabled:'true'}}]) { const f=fixture(); f.player(); f.attach(f.doc,data); assert.equal(f.panel(),null); assert.equal(f.observers.length,0); } });
 test('enabled page without actual content has no selector', () => { const f=fixture(); f.attach(); assert.equal(f.panel(),null); f.unchanged(); });
@@ -17,7 +17,7 @@ test('native labeled active select is immediately above DIV player', () => {
  assert.equal(s.hasAttribute('aria-describedby'),false);assert.equal(description.hasAttribute('hidden'),true);assert.match(description.textContent,/browser tab/);
  assert.equal(s.hasAttribute('name'),false); assert.equal(s.hasAttribute('tabindex'),false); assert.equal(s.hasAttribute('role'),false); f.unchanged();
 });
-test('complete ordered catalog keeps Core distinct from Daylight and custom', () => { const f=fixture(); f.player(); f.attach(); const items=f.select().children; assert.deepEqual(items.map(o=>o.value),choices); assert.deepEqual(items.map(o=>o.textContent),labels); assert.notEqual(items[1].value,items[2].value); });
+test('canonical catalog stays intact while native list projects colour choices', () => { const f=fixture(); f.player(); f.attach(); const items=f.select().children; assert.deepEqual(f.metadata.options.map(o=>o.value),choices); assert.deepEqual(items.filter(o=>!o.disabled).map(o=>o.value),choices.filter(t=>t!=='site_default'&&t!=='core')); assert.equal(items[0].textContent,'Using site settings'); assert.equal(items[0].disabled,true); });
 test('multiple mixed players get exactly one control outside iframe wrapper', () => { const f=fixture(); const a=f.player('7',{iframe:true}); const b=f.player('8'); f.attach(); assert.equal(f.doc.querySelectorAll('.h5p-themer-learner-controls').length,1); assert.equal(f.panel().nextSibling,a.root); assert.equal(a.root.children[0],a.node); assert.equal(b.node.children[0],b.marker); f.unchanged(); });
 test('nested content cannot acquire a second control', () => { const f=fixture(); const a=f.player(); f.player('8',{parent:a.node}); f.attach(); assert.equal(f.panel().nextSibling,a.root); assert.equal(f.doc.querySelectorAll('select').length,1); });
 test('repeated full/partial attachment keeps node, ID and one observer', () => { const f=fixture(); const p=f.player(); f.attach(); const panel=f.panel(),id=f.select().id; for(let n=0;n<5;n++)f.attach(p.node); assert.equal(f.panel(),panel); assert.equal(f.select().id,id); assert.equal(f.observers.filter(o=>o.target===f.doc.body).length,1); assert.deepEqual(Object.keys(f.select().listeners),['change']); f.unchanged(); });
@@ -48,11 +48,11 @@ test('responsive CSS is scoped and shrinkable with a 24px minimum help target',(
  assert.doesNotMatch(css,/--h5p-theme-/);
  const rules=[...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(([,selector,body])=>({selector:selector.replace(/\/\*[\s\S]*?\*\//g,'').trim(),body}));
  const helpSelector='.h5p-themer-learner-controls .h5p-themer-learner-help';
- assert.equal(rules.filter(rule=>rule.selector===helpSelector).length,1);
+ assert.ok(rules.some(rule=>rule.selector.split(',').map(s=>s.trim()).includes(helpSelector)&&/min-width:\s*24px/.test(rule.body)));
  for(const {selector,body} of rules){
   for(const value of selector.split(',')){assert.ok(value.trim().startsWith('.h5p-themer-learner-controls'));}
   let layout=body;
-  if(selector===helpSelector){
+  if(selector.split(',').map(s=>s.trim()).includes(helpSelector)&&/min-width:\s*24px/.test(body)){
    assert.match(body,/(?:^|;)\s*min-width:\s*24px\s*;/);assert.match(body,/(?:^|;)\s*min-height:\s*24px\s*;/);
    // Permit only this exact minimum; other fixed pixel widths remain forbidden.
    layout=body.replace(/(^|;)\s*min-width:\s*24px\s*(?=;)/,'$1');
@@ -63,7 +63,7 @@ test('responsive CSS is scoped and shrinkable with a 24px minimum help target',(
    assert.match(body,/(?:^|;)\s*width:\s*44px\s*;/);assert.match(body,/(?:^|;)\s*height:\s*44px\s*;/);
    layout=body.replace(/(^|;)\s*width:\s*44px\s*(?=;)/,'$1');
   }
-  if(selector.split(',').every(value=>['mode','note','status'].some(name=>value.trim()==='.h5p-themer-learner-controls .h5p-themer-density-'+name))){
+  if(selector.split(',').every(value=>value.trim()==='.h5p-themer-learner-controls .h5p-themer-theme-announcement'||['mode','note','status'].some(name=>value.trim()==='.h5p-themer-learner-controls .h5p-themer-density-'+name))){
    assert.match(body,/clip-path:\s*inset\(50%\)/);
    layout=body.replace(/(^|;)\s*width:\s*1px\s*(?=;)/,'$1');
   }
