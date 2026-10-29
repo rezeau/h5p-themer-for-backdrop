@@ -22,6 +22,14 @@ See the [Blanks implementation and test plan](docs/v0.4.3-blanks.md),
 [draft release notes](docs/release-notes-v0.4.3.md) and
 [implementation and test plan](docs/v0.4.3-development.md).
 
+The standalone official MarkTheWords extension reuses the native Density controller
+and adds no CSS. Embedded activities and PapiJo variants remain unsupported.
+It is deployed on backdrop2; the user reports all 19 Firefox acceptance tests
+passed, including a 300–400-word passage, QuestionSet exclusion and the existing
+TrueFalse/MultiChoice/Blanks regressions. Generous long-passage line spacing is
+recorded only as a possible future refinement; no CSS change is requested.
+See the [Phase 5 implementation and acceptance record](docs/v0.4.3-markthewords.md).
+
 ## Main features
 
 - Five built-in palettes, editable custom colors, Global Default and learner visibility.
@@ -45,7 +53,7 @@ Themer does not save answers across navigation or reload.
 - Color changes require an H5P library that consumes the relevant theme variables.
 
 Native Density supports only **qualified top-level H5P.TrueFalse 1.8.24,
-H5P.MultiChoice 1.16.27 and H5P.Blanks 1.14.37 iframe players** in this working tree.
+H5P.MultiChoice 1.16.27, H5P.Blanks 1.14.37 and H5P.MarkTheWords 1.11.24 iframe players** in this working tree.
 Other types/versions, nested, DIV, external and ambiguous players retain
 their original Density. Color theming and the learner dropdown have their own
 compatibility rules. Broader browser/accessibility support is not certified.

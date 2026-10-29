@@ -22,6 +22,7 @@ function fixture({initialChoice=null, learner=true, original='large', library='H
   const data=structuredClone(metadata);data.learner=learner;
   if(library==='H5P.MultiChoice')data.players['cid-7']={...data.players['cid-9'],id:'7'};
   if(library==='H5P.Blanks')data.players['cid-7']={...data.players['cid-10'],id:'7'};
+  if(library==='H5P.MarkTheWords')data.players['cid-7']={...data.players['cid-11'],id:'7'};
   if(!learner){f.metadata.enabled=false;}
   f.data.h5pThemerNativeDensity={players:data.players};Object.defineProperty(f.data.h5pThemerNativeDensity,'payload',{get:()=>JSON.stringify(data)});
   f.h.window.H5P.externalDispatcher={on(name,fn){if(!initialized.includes(fn))initialized.push(fn);},off(name,fn){const at=initialized.indexOf(fn);if(at!==-1)initialized.splice(at,1);}};
@@ -32,7 +33,7 @@ function fixture({initialChoice=null, learner=true, original='large', library='H
   }};}
   f.h.window.getComputedStyle=style;
   function initialize(p,profile=original,kind=library){
-    const adapter={'H5P.TrueFalse':{minor:8,css:'h5p-true-false'},'H5P.MultiChoice':{minor:16,css:'h5p-multichoice'},'H5P.Blanks':{minor:14,css:'h5p-blanks'}}[kind];
+    const adapter={'H5P.TrueFalse':{minor:8,css:'h5p-true-false'},'H5P.MultiChoice':{minor:16,css:'h5p-multichoice'},'H5P.Blanks':{minor:14,css:'h5p-blanks'},'H5P.MarkTheWords':{minor:11,css:'h5p-mark-the-words'}}[kind];
     const minor=adapter.minor, versionedName=kind+' 1.'+minor;
     p.content.className='h5p-content h5p-initialized preserve-color-class h5p-'+profile;
     p.container.className='h5p-container h5p-question h5p-theme '+adapter.css;
@@ -467,7 +468,7 @@ for(const nativeFirst of [false,true])test('whole-document detach/reattach resto
 });
 
 // v0.4.3 exact multi-library boundaries and shared-controller regressions.
-for(const library of ['H5P.TrueFalse','H5P.MultiChoice','H5P.Blanks']) {
+for(const library of ['H5P.TrueFalse','H5P.MultiChoice','H5P.Blanks','H5P.MarkTheWords']) {
  for(const invalid of ['patch','patch-string','minor','machine','versioned','integration','container','nested','external','duplicate','unsupported'])test(library+' rejects '+invalid,()=>{
   const f=fixture({library,initialChoice:'small'}),p=f.player();
   if(invalid==='patch')f.data.players['cid-7'].patch++;
@@ -475,7 +476,7 @@ for(const library of ['H5P.TrueFalse','H5P.MultiChoice','H5P.Blanks']) {
   if(invalid==='minor')p.instance.libraryInfo.minorVersion++;
   if(invalid==='machine')p.instance.libraryInfo.machineName=library==='H5P.TrueFalse'?'H5P.MultiChoice':'H5P.TrueFalse';
   if(invalid==='versioned')p.instance.libraryInfo.versionedName='H5P.MultiChoice 1.15';
-  if(invalid==='integration')f.h.window.H5PIntegration.contents['cid-7'].library='H5P.MarkTheWords 1.11';
+  if(invalid==='integration')f.h.window.H5PIntegration.contents['cid-7'].library=library==='H5P.MarkTheWords'?'H5P.Blanks 1.14':'H5P.MarkTheWords 1.11';
   if(invalid==='container')p.container.className='h5p-container h5p-question h5p-theme '+(library==='H5P.TrueFalse'?'h5p-multichoice':'h5p-true-false');
   if(invalid==='nested'){const outer=f.element('div',{class:'h5p-content'});outer.appendChild(p.root);}
   if(invalid==='external')p.node.setAttribute('src','http://external.invalid/');
@@ -509,7 +510,7 @@ for(const library of ['H5P.TrueFalse','H5P.MultiChoice','H5P.Blanks']) {
 }
 test('TrueFalse, MultiChoice, Blanks and unsupported siblings keep qualification isolated',()=>{
  const f=fixture(),tf=f.player(),mc=f.player('9',{library:'H5P.MultiChoice'}),blanks=f.player('10',{library:'H5P.Blanks'}),other=f.player('11');
- f.data.players['cid-11']={id:'11',library:'H5P.MarkTheWords 1.11',patch:24};f.h.window.H5PIntegration.contents['cid-11'].library='H5P.MarkTheWords 1.11';
+ f.data.players['cid-11']={id:'11',library:'H5P.Accordion 1.0',patch:0};f.h.window.H5PIntegration.contents['cid-11'].library='H5P.Accordion 1.0';
  f.attach();assert.equal(f.api.getSnapshot().readyPlayers,3);f.api.setOverride('small');f.flush();
  assert.deepEqual(f.density(tf),['h5p-small']);assert.deepEqual(f.density(mc),['h5p-small']);assert.deepEqual(f.density(blanks),['h5p-small']);assert.deepEqual(f.density(other),['h5p-large']);
  assert.deepEqual(f.calls.map(c=>c.owner),[tf.instance,mc.instance,blanks.instance]);
@@ -560,7 +561,7 @@ test('Blanks resize failure restores its original and preserves MultiChoice sibl
  f.nativeAttach();f.api.setOverride('medium');f.flush();assert.equal(attempts,1);assert.deepEqual(f.density(b),['h5p-medium']);
 });
 
-for(const library of ['H5P.TrueFalse','H5P.MultiChoice','H5P.Blanks'])test(library+' theme Reset preserves Density and mixed-player state',()=>{
+for(const library of ['H5P.TrueFalse','H5P.MultiChoice','H5P.Blanks','H5P.MarkTheWords'])test(library+' theme Reset preserves Density and mixed-player state',()=>{
  const session=sessionStorageFixture({[densityKey]:'small','h5p_themer:learner-theme:v1:/':'core',unrelated:'keep'}),f=fixture({library,session}),p=f.player();
  f.attach();f.flush();const before=JSON.stringify({answers:p.instance.answers,feedback:p.instance.feedback,score:p.instance.score});
  const button=f.panel().querySelector('.h5p-themer-theme-reset');assert.equal(button.disabled,false);button.dispatchEvent(new f.h.Event('click'));f.notify();f.flush();
@@ -570,7 +571,7 @@ for(const library of ['H5P.TrueFalse','H5P.MultiChoice','H5P.Blanks'])test(libra
 
 test('theme Reset preserves Density isolation across three qualified players and an unsupported sibling',()=>{
  const f=fixture(),tf=f.player(),mc=f.player('9',{library:'H5P.MultiChoice'}),blanks=f.player('10',{library:'H5P.Blanks'}),other=f.player('11');
- f.data.players['cid-11']={id:'11',library:'H5P.MarkTheWords 1.11',patch:24};f.h.window.H5PIntegration.contents['cid-11'].library='H5P.MarkTheWords 1.11';
+ f.data.players['cid-11']={id:'11',library:'H5P.Accordion 1.0',patch:0};f.h.window.H5PIntegration.contents['cid-11'].library='H5P.Accordion 1.0';
  f.attach();f.api.setOverride('medium');f.choose('builtin:mint');f.flush();const before=[tf,mc,blanks,other].map(p=>JSON.stringify(p.instance.answers));
  f.panel().querySelector('.h5p-themer-theme-reset').dispatchEvent(new f.h.Event('click'));f.notify();f.flush();
  for(const p of [tf,mc,blanks]){assert.deepEqual(f.density(p),['h5p-medium']);assert.equal(p.child.doc.documentElement.getAttribute(attr),null);}assert.deepEqual(f.density(other),['h5p-large']);
@@ -596,4 +597,42 @@ test('untouched native profile changes remain H5P-owned and become the reset ori
  assert.deepEqual(f.density(p),['h5p-medium']);assert.equal(f.calls.length,0);
  f.api.setOverride('small');f.flush();f.api.resetOverride();f.flush();assert.deepEqual(f.density(p),['h5p-medium']);
  p.content.className=p.content.className.replace('h5p-medium','h5p-large');f.nativeAttach();f.flush();assert.deepEqual(f.density(p),['h5p-large']);
+});
+
+// Official MarkTheWords uses the shared controller; these are DOM contracts, not layout QA.
+test('MarkTheWords Density preserves word DOM, selection, keyboard attributes, focus and evaluation state',()=>{
+ const f=fixture({library:'H5P.MarkTheWords'}),p=f.player(),list=p.child.doc.createElement('div');
+ list.className='h5p-word-selectable-words';list.setAttribute('role','listbox');list.setAttribute('aria-multiselectable','true');list.setAttribute('aria-labelledby','instructions');p.container.appendChild(list);
+ const words=['selected','unselected','correct','incorrect','missed'].map((text,i)=>{const w=p.child.doc.createElement('span');w.textContent=text;w.setAttribute('role','option');w.setAttribute('aria-selected',i===0||i===2||i===3?'true':'false');if(i>=2)w.setAttribute('aria-describedby','h5p-description-'+text);list.appendChild(w);return w;});
+ words[0].setAttribute('tabindex','0');p.child.doc.activeElement=words[0];
+ const before=JSON.stringify([list,...words].map(w=>({attributes:w.attributes,text:w.textContent}))),calls=[];
+ for(const method of ['resetTask','getScore','showSolutions','setH5PUserState','calculateScore','feedbackSelectedWords','triggerXAPI'])p.instance[method]=()=>calls.push(method);
+ let events=0;for(const w of words)for(const event of ['click','keydown','blur'])w.addEventListener(event,()=>events++);
+ f.attach();for(const value of ['small','medium','large']){f.api.setOverride(value);f.choose('builtin:mint');f.flush();}
+ assert.deepEqual(list.children,words);assert.equal(JSON.stringify([list,...words].map(w=>({attributes:w.attributes,text:w.textContent}))),before);
+ assert.equal(p.child.doc.activeElement,words[0]);assert.equal(events,0);assert.deepEqual(calls,[]);assert.equal(p.instance.score,1);assert.equal(p.instance.feedback,'keep');assert.ok(f.calls.every(c=>c.owner===p.instance&&c.event==='resize'));
+});
+for(const invalid of ['papijo-metadata','papijo-runtime','not-root','srcdoc','column','questionset','book','bundle','eligibility'])test('MarkTheWords rejects '+invalid,()=>{
+ const f=fixture({library:'H5P.MarkTheWords',initialChoice:'small'}),p=f.player();
+ if(invalid==='papijo-metadata')f.data.players['cid-7'].library='H5P.MarkTheWordsPapiJo 1.11';
+ if(invalid==='papijo-runtime')p.instance.libraryInfo.machineName='H5P.MarkTheWordsPapiJo';
+ if(invalid==='not-root')p.instance.isRoot=()=>false;
+ if(invalid==='srcdoc')p.node.setAttribute('srcdoc','');
+ if(['column','questionset','book'].includes(invalid)){const kind={column:'H5P.Column 1.22',questionset:'H5P.QuestionSet 1.21',book:'H5P.InteractiveBook 1.15'}[invalid];f.data.players['cid-7'].library=kind;f.h.window.H5PIntegration.contents['cid-7'].library=kind;}
+ if(invalid==='bundle')p.child.doc.bundleReady=false;
+ if(invalid==='eligibility'){f.h.Backdrop.behaviors.h5pThemerLearner.attach(f.doc,f.data);p.content.removeAttribute('data-h5p-themer-eligible');f.nativeAttach();}else f.attach();
+ f.flush();assert.deepEqual(f.density(p),['h5p-large']);assert.equal(f.api.getSnapshot().available,false);assert.equal(f.calls.length,0);
+});
+test('all four qualified libraries share Density while PapiJo and unsupported siblings stay unchanged',()=>{
+ const f=fixture(),players=[f.player(),f.player('9',{library:'H5P.MultiChoice'}),f.player('10',{library:'H5P.Blanks'}),f.player('11',{library:'H5P.MarkTheWords'})],other=f.player('12'),papijo=f.player('13',{library:'H5P.MarkTheWords'});
+ f.data.players['cid-12']={id:'12',library:'H5P.Accordion 1.0',patch:0};f.data.players['cid-13']={id:'13',library:'H5P.MarkTheWordsPapiJo 1.11',patch:24};papijo.instance.libraryInfo.machineName='H5P.MarkTheWordsPapiJo';
+ f.attach();f.api.setOverride('medium');f.flush();assert.equal(f.api.getSnapshot().readyPlayers,4);
+ for(const p of players)assert.deepEqual(f.density(p),['h5p-medium']);for(const p of [other,papijo])assert.deepEqual(f.density(p),['h5p-large']);
+ assert.deepEqual(f.calls.map(c=>c.owner),players.map(p=>p.instance));
+ f.choose('builtin:mint');f.panel().querySelector('.h5p-themer-theme-reset').dispatchEvent(new f.h.Event('click'));f.notify();f.flush();for(const p of players)assert.deepEqual(f.density(p),['h5p-medium']);
+});
+test('MarkTheWords restores and shares the existing Density session preference',()=>{
+ const session=sessionStorageFixture(),a=fixture({library:'H5P.Blanks',session});a.player();a.attach();a.api.setOverride('small');
+ const b=fixture({library:'H5P.MarkTheWords',session}),p=b.player();b.attach();b.flush();assert.deepEqual(b.density(p),['h5p-small']);b.api.setOverride('medium');
+ const c=fixture({library:'H5P.MarkTheWords',session}),q=c.player();c.attach();c.flush();assert.deepEqual(c.density(q),['h5p-medium']);c.api.resetOverride();c.flush();assert.deepEqual(c.density(q),['h5p-large']);assert.equal(session.values.has(densityKey),false);
 });

@@ -99,6 +99,11 @@ function native_density_blanks_fixture($id = 10) {
   H5PBackdrop::$libraries['H5P.Blanks'] = array('libraryId' => '19', 'machineName' => 'H5P.Blanks', 'majorVersion' => '1', 'minorVersion' => '14', 'patchVersion' => '37');
   H5PBackdrop::$contents[$id] = array('id' => $id, 'libraryId' => '19', 'libraryName' => 'H5P.Blanks', 'libraryMajorVersion' => '1', 'libraryMinorVersion' => '14', 'embedType' => 'div', 'libraryEmbedTypes' => 'iframe');
 }
+/** Adds the official MarkTheWords main iframe fixture. */
+function native_density_markthewords_fixture($id = 11) {
+  H5PBackdrop::$libraries['H5P.MarkTheWords'] = array('libraryId' => '20', 'machineName' => 'H5P.MarkTheWords', 'majorVersion' => '1', 'minorVersion' => '11', 'patchVersion' => '24');
+  H5PBackdrop::$contents[$id] = array('id' => $id, 'libraryId' => '20', 'libraryName' => 'H5P.MarkTheWords', 'libraryMajorVersion' => '1', 'libraryMinorVersion' => '11', 'embedType' => 'div', 'libraryEmbedTypes' => 'iframe');
+}
 function module_exists($name) {
   return $name === 'h5p' && $GLOBALS['h5p_enabled'];
 }

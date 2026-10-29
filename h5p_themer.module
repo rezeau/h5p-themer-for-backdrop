@@ -149,7 +149,7 @@ function h5p_themer_compatibility() {
   $result['compatible'] = $api['majorVersion'] === 1 && $api['minorVersion'] === 28;
   $result['code'] = $result['compatible'] ? 'compatible' : 'api_incompatible';
   $result['message'] = $result['compatible']
-    ? t('H5P Core API 1.28 is available. Global colors apply where supported. Optional native Density is disabled by default and supports only qualified top-level H5P.TrueFalse 1.8.24, H5P.MultiChoice 1.16.27 and H5P.Blanks 1.14.37 iframe players; activation through global settings or a PHP override is separate from API compatibility.')
+    ? t('H5P Core API 1.28 is available. Global colors apply where supported. Optional native Density is disabled by default and supports only qualified top-level H5P.TrueFalse 1.8.24, H5P.MultiChoice 1.16.27, H5P.Blanks 1.14.37 and H5P.MarkTheWords 1.11.24 iframe players; activation through global settings or a PHP override is separate from API compatibility.')
     : t('H5P Themer requires exactly H5P Core API 1.28; detected @version.', array('@version' => $result['version']));
   return $result;
 }

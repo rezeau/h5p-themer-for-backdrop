@@ -9,5 +9,6 @@ require __DIR__ . '/learner-fixture.php';
 require __DIR__ . '/native-density.php';
 require __DIR__ . '/density-v043.php';
 require __DIR__ . '/density-blanks-v043.php';
+require __DIR__ . '/density-markthewords-v043.php';
 printf("Focused native Density: %d passed, %d failed\n", $passed, $failed);
 exit($failed ? 1 : 0);
