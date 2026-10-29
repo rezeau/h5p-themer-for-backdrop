@@ -57,7 +57,7 @@ finally {
   }
   rmdir($historical_temp);
 }
-check(parse_ini_file(dirname(__DIR__) . '/h5p_themer.info', FALSE, INI_SCANNER_RAW)['version'] === '0.4.3-dev', 'Current development module version is 0.4.3-dev');
+check(parse_ini_file(dirname(__DIR__) . '/h5p_themer.info', FALSE, INI_SCANNER_RAW)['version'] === '0.4.3', 'Prepared module release version is 0.4.3');
 $selector_contract = h5p_themer_learner_bundle();
 check(!$selector_contract['errors'] && $selector_contract['data']['options'][0]['value'] === 'site_default' &&
   isset($selector_contract['data']['keys']['core'], $selector_contract['data']['keys']['builtin:daylight']),

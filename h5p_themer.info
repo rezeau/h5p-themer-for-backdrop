@@ -1,7 +1,7 @@
 type = module
 name = H5P Themer
-version = 0.4.3-dev
-description = "Manage reusable H5P themes with Core API 1.28. Optional native Density for qualified top-level TrueFalse 1.8.24, MultiChoice 1.16.27 and Blanks 1.14.37 iframe players; disabled by default."
+version = 0.4.3
+description = "Manage reusable H5P themes with Core API 1.28. Optional native Density for qualified standalone official H5P.TrueFalse 1.8.24, H5P.MultiChoice 1.16.27, H5P.Blanks 1.14.37 and H5P.MarkTheWords 1.11.24 iframe players; disabled by default."
 package = H5P
 backdrop = 1.x
 dependencies[] = h5p

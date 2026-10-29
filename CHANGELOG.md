@@ -1,6 +1,18 @@
 # Changelog
 
-## v0.4.3 development (unreleased)
+## v0.4.3 — prepared, not yet packaged or published
+
+- Phase 5 adds exact standalone official H5P.MarkTheWords 1.11.24 native Density
+  qualification alongside H5P.TrueFalse 1.8.24, H5P.MultiChoice 1.16.27 and
+  H5P.Blanks 1.14.37. Core API exactly 1.28, iframe ownership and variant/compound
+  exclusions remain unchanged; no custom Density CSS is added.
+- Final implementation verification: 733 JavaScript tests and 4,072 PHP assertions
+  on each of PHP 7.4.33, 8.3.18 and 8.4.22 passed. The user reports all 19 Phase 5
+  Firefox acceptance tests passed. Generous long-text line spacing is a non-blocking
+  possible future refinement, not a confirmed defect or requested CSS change.
+  See [Phase 5 acceptance](docs/v0.4.3-markthewords.md) and the
+  [prepared release notes](docs/release-notes-v0.4.3.md). These are the tested
+  implementation results; release-preparation checks are reported separately.
 
 - Selector simplification removes Site default/Core from selectable
   rows while retaining their internal states and truthful placeholders. Add the
@@ -18,7 +30,7 @@
 - Add server and browser-controller regressions. The MultiChoice milestone is deployed
   on local backdrop2. The user reports all six MultiChoice Firefox acceptance tests
   and mixed-player isolation passed. See [acceptance and limits](docs/v0.4.3-readiness.md)
-  and the [draft release notes](docs/release-notes-v0.4.3.md).
+  and the [prepared release notes](docs/release-notes-v0.4.3.md).
 
 ## v0.4.2 — published baseline
 

@@ -1,0 +1,294 @@
+{
+  "version": "0.4.3",
+  "archive_root": "h5p_themer/",
+  "files": [
+    {
+      "path": "CHANGELOG.md",
+      "category": "documentation"
+    },
+    {
+      "path": "config/h5p_themer.settings.json",
+      "category": "runtime"
+    },
+    {
+      "path": "css/h5p_themer.learner-picker.css",
+      "category": "runtime"
+    },
+    {
+      "path": "css/h5p_themer.learner.css",
+      "category": "runtime"
+    },
+    {
+      "path": "css/h5p_themer.preview.css",
+      "category": "runtime"
+    },
+    {
+      "path": "docs/administration.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/builtin-presets-roadmap.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/configuration.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/installation.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/integration-bridge-proposal.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/live-verification-phase-1b.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/native-density-checkpoint2b.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/native-density-checkpoint3b.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/phase-1c-step-2a.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/phase-1c-step-2b.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/phase-1c-step-2c.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/phase-2a-runtime.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/phase-2b-preview.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/phase-2c-step-3a.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/phase-2c-step-4a.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/phase-2c-step-5.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/phase-2c-step-6.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/phase-2d-learner-icons.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/r2-r3-activation.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/r2-r3-phase-1.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/r2-r3-publication.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/r2-r3-visibility-admin.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/release-notes-v0.2.0.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/release-notes-v0.2.1.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/release-notes-v0.4.0.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/release-notes-v0.4.1.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/release-notes-v0.4.2.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/release-notes-v0.4.3.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/roadmap.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/v0.4.0-readiness.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/v0.4.1-readiness.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/v0.4.1-upgrade-rehearsal.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/v0.4.2-development.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/v0.4.3-blanks.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/v0.4.3-development.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/v0.4.3-markthewords.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/v0.4.3-readiness.md",
+      "category": "documentation"
+    },
+    {
+      "path": "docs/v0.4.3-selector.md",
+      "category": "documentation"
+    },
+    {
+      "path": "h5p_themer.admin.inc",
+      "category": "runtime"
+    },
+    {
+      "path": "h5p_themer.catalog.inc",
+      "category": "runtime"
+    },
+    {
+      "path": "h5p_themer.config.inc",
+      "category": "runtime"
+    },
+    {
+      "path": "h5p_themer.import.inc",
+      "category": "runtime"
+    },
+    {
+      "path": "h5p_themer.info",
+      "category": "runtime"
+    },
+    {
+      "path": "h5p_themer.install",
+      "category": "runtime"
+    },
+    {
+      "path": "h5p_themer.learner-icons.inc",
+      "category": "runtime"
+    },
+    {
+      "path": "h5p_themer.learner-runtime.inc",
+      "category": "runtime"
+    },
+    {
+      "path": "h5p_themer.learner.inc",
+      "category": "runtime"
+    },
+    {
+      "path": "h5p_themer.module",
+      "category": "runtime"
+    },
+    {
+      "path": "h5p_themer.native-density.inc",
+      "category": "runtime"
+    },
+    {
+      "path": "h5p_themer.presets.inc",
+      "category": "runtime"
+    },
+    {
+      "path": "h5p_themer.preview.inc",
+      "category": "runtime"
+    },
+    {
+      "path": "h5p_themer.runtime.inc",
+      "category": "runtime"
+    },
+    {
+      "path": "h5p_themer.visibility-activation.inc",
+      "category": "runtime"
+    },
+    {
+      "path": "h5p_themer.visibility-admin.inc",
+      "category": "runtime"
+    },
+    {
+      "path": "h5p_themer.visibility-publication.inc",
+      "category": "runtime"
+    },
+    {
+      "path": "h5p_themer.visibility.inc",
+      "category": "runtime"
+    },
+    {
+      "path": "js/h5p_themer.admin.js",
+      "category": "runtime"
+    },
+    {
+      "path": "js/h5p_themer.learner-picker.js",
+      "category": "runtime"
+    },
+    {
+      "path": "js/h5p_themer.learner.js",
+      "category": "runtime"
+    },
+    {
+      "path": "js/h5p_themer.native-density.js",
+      "category": "runtime"
+    },
+    {
+      "path": "js/h5p_themer.preview.js",
+      "category": "runtime"
+    },
+    {
+      "path": "LICENSE",
+      "category": "license"
+    },
+    {
+      "path": "LICENSE-GPL-3.0.md",
+      "category": "license"
+    },
+    {
+      "path": "LICENSE-MIT-H5P-THEME-PICKER.txt",
+      "category": "license"
+    },
+    {
+      "path": "LICENSE.txt",
+      "category": "license"
+    },
+    {
+      "path": "README.md",
+      "category": "documentation"
+    },
+    {
+      "path": "THIRD-PARTY-NOTICES.md",
+      "category": "license"
+    }
+  ]
+}

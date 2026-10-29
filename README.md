@@ -4,7 +4,11 @@ Manage reusable color themes for compatible H5P activities in Backdrop CMS,
 with optional native Density for exactly qualified player types.
 This independent project does not modify authored H5P content or H5P libraries.
 
-**H5P Themer v0.4.3 development — locally deployed and accepted, not published**
+**H5P Themer v0.4.3 — release metadata prepared; not packaged or published**
+The tested implementation is committed as `1fd43f00e9832d5f5e5edfcf112806b1f1d91f3d`.
+Version metadata is prepared as `0.4.3`; package validation and publication remain
+separately authorized steps. Local deployment and acceptance below describe the
+tested implementation, not deployment of these release-preparation edits.
 Published baseline: v0.4.2 (`91415f7676b9091abd1bb2517fa28e5bd802d411`).
 The accepted local MultiChoice milestone is `3427d15dbc12c50d84fbc9e1757343168151eff7`.
 This milestone additionally qualifies official **H5P.Blanks 1.14.37** (Fill in
@@ -19,7 +23,7 @@ acceptance of the two UI corrections. See the separate
 [implementation and acceptance record](docs/v0.4.3-selector.md).
 See the [Blanks implementation and test plan](docs/v0.4.3-blanks.md),
 [MultiChoice milestone acceptance review](docs/v0.4.3-readiness.md),
-[draft release notes](docs/release-notes-v0.4.3.md) and
+[prepared release notes](docs/release-notes-v0.4.3.md) and
 [implementation and test plan](docs/v0.4.3-development.md).
 
 The standalone official MarkTheWords extension reuses the native Density controller
@@ -53,8 +57,9 @@ Themer does not save answers across navigation or reload.
 - Color changes require an H5P library that consumes the relevant theme variables.
 
 Native Density supports only **qualified top-level H5P.TrueFalse 1.8.24,
-H5P.MultiChoice 1.16.27, H5P.Blanks 1.14.37 and H5P.MarkTheWords 1.11.24 iframe players** in this working tree.
-Other types/versions, nested, DIV, external and ambiguous players retain
+H5P.MultiChoice 1.16.27, H5P.Blanks 1.14.37 and H5P.MarkTheWords 1.11.24 iframe players** in standalone activities.
+PapiJo variants, other types/versions, embedded children of Column, QuestionSet or
+InteractiveBook, nested, DIV, external and ambiguous players retain
 their original Density. Color theming and the learner dropdown have their own
 compatibility rules. Broader browser/accessibility support is not certified.
 
@@ -74,15 +79,19 @@ to use the checkbox. Environment overrides are never copied into configuration.
 Qualified players offer three native buttons. No button is pressed before an
 explicit choice, even if the original activity already uses a native profile.
 Small/Medium/Large persist through theme switches and same-tab reload/navigation.
-There is no visible reset button. The controller retains `resetOverride()` for
+There is no visible Density reset button. The separate theme Reset leaves Density
+unchanged. The controller retains `resetOverride()` for
 clearing the preference and restoring each player's original spacing.
 Core's unclassified baseline uses Small profile variables, not Large.
 
 Theme schema-1/2 `density` fields remain valid and round-trip unchanged, but are
 legacy metadata. Edit/Add/Duplicate forms and the overview no longer expose them.
 New themes retain an internal compatibility value; copies retain their source value.
-The settings extension is optional, so existing configurations need no migration.
-After saving it, v0.4.1 code cannot validate the new key: rollback requires restoring
+Upgrading from v0.4.2 introduces no configuration key, schema migration or update
+hook; schema remains 1003. Administrator defaults and custom themes are preserved.
+Rollback to matching v0.4.2 code needs no new reverse conversion. For the earlier
+v0.4.1-to-v0.4.2 upgrade, the optional settings extension is unchanged: after saving
+it, v0.4.1 cannot validate the new key, so that older rollback requires restoring
 pre-upgrade settings as well as code. Never uninstall/reinstall as an upgrade.
 
 See [v0.4.2 behavior, migration and acceptance](docs/v0.4.2-development.md).
@@ -95,7 +104,9 @@ existing open pages retain their loaded code. Deployments require site-specific 
 - [Installation, activation, disable and recovery](docs/installation.md)
 - [Theme administration and learner visibility](docs/administration.md)
 - [Configuration contracts and import rules](docs/configuration.md)
-- [v0.4.2 release notes](docs/release-notes-v0.4.2.md) and [changelog](CHANGELOG.md)
+- [Prepared v0.4.3 release notes](docs/release-notes-v0.4.3.md) and [changelog](CHANGELOG.md)
+- [Release packaging requirements](docs/installation.md#v043-release-packaging-preparation)
+- [Historical v0.4.2 release notes](docs/release-notes-v0.4.2.md)
 - [Historical v0.4.1 release notes](docs/release-notes-v0.4.1.md)
 - [Historical v0.4.0 release notes](docs/release-notes-v0.4.0.md)
 - [Planned disposable v0.4.0 upgrade rehearsal](docs/v0.4.1-upgrade-rehearsal.md)

@@ -1,19 +1,20 @@
 # Theme administration
 
-> Validated selector UI: only permitted colour themes are selectable.
-> Special states use truthful placeholders; theme Reset leaves Density unchanged.
-> See [implementation, tests and user-reported Firefox acceptance](v0.4.3-selector.md).
-
-> v0.4.3 Phase 4 additionally qualifies H5P.Blanks 1.14.37 beside TrueFalse 1.8.24
-> and MultiChoice 1.16.27. Blanks is locally deployed; all six Firefox tests are
-> user-reported passes; see [current acceptance and limits](v0.4.3-blanks.md). The earlier MultiChoice
-> [acceptance record](v0.4.3-readiness.md) remains separate.
-
-> v0.4.2 development: [the current Density contract](v0.4.2-development.md) supersedes
-> the v0.4.0/v0.4.1 Density and activation descriptions retained below.
-> Visual themes now supply colors only. Native Density uses the Global settings
-> checkbox unless explicitly overridden by PHP; original spacing is preserved
-> before an explicit learner choice. The toolbar has no reset button.
+> v0.4.3 release metadata is prepared, not packaged or published. Native Density
+> qualifies only standalone official H5P.TrueFalse 1.8.24, H5P.MultiChoice 1.16.27,
+> H5P.Blanks 1.14.37 and H5P.MarkTheWords 1.11.24 internal iframe players on Core
+> API exactly 1.28. Other versions, PapiJo and embedded compound activities remain
+> excluded. Colour-theme eligibility is separate from Density qualification.
+> The permitted-colour selector and theme-only **Use site default theme** Reset
+> preserve independent Small/Medium/Large preferences. The current administrator
+> default is followed when no explicit learner colour preference exists.
+> See [release scope and upgrade information](release-notes-v0.4.3.md) and
+> [19 user-reported Firefox passes](v0.4.3-markthewords.md).
+>
+> Historical v0.4.2 contract: [independent Density and earlier migration rules](v0.4.2-development.md).
+> Native Density retains its existing checkbox/PHP override and has no visible
+> Density reset button; the separate theme Reset clears only the theme preference.
+> The older version-specific material below remains historical.
 
 
 SPDX-License-Identifier: GPL-2.0-or-later.
